@@ -202,6 +202,9 @@ Parameter::Parameter()
   AddParam("alternate-weight-setting", "aws", "alternate set of weights to used per xml specification");
 
   AddParam("placeholder-factor", "Which factor to use to store the original text for placeholders");
+
+  AddParam("multipass-feature", "List of features and which pass they should be. Default = 1");
+
 }
 
 Parameter::~Parameter()
