@@ -18,7 +18,7 @@ SearchNormalBatch::SearchNormalBatch(Manager& manager, const InputType &source, 
   // Split the feature functions into sets of stateless, stateful
   // distributed lm, and stateful non-distributed.
   const vector<const StatefulFeatureFunction*>& ffs =
-    StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   for (unsigned i = 0; i < ffs.size(); ++i) {
     if (ffs[i]->GetScoreProducerDescription() == "DLM_5gram") { // TODO WFT
       m_dlm_ffs[i] = const_cast<LanguageModel*>(static_cast<const LanguageModel* const>(ffs[i]));
@@ -27,7 +27,7 @@ SearchNormalBatch::SearchNormalBatch(Manager& manager, const InputType &source, 
       m_stateful_ffs[i] = const_cast<StatefulFeatureFunction*>(ffs[i]);
     }
   }
-  m_stateless_ffs = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  m_stateless_ffs = StatelessFeatureFunction::GetStatelessFeatureFunctions(0);
 
 }
 

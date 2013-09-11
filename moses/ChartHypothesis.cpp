@@ -49,7 +49,7 @@ ChartHypothesis::ChartHypothesis(const ChartTranslationOptions &transOpt,
                                  ChartManager &manager)
   :m_transOpt(item.GetTranslationDimension().GetTranslationOption())
   ,m_currSourceWordsRange(transOpt.GetSourceWordsRange())
-  ,m_ffStates(StatefulFeatureFunction::GetStatefulFeatureFunctions().size())
+  ,m_ffStates(StatefulFeatureFunction::GetAllStatefulFFSize())
   ,m_arcList(NULL)
   ,m_winningHypo(NULL)
   ,m_manager(manager)
@@ -159,7 +159,7 @@ void ChartHypothesis::Evaluate()
   // compute values of stateless feature functions that were not
   // cached in the translation option-- there is no principled distinction
   const std::vector<const StatelessFeatureFunction*>& sfs =
-    StatelessFeatureFunction::GetStatelessFeatureFunctions();
+    StatelessFeatureFunction::GetStatelessFeatureFunctions(0);
   for (unsigned i = 0; i < sfs.size(); ++i) {
     if (! staticData.IsFeatureFunctionIgnored( *sfs[i] )) {
       sfs[i]->EvaluateChart(*this,&m_scoreBreakdown);
@@ -167,7 +167,7 @@ void ChartHypothesis::Evaluate()
   }
 
   const std::vector<const StatefulFeatureFunction*>& ffs =
-    StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   for (unsigned i = 0; i < ffs.size(); ++i) {
     if (! staticData.IsFeatureFunctionIgnored( *ffs[i] )) {
       m_ffStates[i] = ffs[i]->EvaluateChart(*this,i,&m_scoreBreakdown);

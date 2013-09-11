@@ -540,6 +540,14 @@ bool StaticData::LoadData(Parameter *parameter)
       return false;
     }
   }
+
+  if (m_parameter->GetParam("pass2-weight").size() > 0) {
+      if (!LoadWeight2ndPass()) {
+        return false;
+      }
+  }
+
+
   return true;
 }
 
@@ -635,7 +643,7 @@ bool StaticData::LoadDecodeGraphs()
   const vector<string> &mappingVector = m_parameter->GetParam("mapping");
   const vector<size_t> &maxChartSpans = Scan<size_t>(m_parameter->GetParam("max-chart-span"));
 
-  const std::vector<FeatureFunction*> *featuresRemaining = &FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> *featuresRemaining = &FeatureFunction::GetFeatureFunctions(0);
   DecodeStep *prev = 0;
   size_t prevDecodeGraphInd = 0;
 
@@ -658,7 +666,7 @@ bool StaticData::LoadDecodeGraphs()
       }
 
       if (prevDecodeGraphInd < decodeGraphInd) {
-        featuresRemaining = &FeatureFunction::GetFeatureFunctions();
+        featuresRemaining = &FeatureFunction::GetFeatureFunctions(0);
       }
 
       decodeType = token[1] == "T" ? Translate : Generate;
@@ -855,7 +863,7 @@ float StaticData::GetWeightUnknownWordPenalty() const
 
 void StaticData::InitializeForInput(const InputType& source) const
 {
-  const std::vector<FeatureFunction*> &producers = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &producers = FeatureFunction::GetFeatureFunctions(0);
   for(size_t i=0; i<producers.size(); ++i) {
     FeatureFunction &ff = *producers[i];
     ff.InitializeForInput(source);
@@ -864,7 +872,7 @@ void StaticData::InitializeForInput(const InputType& source) const
 
 void StaticData::CleanUpAfterSentenceProcessing(const InputType& source) const
 {
-  const std::vector<FeatureFunction*> &producers = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &producers = FeatureFunction::GetFeatureFunctions(0);
   for(size_t i=0; i<producers.size(); ++i) {
     FeatureFunction &ff = *producers[i];
     ff.CleanUpAfterSentenceProcessing(source);
@@ -873,7 +881,7 @@ void StaticData::CleanUpAfterSentenceProcessing(const InputType& source) const
 
 void StaticData::LoadFeatureFunctions()
 {
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
   std::vector<FeatureFunction*>::const_iterator iter;
   for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
     FeatureFunction *ff = *iter;
@@ -911,7 +919,7 @@ bool StaticData::CheckWeights() const
 {
   set<string> weightNames = m_parameter->GetWeightNames();
 
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
   for (size_t i = 0; i < ffs.size(); ++i) {
     const FeatureFunction &ff = *ffs[i];
     const string &descr = ff.GetScoreProducerDescription();
@@ -936,6 +944,27 @@ bool StaticData::CheckWeights() const
   return true;
 }
 
+bool StaticData::LoadWeight2ndPass()
+{
+  if (m_threadCount > 1) {
+	cerr << "ERROR: alternative weight settings currently not supported with multi-threading.";
+	return false;
+  }
+
+  m_allWeights2ndPass.PlusEquals(m_allWeights);
+  const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
+  for (size_t i = 0; i < weightSpecification.size(); ++i) {
+	  const string &line = weightSpecification[i];
+	  vector<string> keyValue = TokenizeFirstOnly(line, "=");
+	  CHECK(keyValue.size() == 2);
+
+	  vector<float> weights = Tokenize<float>(keyValue[1]);
+	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[0]);
+	  m_allWeights2ndPass.Assign(&ff, weights);
+  }
+
+}
+
 /**! Read in settings for alternative weights */
 bool StaticData::LoadAlternateWeightSettings()
 {
@@ -948,7 +977,7 @@ bool StaticData::LoadAlternateWeightSettings()
 
   // get mapping from feature names to feature functions
   map<string,FeatureFunction*> nameToFF;
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
   for (size_t i = 0; i < ffs.size(); ++i) {
     nameToFF[ ffs[i]->GetScoreProducerDescription() ] = ffs[i];
   }

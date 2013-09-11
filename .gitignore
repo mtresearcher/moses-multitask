@@ -71,3 +71,5 @@ mert/sentence-bleu
 .DS_Store
 *.pbxuser
 *.mode1v3
+
+moses/LM/CSLM.*

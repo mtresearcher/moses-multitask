@@ -78,6 +78,7 @@ protected:
   Parameter *m_parameter;
   std::vector<FactorType>	m_inputFactorOrder, m_outputFactorOrder;
   mutable ScoreComponentCollection m_allWeights;
+  mutable ScoreComponentCollection m_allWeights2ndPass;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
   std::vector<size_t> m_decodeGraphBackoff;
@@ -752,6 +753,7 @@ public:
   bool CheckWeights() const;
   bool LoadWeightSettings();
   bool LoadAlternateWeightSettings();
+  bool LoadWeight2ndPass();
 
   void OverrideFeatures();
 

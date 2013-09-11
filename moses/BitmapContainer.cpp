@@ -76,7 +76,7 @@ public:
 
 
     float totalWeightDistortion = 0;
-    const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
+    const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
     std::vector<FeatureFunction*>::const_iterator iter;
     for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
       const FeatureFunction *ff = *iter;

@@ -645,7 +645,7 @@ void TranslationOptionCollection::CacheLexReordering()
 {
   size_t size = m_source.GetSize();
 
-  const std::vector<const StatefulFeatureFunction*> &ffs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+  const std::vector<const StatefulFeatureFunction*> &ffs = StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   std::vector<const StatefulFeatureFunction*>::const_iterator iter;
   for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
     const StatefulFeatureFunction &ff = **iter;
