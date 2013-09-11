@@ -281,7 +281,7 @@ void Hypothesis::Evaluate(const SquareMatrix &futureScore)
   // compute values of stateless feature functions that were not
   // cached in the translation option
   const vector<const StatelessFeatureFunction*>& sfs =
-    StatelessFeatureFunction::GetStatelessFeatureFunctions();
+    StatelessFeatureFunction::GetStatelessFeatureFunctions(0);
   for (unsigned i = 0; i < sfs.size(); ++i) {
     const StatelessFeatureFunction &ff = *sfs[i];
     EvaluateWith(ff);

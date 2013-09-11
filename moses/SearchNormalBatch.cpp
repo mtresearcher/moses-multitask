@@ -27,7 +27,7 @@ SearchNormalBatch::SearchNormalBatch(Manager& manager, const InputType &source, 
       m_stateful_ffs[i] = const_cast<StatefulFeatureFunction*>(ffs[i]);
     }
   }
-  m_stateless_ffs = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  m_stateless_ffs = StatelessFeatureFunction::GetStatelessFeatureFunctions(0);
 
 }
 

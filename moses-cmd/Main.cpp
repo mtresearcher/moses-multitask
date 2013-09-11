@@ -458,7 +458,7 @@ static void ShowWeights()
   //TODO: Find a way of ensuring this order is synced with the nbest
   fix(cout,6);
   const StaticData& staticData = StaticData::Instance();
-  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetAllStatelessFF();
   const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetAllStatefulFF();
 
   for (size_t i = 0; i < sff.size(); ++i) {
@@ -504,7 +504,7 @@ void OutputFeatureWeightsForHypergraph(std::ostream &outputSearchGraphStream)
   outputSearchGraphStream.precision(6);
 
   const StaticData& staticData = StaticData::Instance();
-  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetAllStatelessFF();
   const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetAllStatefulFF();
   size_t featureIndex = 1;
   for (size_t i = 0; i < sff.size(); ++i) {

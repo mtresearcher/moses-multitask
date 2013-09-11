@@ -159,7 +159,7 @@ void ChartHypothesis::Evaluate()
   // compute values of stateless feature functions that were not
   // cached in the translation option-- there is no principled distinction
   const std::vector<const StatelessFeatureFunction*>& sfs =
-    StatelessFeatureFunction::GetStatelessFeatureFunctions();
+    StatelessFeatureFunction::GetStatelessFeatureFunctions(0);
   for (unsigned i = 0; i < sfs.size(); ++i) {
     if (! staticData.IsFeatureFunctionIgnored( *sfs[i] )) {
       sfs[i]->EvaluateChart(*this,&m_scoreBreakdown);

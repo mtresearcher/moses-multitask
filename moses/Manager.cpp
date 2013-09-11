@@ -657,7 +657,7 @@ void Manager::OutputFeatureWeightsForSLF(std::ostream &outputSearchGraphStream) 
   outputSearchGraphStream.precision(6);
 
   const StaticData& staticData = StaticData::Instance();
-  const vector<const StatelessFeatureFunction*>& slf  = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf  = StatelessFeatureFunction::GetAllStatelessFF();
   const vector<const StatefulFeatureFunction*> sff   = StatefulFeatureFunction::GetAllStatefulFF();
   size_t featureIndex = 1;
   for (size_t i = 0; i < sff.size(); ++i) {
@@ -696,7 +696,7 @@ void Manager::OutputFeatureValuesForSLF(const Hypothesis* hypo, bool zeros, std:
   // outputSearchGraphStream << scoreCollection << endl;
 
   const StaticData& staticData = StaticData::Instance();
-  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetAllStatelessFF();
   const vector<const StatefulFeatureFunction*> sff = StatefulFeatureFunction::GetAllStatefulFF();
   size_t featureIndex = 1;
   for (size_t i = 0; i < sff.size(); ++i) {
@@ -730,7 +730,7 @@ void Manager::OutputFeatureValuesForHypergraph(const Hypothesis* hypo, std::ostr
   outputSearchGraphStream.precision(6);
 
   const StaticData& staticData = StaticData::Instance();
-  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf =StatelessFeatureFunction::GetAllStatelessFF();
   const vector<const StatefulFeatureFunction*> sff = StatefulFeatureFunction::GetAllStatefulFF();
   size_t featureIndex = 1;
   for (size_t i = 0; i < sff.size(); ++i) {

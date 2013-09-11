@@ -414,7 +414,7 @@ void IOWrapper::OutputAllFeatureScores(const ScoreComponentCollection &features,
       OutputFeatureScores( out, features, ff, lastName );
     }
   }
-  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetAllStatelessFF();
   for( size_t i=0; i<slf.size(); i++ ) {
     const StatelessFeatureFunction *ff = slf[i];
     if (ff->IsTuneable()) {
