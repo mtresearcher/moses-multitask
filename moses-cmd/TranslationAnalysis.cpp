@@ -103,7 +103,7 @@ void PrintTranslationAnalysis(std::ostream &os, const Hypothesis* hypo)
   if (doLMStats && lmCalls > 0) {
     std::vector<unsigned int>::iterator acc = lmAcc.begin();
 
-    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetAllStatefulFF();
     for (size_t i = 0; i < statefulFFs.size(); ++i) {
       const StatefulFeatureFunction *ff = statefulFFs[i];
       const LanguageModel *lm = dynamic_cast<const LanguageModel*>(ff);

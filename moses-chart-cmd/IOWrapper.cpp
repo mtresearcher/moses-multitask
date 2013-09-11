@@ -406,7 +406,7 @@ void IOWrapper::OutputBestNone(long translationId)
 void IOWrapper::OutputAllFeatureScores(const ScoreComponentCollection &features, std::ostream &out)
 {
   std::string lastName = "";
-  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetAllStatefulFF();
   for( size_t i=0; i<sff.size(); i++ ) {
     const StatefulFeatureFunction *ff = sff[i];
     if (ff->GetScoreProducerDescription() != "BleuScoreFeature"

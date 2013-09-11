@@ -40,9 +40,13 @@ protected:
   void ParseLine(const std::string& description, const std::string &line);
 
 public:
-  static const std::vector<FeatureFunction*>& GetFeatureFunctions() {
+  static const std::vector<FeatureFunction*>& GetFeatureFunctions(size_t pass) {
     return m_producers;
   }
+  static const std::vector<FeatureFunction*>& GetAllFF() {
+    return m_producers;
+  }
+
   static FeatureFunction &FindFeatureFunction(const std::string& name);
 
   FeatureFunction(const std::string& description, const std::string &line);

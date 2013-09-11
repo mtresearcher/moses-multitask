@@ -49,7 +49,7 @@ ChartHypothesis::ChartHypothesis(const ChartTranslationOptions &transOpt,
                                  ChartManager &manager)
   :m_transOpt(item.GetTranslationDimension().GetTranslationOption())
   ,m_currSourceWordsRange(transOpt.GetSourceWordsRange())
-  ,m_ffStates(StatefulFeatureFunction::GetStatefulFeatureFunctions().size())
+  ,m_ffStates(StatefulFeatureFunction::GetAllStatefulFFSize())
   ,m_arcList(NULL)
   ,m_winningHypo(NULL)
   ,m_manager(manager)
@@ -167,7 +167,7 @@ void ChartHypothesis::Evaluate()
   }
 
   const std::vector<const StatefulFeatureFunction*>& ffs =
-    StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   for (unsigned i = 0; i < ffs.size(); ++i) {
     if (! staticData.IsFeatureFunctionIgnored( *ffs[i] )) {
       m_ffStates[i] = ffs[i]->EvaluateChart(*this,i,&m_scoreBreakdown);

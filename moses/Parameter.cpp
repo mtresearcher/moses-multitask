@@ -203,7 +203,8 @@ Parameter::Parameter()
 
   AddParam("placeholder-factor", "Which factor to use to store the original text for placeholders");
 
-  AddParam("multipass-feature", "List of features and which pass they should be. Default = 1");
+  AddParam("pass2-weight", "blah blah blah");
+  AddParam("multipass-feature", "list of (pass featurename)"); // passes starts from 0
 
 }
 

@@ -70,6 +70,18 @@ if $(with-ldhtlm) {
   lmmacros += LM_LDHT ;
 }
 
+#IRSTLM
+local with-cslm = [ option.get "with-cslm" ] ;
+if $(with-cslm) {
+  lib cslm : : <search>$(with-cslm)/lib <search>$(with-cslm)/lib64 ;
+  obj CSLM.o : CSLM.cpp ..//headers : <include>$(with-cslm)/include ;
+  alias cslm : CSLM.o cslm : : : <define>LM_CS ;
+  dependencies += cslm ;
+  lmmacros += LM_CS ;
+}
+
+
+
 #ORLM is always compiled but needs special headers
 obj ORLM.o : ORLM.cpp ..//headers ../TranslationModel/DynSAInclude//dynsa : : : <include>../TranslationModel/DynSAInclude ;
 

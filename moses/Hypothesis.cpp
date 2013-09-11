@@ -55,7 +55,7 @@ Hypothesis::Hypothesis(Manager& manager, InputType const& source, const Translat
   , m_wordDeleted(false)
   , m_totalScore(0.0f)
   , m_futureScore(0.0f)
-  , m_ffStates(StatefulFeatureFunction::GetStatefulFeatureFunctions().size())
+  , m_ffStates(StatefulFeatureFunction::GetAllStatefulFFSize())
   , m_arcList(NULL)
   , m_transOpt(initialTransOpt)
   , m_manager(manager)
@@ -65,7 +65,7 @@ Hypothesis::Hypothesis(Manager& manager, InputType const& source, const Translat
   // initialize scores
   //_hash_computed = false;
   //s_HypothesesCreated = 1;
-  const vector<const StatefulFeatureFunction*>& ffs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+  const vector<const StatefulFeatureFunction*>& ffs = StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   for (unsigned i = 0; i < ffs.size(); ++i)
     m_ffStates[i] = ffs[i]->EmptyHypothesisState(source);
   m_manager.GetSentenceStats().AddCreated();
@@ -288,7 +288,7 @@ void Hypothesis::Evaluate(const SquareMatrix &futureScore)
   }
 
   const vector<const StatefulFeatureFunction*>& ffs =
-    StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    StatefulFeatureFunction::GetStatefulFeatureFunctions(0);
   for (unsigned i = 0; i < ffs.size(); ++i) {
     const StatefulFeatureFunction &ff = *ffs[i];
     const StaticData &staticData = StaticData::Instance();

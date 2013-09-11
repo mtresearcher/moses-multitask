@@ -524,11 +524,11 @@ int main(int argc, char** argv)
   }
 
   // get reference to feature functions
-  const vector<FeatureFunction*> &featureFunctions = FeatureFunction::GetFeatureFunctions();
+  const vector<FeatureFunction*> &featureFunctions = FeatureFunction::GetAllFF();
   ScoreComponentCollection initialWeights = decoder->getWeights();
 
   if (add2lm != 0) {
-    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetAllStatefulFF();
     for (size_t i = 0; i < statefulFFs.size(); ++i) {
       const StatefulFeatureFunction *ff = statefulFFs[i];
       const LanguageModel *lm = dynamic_cast<const LanguageModel*>(ff);
@@ -551,7 +551,7 @@ int main(int argc, char** argv)
   // set bleu weight to twice the size of the language model weight(s)
   if (bleu_weight_lm) {
     float lmSum = 0;
-    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+    const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetAllStatefulFF();
     for (size_t i = 0; i < statefulFFs.size(); ++i) {
       const StatefulFeatureFunction *ff = statefulFFs[i];
       const LanguageModel *lm = dynamic_cast<const LanguageModel*>(ff);
@@ -780,7 +780,7 @@ int main(int argc, char** argv)
         }
 
         // check LM weight
-        const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+        const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetAllStatefulFF();
         for (size_t i = 0; i < statefulFFs.size(); ++i) {
           const StatefulFeatureFunction *ff = statefulFFs[i];
           const LanguageModel *lm = dynamic_cast<const LanguageModel*>(ff);
@@ -1140,7 +1140,7 @@ int main(int argc, char** argv)
 
         // set weight for bleu feature to 0 before optimizing
         vector<FeatureFunction*>::const_iterator iter;
-        const vector<FeatureFunction*> &featureFunctions2 = FeatureFunction::GetFeatureFunctions();
+        const vector<FeatureFunction*> &featureFunctions2 = FeatureFunction::GetAllFF();
         for (iter = featureFunctions2.begin(); iter != featureFunctions2.end(); ++iter) {
           if ((*iter)->GetScoreProducerDescription() == "BleuScoreFeature") {
             mosesWeights.Assign(*iter, 0);
@@ -1151,7 +1151,7 @@ int main(int argc, char** argv)
         // scale LM feature (to avoid rapid changes)
         if (scale_lm) {
           cerr << "scale lm" << endl;
-          const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+          const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetAllStatefulFF();
           for (size_t i = 0; i < statefulFFs.size(); ++i) {
             const StatefulFeatureFunction *ff = statefulFFs[i];
             const LanguageModel *lm = dynamic_cast<const LanguageModel*>(ff);

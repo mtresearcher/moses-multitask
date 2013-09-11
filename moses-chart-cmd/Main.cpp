@@ -201,7 +201,7 @@ static void ShowWeights()
   fix(cout,6);
   const StaticData& staticData = StaticData::Instance();
   const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
-  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetAllStatefulFF();
 
   for (size_t i = 0; i < sff.size(); ++i) {
     const StatefulFeatureFunction *ff = sff[i];
