@@ -4,11 +4,11 @@
 #ifndef moses_NBESTCSLM_H_
 #define moses_NBESTCSLM_H_
 
-#include "TrellisPath.h"
+#include "moses/TrellisPath.h"
 //#include "HypothesisStack"
 #include "Mach.h" // from cslm toolkit
 #include "TrainerNgramSlist.h"
-#include "StaticData.h"
+#include "moses/StaticData.h"
 #include <boost/thread.hpp>
 
 class Vocab;
@@ -23,10 +23,12 @@ class Hypothesis;
 // class TrainerNgramSlist;
 // class Mach;
 
-class LanguageModelCSLM
+class LanguageModelCSLM : public LanguageModelSingleFactor
 {
 
 protected:
+  std::string	m_srilmVocab_filePath;
+  std::string	m_srilmNgram_filePath;
   Vocab *m_srilmVocab;
   Mach *m_mach;
   TrainerNgramSlist *m_trainer;
@@ -39,6 +41,7 @@ protected:
 public:
   LanguageModelCSLM();
   virtual ~LanguageModelCSLM();
+  void Load();  // Load CSLM Language Model
   bool Load(char * CSLM_filepath, char * Wordlist_filepath, char * backofflm_filepath);  // Load CSLM Language Model
   void SetInitialStatus() {busy =false;}
   void TakeMach(){ busy =true; }
@@ -58,6 +61,9 @@ public:
   //Convert CSLM Score to natural log
   float lognat2ln(float prob) {  return prob * 2.30258509299405f ; }
 
+   //
+  void SetParameter(const std::string& key, const std::string& value);
+
 
    // Gets
    size_t GetId() {return Id; }
@@ -73,4 +79,3 @@ public:
 }
 
 #endif
-

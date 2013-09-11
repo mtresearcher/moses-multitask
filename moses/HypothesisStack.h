@@ -33,6 +33,17 @@ public:
   const_iterator end() const {
     return m_hypos.end();
   }
+
+  //! bougares iterators
+  iterator Nocbegin(){
+    return m_hypos.begin();
+  }
+  iterator Nocend(){
+    return m_hypos.end();
+  }
+
+
+
   size_t size() const {
     return m_hypos.size();
   }

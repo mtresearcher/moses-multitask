@@ -92,6 +92,10 @@ protected:
   Hypothesis(const Hypothesis &prevHypo, const TranslationOption &transOpt);
 
 public:
+
+  float* m_cslmprobs;
+  int m_nbwords;
+
   static ObjectPool<Hypothesis> &GetObjectPool() {
     return s_objectPool;
   }

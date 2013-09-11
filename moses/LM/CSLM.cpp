@@ -13,26 +13,26 @@
 #include <fstream>
 
 #include "Util.h"
-#include "TypeDef.h"
+#include "moses/TypeDef.h"
 #include "CSLM.h"
 #include "TrainerNgramSlist.h"  // FROM CSLM
 
 #include "Vocab.h"
 #include "Ngram.h"
 #include "StaticData.h"
-#include "HypothesisStack.h"
-#include "TrellisPathList.h"
+#include "moses/HypothesisStack.h"
+#include "moses/TrellisPathList.h"
 
 using namespace std;
 
 namespace Moses
 {
 
-LanguageModelCSLM::LanguageModelCSLM()
+LanguageModelCSLM::LanguageModelCSLM(const std::string &line) : LanguageModelSingleFactor("CSLM", line)
 	:m_srilmVocab(NULL)
 	,m_mach(NULL)
-	,m_trainer(NULL),busy(false)
-{
+	,m_trainer(NULL),busy(false) {
+		ReadParameters();
 }
 
 LanguageModelCSLM::~LanguageModelCSLM()
@@ -46,26 +46,23 @@ LanguageModelCSLM::~LanguageModelCSLM()
  *  Load CSLM Model
  * ****************************/
 
-bool LanguageModelCSLM::Load(char* CSLM_filepath, char * Wordlist_filepath, char * backofflm_filepath)
+void LanguageModelCSLM::Load()
 {
-
-  VERBOSE(1," Loading CSLM Model .... "<<CSLM_filepath<<endl);
+  VERBOSE(1," Loading CSLM Model .... "<<m_filePath<<endl);
 
   ifstream ifs;
-  ifs.open(CSLM_filepath,ios::binary);
-  CHECK_FILE(ifs,CSLM_filepath );
+  ifs.open(m_filePath,ios::binary);
+  CHECK_FILE(ifs,m_filePath);
   m_mach = Mach::Read(ifs);
   ifs.close();
 
   m_mach->Info();
   nGramOrder = m_mach->GetIdim()+1;
 
-  m_trainer    = new TrainerNgramSlist(m_mach,Wordlist_filepath,backofflm_filepath);
+  m_trainer    = new TrainerNgramSlist(m_mach,m_srilmVocab_filePath, m_srilmNgram_filePath);
   m_srilmVocab = m_trainer->GetVocab();
 
   VERBOSE(1," - using SRILM vocabulary with " << m_srilmVocab->numWords() << " words"<<endl);
-
-  return true;
 }
 
 
@@ -165,7 +162,7 @@ void LanguageModelCSLM::RescorePath(TrellisPath *path )
  * Add CSLMScore * CSLM_Weight
  ****************************************/
 
-float LanguageModelCSLM::UpdatePathTotalScore(TrellisPath * path )
+/*float LanguageModelCSLM::UpdatePathTotalScore(TrellisPath * path )
 {
 	float TotalScore=0.0;
 	std::vector<float > Weights  = StaticData::Instance().GetRescoWeights();
@@ -182,7 +179,7 @@ float LanguageModelCSLM::UpdatePathTotalScore(TrellisPath * path )
 
 
    return TotalScore;
-}
+}*/
 
 
 
@@ -233,7 +230,7 @@ void LanguageModelCSLM::RescoreLAT( std::vector < HypothesisStack* >& hypoStackC
 /*************************
  **************************************/
 // RescoreLAT From begin
-// And Backward Pass : Minus Previous Breakdown Score To clean the Scores (Merci Loïc ;) )
+// And Backward Pass : Minus Previous Breakdown Score To clean the Scores (Merci Lo√Øc ;) )
 //
 void LanguageModelCSLM::RescoreLATV1( std::vector < HypothesisStack* >& hypoStackColl )
 {
@@ -476,6 +473,18 @@ void LanguageModelCSLM::FinishPending()
 }
 
 
-
+/* Overriding SetParameter to parse CSLM-specific parameters */
+void LanguageModelCSLM::SetParameter(const std::string& key, const std::string& value)
+{
+  if (key == "wordlist") {
+    m_srilmVocab_filePath = value;
+  } else if (key == "srilm") {
+      m_srilmNgram_filePath = value;
+    }else {
+    LanguageModelSingleFactor::SetParameter(key, value);
+  }
 }
 
+
+
+}

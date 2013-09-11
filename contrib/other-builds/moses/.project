@@ -3,6 +3,7 @@
 	<name>moses</name>
 	<comment></comment>
 	<projects>
+		<project>util</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -1325,6 +1326,16 @@
 			<name>LM/Base.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/Base.h</locationURI>
+		</link>
+		<link>
+			<name>LM/CSLM.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/CSLM.cpp</locationURI>
+		</link>
+		<link>
+			<name>LM/CSLM.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/CSLM.h</locationURI>
 		</link>
 		<link>
 			<name>LM/ChartState.h</name>
