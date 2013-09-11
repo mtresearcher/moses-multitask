@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/FF/WordPenaltyProducer.h"
 #include "moses/FF/UnknownWordPenaltyProducer.h"
 #include "moses/FF/InputFeature.h"
+#include "moses/FF/StatefulFeatureFunction.h"
+#include "moses/FF/StatelessFeatureFunction.h"
 
 #include "DecodeStepTranslation.h"
 #include "DecodeStepGeneration.h"
@@ -951,6 +953,7 @@ bool StaticData::LoadWeight2ndPass()
 	return false;
   }
 
+  // weights
   m_allWeights2ndPass.PlusEquals(m_allWeights);
   const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
   for (size_t i = 0; i < weightSpecification.size(); ++i) {
@@ -963,6 +966,25 @@ bool StaticData::LoadWeight2ndPass()
 	  m_allWeights2ndPass.Assign(&ff, weights);
   }
 
+  // config
+  const vector<string> &config = m_parameter->GetParam("multipass-feature");
+  for (size_t i = 0; i < config.size(); ++i) {
+	  const string &line = config[i];
+	  vector<string> keyValue = TokenizeFirstOnly(line, "=");
+	  CHECK(keyValue.size() == 2);
+
+	  size_t pass = Scan<size_t>(keyValue[0]);
+	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[1]);
+	  const StatelessFeatureFunction &ffStateless = static_cast<StatelessFeatureFunction&>(ff);
+	  const StatefulFeatureFunction &ffStateful = static_cast<StatefulFeatureFunction&>(ff);
+
+	  AddMultipass(pass, &ff, FeatureFunction::m_passes);
+	  AddMultipass(pass, &ffStateless, StatelessFeatureFunction::m_passes);
+	  AddMultipass(pass, &ffStateful, StatefulFeatureFunction::m_passes);
+
+  }
+
+  return true;
 }
 
 /**! Read in settings for alternative weights */

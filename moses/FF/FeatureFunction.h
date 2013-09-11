@@ -40,6 +40,8 @@ protected:
   void ParseLine(const std::string& description, const std::string &line);
 
 public:
+  static std::vector<std::vector<FeatureFunction*> > m_passes;
+
   static const std::vector<FeatureFunction*>& GetFeatureFunctions(size_t pass) {
     return m_producers;
   }
@@ -116,6 +118,15 @@ public:
   virtual void SetParameter(const std::string& key, const std::string& value);
   virtual void ReadParameters();
 };
+
+// adding multipass ff
+template <class T>
+void AddMultipass(size_t pass, T *ff, std::vector<std::vector<T*> > &coll) {
+  if (pass >= coll.size()) {
+	  coll.resize(pass + 1);
+  }
+  coll[pass].push_back(ff);
+}
 
 }
 

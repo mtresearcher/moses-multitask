@@ -15,6 +15,8 @@ class StatefulFeatureFunction: public FeatureFunction
   static std::vector<const StatefulFeatureFunction*> m_statefulFFs;
 
 public:
+  static std::vector<std::vector<const StatefulFeatureFunction*> > m_passes;
+
   static const std::vector<const StatefulFeatureFunction*>& GetStatefulFeatureFunctions(size_t pass) {
     return m_statefulFFs;
   }
