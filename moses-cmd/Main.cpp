@@ -45,6 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "TranslationAnalysis.h"
 #include "IOWrapper.h"
 #include "mbr.h"
+#include "SearchGraph.h"
 
 #include "moses/Hypothesis.h"
 #include "moses/Manager.h"
@@ -116,14 +117,22 @@ public:
     translationTime.start();
     // shorthand for "global data"
     const StaticData &staticData = StaticData::Instance();
-    // input sentence
-    Sentence sentence();
 
     // execute the translation
     // note: this executes the search, resulting in a search graph
     //       we still need to apply the decision rule (MAP, MBR, ...)
     Manager manager(m_lineNumber, *m_source,staticData.GetSearchAlgorithm());
     manager.ProcessSentence();
+
+    Moses::SearchGraph searchGraph(manager);
+    TRACE_ERR("Search graph has " << searchGraph.NumberOfVertices() << " vertices." << std::endl);
+    for (std::auto_ptr<Moses::SearchGraph::EdgeIterator> iter = searchGraph.GetAllEdgesIter();
+        iter->Valid(); iter->Next())
+    {
+      const Moses::SearchGraph::Edge& edge = iter->CurrentEdge();
+      TRACE_ERR(edge.Begin() << " - " << edge.End() << ": " << edge.TotalScore() << " ");
+      TRACE_ERR("{" << edge.GetSourceText() << "} -> {" << edge.GetTargetText() << "}" << std::endl);
+    }
 
     // output word graph
     if (m_wordGraphCollector) {
