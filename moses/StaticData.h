@@ -78,7 +78,7 @@ protected:
   Parameter *m_parameter;
   std::vector<FactorType>	m_inputFactorOrder, m_outputFactorOrder;
   mutable ScoreComponentCollection m_allWeights;
-  mutable ScoreComponentCollection m_allWeights2ndPass;
+  mutable ScoreComponentCollection m_allWeights1, m_allWeights2;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
   std::vector<size_t> m_decodeGraphBackoff;
@@ -760,6 +760,9 @@ public:
   const std::pair<FactorType, FactorType> &GetPlaceholderFactor() const {
     return m_placeHolderFactor;
   }
+
+  size_t m_currPass, m_maxPass;
+  void SwitchPass(size_t newPass);
 };
 
 }

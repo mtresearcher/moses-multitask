@@ -944,6 +944,9 @@ bool StaticData::CheckWeights() const
 
 void StaticData::LoadWeight2ndPass()
 {
+	m_currPass = 0;
+	m_maxPass = 0;
+
   // config
   if (!m_parameter->isParamSpecified("multipass-feature")) {
 	  FeatureFunction::m_passes.push_back(FeatureFunction::GetAllFF());
@@ -964,6 +967,8 @@ void StaticData::LoadWeight2ndPass()
 	  CHECK(keyValue.size() == 2);
 
 	  size_t pass = Scan<size_t>(keyValue[0]);
+	  m_maxPass = max(m_maxPass, pass);
+
 	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[1]);
 	  const StatelessFeatureFunction &ffStateless = static_cast<StatelessFeatureFunction&>(ff);
 	  const StatefulFeatureFunction &ffStateful = static_cast<StatefulFeatureFunction&>(ff);
@@ -975,7 +980,7 @@ void StaticData::LoadWeight2ndPass()
   }
 
   // weights
-  m_allWeights2ndPass.PlusEquals(m_allWeights);
+  m_allWeights2.PlusEquals(m_allWeights);
   const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
   for (size_t i = 0; i < weightSpecification.size(); ++i) {
 	  const string &line = weightSpecification[i];
@@ -984,9 +989,20 @@ void StaticData::LoadWeight2ndPass()
 
 	  vector<float> weights = Tokenize<float>(keyValue[1]);
 	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[0]);
-	  m_allWeights2ndPass.Assign(&ff, weights);
+	  m_allWeights2.Assign(&ff, weights);
   }
 
+}
+
+void StaticData::SwitchPass(size_t newPass)
+{
+	if (newPass == 0) {
+		m_allWeights = m_allWeights1;
+	}
+	else {
+		m_allWeights = m_allWeights2;
+	}
+	m_currPass = newPass;
 }
 
 /**! Read in settings for alternative weights */
