@@ -76,8 +76,6 @@ if $(with-cslm) {
   lib MKL : : <name>mkl_core  <search>/opt/intel/mkl/lib ;
   lib IOP5 : : <name>iomp5 <search>/opt/intel/lib ;
   lib INTTH : : <name>mkl_intel_thread <search>/opt/intel/mkl/lib ;
-  #lib CSLM : : <name>cslm <search>$(with-cslm)/lib ;
-#  lib BLAS : : <name>blas <search>/usr/lib64 ;
   lib BLAS : : <name>mkl_blas95 <search>/opt/intel/mkl/lib ;
   alias cslm-libs : MKL sri-libs IOP5 INTTH ; 
   # BLAS ;

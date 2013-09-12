@@ -6,8 +6,6 @@
 
 #include "moses/TrellisPath.h"
 //#include "HypothesisStack"
-#include "Mach.h" // from cslm toolkit
-#include "TrainerNgramSlist.h"
 #include "moses/StaticData.h"
 #include <boost/thread.hpp>
 #include "SingleFactor.h"
@@ -15,6 +13,7 @@
 class Vocab;
 class Ngram;
 class TrainerNgramSlist;
+class Mach;
 
 namespace Moses
 {
@@ -22,8 +21,6 @@ namespace Moses
 
 class HypothesisStack;
 class Hypothesis;
-// class TrainerNgramSlist;
-// class Mach;
 
 class LanguageModelCSLM : public LanguageModelSingleFactor
 {
