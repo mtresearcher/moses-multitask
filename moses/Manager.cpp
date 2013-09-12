@@ -1446,4 +1446,10 @@ SentenceStats& Manager::GetSentenceStats() const
 
 }
 
+const HypothesisStack& Manager::GetLastSearchStack() const
+{
+  return *m_search->GetHypothesisStacks().back();
 }
+
+}
+
