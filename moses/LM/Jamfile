@@ -83,7 +83,7 @@ if $(with-cslm) {
   # BLAS ;
  
   lib cslm : : <search>$(with-cslm)/lib <search>$(with-cslm)/lib64 ;
-  obj CSLM.o : CSLM.cpp ..//headers : <include>$(with-cslm)/include <include>$(with-srilm)/include <include>/opt/intel/include <include>/opt/intel/mkl/include  <define>LM_SRI <warnings>off ;
+  obj CSLM.o : CSLM.cpp ..//headers : <include>$(with-cslm)/include <include>$(with-srilm)/include  <include>/opt/intel/mkl/include  <define>LM_SRI <warnings>off ;
   alias cs : CSLM.o cslm : : : <define>LM_CS <define>BLAS_INTEL_MKL ;
   dependencies += cs ;
 
