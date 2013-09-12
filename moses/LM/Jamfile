@@ -73,8 +73,8 @@ if $(with-ldhtlm) {
 #CSLM
 local with-cslm = [ option.get "with-cslm" ] ;
 if $(with-cslm) {
-  lib MKL : : <name>mkl_core  <search>/opt/intel/mkl/lib ;
-  lib IOP5 : : <name>iomp5 <search>/opt/intel/lib ;
+  lib MKL : : <name>mkl_core  <search>/opt/intel/mkl/lib  ;
+  lib IOP5 : : <name>iomp5 <search>/opt/intel/Compiler/11.1/046/lib/intel64 ;
   lib INTTH : : <name>mkl_intel_thread <search>/opt/intel/mkl/lib ;
   #lib CSLM : : <name>cslm <search>$(with-cslm)/lib ;
 #  lib BLAS : : <name>blas <search>/usr/lib64 ;
@@ -83,7 +83,7 @@ if $(with-cslm) {
   # BLAS ;
  
   lib cslm : : <search>$(with-cslm)/lib <search>$(with-cslm)/lib64 ;
-  obj CSLM.o : CSLM.cpp ..//headers : <include>$(with-cslm)/include <include>$(with-srilm)/include  <include>/opt/intel/mkl/include <define>BLAS_INTEL_MKL  <define>LM_SRI <warnings>off ;
+  obj CSLM.o : CSLM.cpp ..//headers : <include>$(with-cslm)/include <include>$(with-srilm)/include  <include>/opt/intel/Compiler/11.1/046/mkl/include <define>BLAS_INTEL_MKL  <define>LM_SRI <warnings>off ;
   alias cs : CSLM.o cslm : : : <define>LM_CS ;
   dependencies += cs ;
 
