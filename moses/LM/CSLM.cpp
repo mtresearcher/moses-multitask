@@ -489,6 +489,10 @@ void LanguageModelCSLM::SetParameter(const std::string& key, const std::string& 
   }
 }
 
+LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFactor, State* finalState) const
+{
+
+}
 
 
 }

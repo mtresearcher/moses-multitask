@@ -753,7 +753,7 @@ public:
   bool CheckWeights() const;
   bool LoadWeightSettings();
   bool LoadAlternateWeightSettings();
-  bool LoadWeight2ndPass();
+  void LoadWeight2ndPass();
 
   void OverrideFeatures();
 

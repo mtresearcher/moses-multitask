@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FeatureFunction.h"
+#include "util/check.hh"
 
 namespace Moses
 {
@@ -18,7 +19,8 @@ public:
   static std::vector<std::vector<const StatefulFeatureFunction*> > m_passes;
 
   static const std::vector<const StatefulFeatureFunction*>& GetStatefulFeatureFunctions(size_t pass) {
-    return m_statefulFFs;
+	CHECK(pass < m_passes.size());
+	return m_passes[pass];
   }
   static const std::vector<const StatefulFeatureFunction*>& GetAllStatefulFF() {
     return m_statefulFFs;

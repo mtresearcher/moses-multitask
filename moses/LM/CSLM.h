@@ -14,6 +14,7 @@
 
 class Vocab;
 class Ngram;
+class TrainerNgramSlist;
 
 namespace Moses
 {
@@ -43,7 +44,6 @@ public:
   LanguageModelCSLM(const std::string &line);
   virtual ~LanguageModelCSLM();
   void Load();  // Load CSLM Language Model
-  bool Load(char * CSLM_filepath, char * Wordlist_filepath, char * backofflm_filepath);  // Load CSLM Language Model
   void SetInitialStatus() {busy =false;}
   void TakeMach(){ busy =true; }
   void SetId(size_t m) {Id = m ;}
@@ -72,6 +72,7 @@ public:
    Mach *  GetMach() { return m_mach; }
    TrainerNgramSlist * GetTrainer() { return m_trainer; }
 
+   virtual LMResult GetValue(const std::vector<const Word*> &contextFactor, State* finalState = NULL) const;
 
 
 };
