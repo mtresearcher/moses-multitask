@@ -19,7 +19,7 @@
 
 #include "Vocab.h"
 #include "Ngram.h"
-#include "StaticData.h"
+#include "moses/StaticData.h"
 #include "moses/HypothesisStack.h"
 #include "moses/TrellisPathList.h"
 
