@@ -16,6 +16,7 @@
 #include "moses/TypeDef.h"
 #include "CSLM.h"
 #include "TrainerNgramSlist.h"  // FROM CSLM
+#include "Mach.h" // from cslm toolkit
 
 #include "Vocab.h"
 #include "Ngram.h"
