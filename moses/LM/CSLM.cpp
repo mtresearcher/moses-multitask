@@ -497,7 +497,7 @@ LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFact
 	FactorType    factorType = GetFactorType();
 	size_t count = contextFactor.size();
 
-	if(count<= 0){
+	if(count <= 0){
 		ret.score = 0.0;
 		ret.unknown = false;
 		return ret;
@@ -531,15 +531,15 @@ LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFact
 		m_trainer->BlockFinish();
 
 	
-	size_t n = 0;
-	float res[nb_w];
+	size_t n = 2; // evaluate From bigram 
+	float res[nb_w-2]={ 0.0f };
 	
-	while( n < nb_w  ){ // 
+	while( n < nb_w  ){ //   
 
 		if(n<CSModelOrder)
-			m_trainer->BlockEval(wid   , n+1   ,  res + n  );	
+			m_trainer->BlockEval(wid  , n   ,  res + n-2  );	
 		else
-			m_trainer->BlockEval(wid+n ,CSModelOrder,res + n)
+			m_trainer->BlockEval(wid+n ,CSModelOrder,res + n-2)
 		
 		n++;
 	}
@@ -554,7 +554,7 @@ LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFact
 
 
 
-return ret;
+	return ret;
 }
 
 
