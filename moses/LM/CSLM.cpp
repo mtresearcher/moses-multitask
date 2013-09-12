@@ -554,7 +554,7 @@ LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFact
 
 
 
-
+return ret;
 }
 
 
