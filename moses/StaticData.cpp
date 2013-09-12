@@ -511,6 +511,8 @@ bool StaticData::LoadData(Parameter *parameter)
 
   OverrideFeatures();
 
+  LoadWeight2ndPass();
+
   LoadFeatureFunctions();
 
   if (!LoadDecodeGraphs()) return false;
@@ -543,8 +545,6 @@ bool StaticData::LoadData(Parameter *parameter)
       return false;
     }
   }
-
-  LoadWeight2ndPass();
 
   return true;
 }
@@ -879,7 +879,7 @@ void StaticData::CleanUpAfterSentenceProcessing(const InputType& source) const
 
 void StaticData::LoadFeatureFunctions()
 {
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetAllFF();
   std::vector<FeatureFunction*>::const_iterator iter;
   for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
     FeatureFunction *ff = *iter;
