@@ -19,7 +19,7 @@
 
 #include "Vocab.h"
 #include "Ngram.h"
-#include "StaticData.h"
+#include "moses/StaticData.h"
 #include "moses/HypothesisStack.h"
 #include "moses/TrellisPathList.h"
 
@@ -28,8 +28,9 @@ using namespace std;
 namespace Moses
 {
 
-LanguageModelCSLM::LanguageModelCSLM(const std::string &line) : LanguageModelSingleFactor("CSLM", line)
-	:m_srilmVocab(NULL)
+LanguageModelCSLM::LanguageModelCSLM(const std::string &line)
+	:LanguageModelSingleFactor("CSLM", line)
+	,m_srilmVocab(NULL)
 	,m_mach(NULL)
 	,m_trainer(NULL),busy(false) {
 		ReadParameters();
@@ -51,15 +52,15 @@ void LanguageModelCSLM::Load()
   VERBOSE(1," Loading CSLM Model .... "<<m_filePath<<endl);
 
   ifstream ifs;
-  ifs.open(m_filePath,ios::binary);
-  CHECK_FILE(ifs,m_filePath);
+  ifs.open(m_filePath.c_str(),ios::binary);
+  CHECK_FILE(ifs,m_filePath.c_str());
   m_mach = Mach::Read(ifs);
   ifs.close();
 
   m_mach->Info();
   nGramOrder = m_mach->GetIdim()+1;
 
-  m_trainer    = new TrainerNgramSlist(m_mach,m_srilmVocab_filePath, m_srilmNgram_filePath);
+  m_trainer    = new TrainerNgramSlist(m_mach,m_srilmVocab_filePath.c_str(), m_srilmNgram_filePath.c_str());
   m_srilmVocab = m_trainer->GetVocab();
 
   VERBOSE(1," - using SRILM vocabulary with " << m_srilmVocab->numWords() << " words"<<endl);
@@ -195,7 +196,7 @@ void LanguageModelCSLM::RescorePath(TrellisPath *path )
  * Run into each Stack and calculate the CSLM score of each hypothesis and it's arc list
  **************************************************************************************/
 
-void LanguageModelCSLM::RescoreLAT( std::vector < HypothesisStack* >& hypoStackColl )
+/*void LanguageModelCSLM::RescoreLAT( std::vector < HypothesisStack* >& hypoStackColl )
 {
 	cerr<<" Lock cslm .... "<<endl;
 	boost::mutex::scoped_lock lock(cslm_mutex); // Lock the CSLM Model for this Sentence
@@ -225,14 +226,14 @@ void LanguageModelCSLM::RescoreLAT( std::vector < HypothesisStack* >& hypoStackC
 			}
 		}
 	}
-}
+}*/
 
 /*************************
  **************************************/
 // RescoreLAT From begin
 // And Backward Pass : Minus Previous Breakdown Score To clean the Scores (Merci Loïc ;) )
 //
-void LanguageModelCSLM::RescoreLATV1( std::vector < HypothesisStack* >& hypoStackColl )
+/*void LanguageModelCSLM::RescoreLATV1( std::vector < HypothesisStack* >& hypoStackColl )
 {
 
 	boost::mutex::scoped_lock lock(cslm_mutex);
@@ -259,13 +260,13 @@ void LanguageModelCSLM::RescoreLATV1( std::vector < HypothesisStack* >& hypoStac
 
 
 	}
-}
+}*/
 
 /******************************************************
  *     		Calc CSLM Score optimize	      *
  ******************************************************/
 
-void LanguageModelCSLM::GetCSLMScoreOpt(Hypothesis* hypo )
+/*void LanguageModelCSLM::GetCSLMScoreOpt(Hypothesis* hypo )
 {
 	if(StaticData::Instance().GetCSLMnGramOrder() <= 1 )
 		return;
@@ -341,12 +342,12 @@ void LanguageModelCSLM::GetCSLMScoreOpt(Hypothesis* hypo )
 		}
 	     n++;
 	}
-}
+}*/
 
 /******************************************
  * Calc the CSLM Score Of one Hypothesis
  *******************************/
-void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
+/*void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
 {
 	if(StaticData::Instance().GetCSLMnGramOrder() <= 1 )
 		return ;
@@ -381,7 +382,10 @@ void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
 
 	cerr<<endl;
 
-	if( hypo->IsSourceCompleted() ){ contextFactor.append(EOS_); /*contextFactor.append(" "); */ Hyp_nbw++; } // Add the EndofSentence </s> if source compeleted
+	if( hypo->IsSourceCompleted() ){
+		contextFactor.append(EOS_);
+		//contextFactor.append(" ");
+	 	 Hyp_nbw++; } // Add the EndofSentence </s> if source compeleted
 
 	cerr<<" Hyp "<<hypo->GetId()<<" nbW "<<Hyp_nbw<<" currEndPos :"<<currEndPos<<" ,  Output : "<<contextFactor;
 	cerr<<endl;
@@ -460,7 +464,7 @@ void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
 
 	m_trainer->BlockFinish();
 
-}
+}*/
 
 /*****************************************
  *  Finish Pending -> Get the CSLM probs

@@ -10,6 +10,7 @@
 #include "TrainerNgramSlist.h"
 #include "moses/StaticData.h"
 #include <boost/thread.hpp>
+#include "SingleFactor.h"
 
 class Vocab;
 class Ngram;
@@ -39,7 +40,7 @@ protected:
   bool busy;
   size_t Id;
 public:
-  LanguageModelCSLM();
+  LanguageModelCSLM(const std::string &line);
   virtual ~LanguageModelCSLM();
   void Load();  // Load CSLM Language Model
   bool Load(char * CSLM_filepath, char * Wordlist_filepath, char * backofflm_filepath);  // Load CSLM Language Model
@@ -51,12 +52,12 @@ public:
   //virtual void RescoreNbest(TrellisPathList &nBest );
 
 
-  void RescoreLAT( std::vector < HypothesisStack* >& hypoStackColl);
+  /*void RescoreLAT( std::vector < HypothesisStack* >& hypoStackColl);
   void RescoreLATV1( std::vector < HypothesisStack* >& hypoStackColl);
   void GetCSLMScore( Hypothesis* hypo);
-  void GetCSLMScoreOpt( Hypothesis* hypo);
+  void GetCSLMScoreOpt( Hypothesis* hypo);*/
   void FinishPending();
-  float UpdatePathTotalScore(TrellisPath * path );
+  //float UpdatePathTotalScore(TrellisPath * path );
 
   //Convert CSLM Score to natural log
   float lognat2ln(float prob) {  return prob * 2.30258509299405f ; }

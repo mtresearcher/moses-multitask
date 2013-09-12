@@ -49,6 +49,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1546774818" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.paths.523170942" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:}/../../irstlm/lib&quot;"/>
+									<listOptionValue builtIn="false" value="/opt/intel/lib"/>
+									<listOptionValue builtIn="false" value="/opt/intel/mkl/lib/"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:}/../../cslm/lib&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:}/../../randlm/lib&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:}/../../cmph/lib&quot;"/>
@@ -71,6 +73,10 @@
 									<listOptionValue builtIn="false" value="misc"/>
 									<listOptionValue builtIn="false" value="moses"/>
 									<listOptionValue builtIn="false" value="search"/>
+									<listOptionValue builtIn="false" value="mkl_intel_lp64"/>
+									<listOptionValue builtIn="false" value="mkl_intel_thread"/>
+									<listOptionValue builtIn="false" value="mkl_core"/>
+									<listOptionValue builtIn="false" value="iomp5"/>
 									<listOptionValue builtIn="false" value="irstlm"/>
 									<listOptionValue builtIn="false" value="OnDiskPt"/>
 									<listOptionValue builtIn="false" value="lm"/>
