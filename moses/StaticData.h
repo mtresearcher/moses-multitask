@@ -78,7 +78,7 @@ protected:
   Parameter *m_parameter;
   std::vector<FactorType>	m_inputFactorOrder, m_outputFactorOrder;
   mutable ScoreComponentCollection m_allWeights;
-  mutable ScoreComponentCollection m_allWeights2ndPass;
+  mutable ScoreComponentCollection m_allWeights1, m_allWeights2;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
   std::vector<size_t> m_decodeGraphBackoff;
@@ -753,7 +753,7 @@ public:
   bool CheckWeights() const;
   bool LoadWeightSettings();
   bool LoadAlternateWeightSettings();
-  bool LoadWeight2ndPass();
+  void LoadWeight2ndPass();
 
   void OverrideFeatures();
 
@@ -765,7 +765,7 @@ public:
   void SwitchPass(size_t newPass);
 
   // CSLM rescoring quick hack
-
+/*
   bool UseLMRescoring() const { return m_uselmrescoring; } //should we use CSLM to rescore the search space?
   inline size_t GetLMRescoringOrder() const{ return m_lmRescoringNGramOrder; }
   inline size_t GetCSLMnGramOrder() const{ return m_CSLMnGramOrder; }
@@ -779,7 +779,7 @@ public:
 
   //std::vector<float> GetshowWeights() const{ return showWeights; }
   std::vector<float> GetRescoringWeights() const{ return m_rescoringWeights; } //set of weight for rescoring != decoding
-
+*/
 };
 }
 #endif

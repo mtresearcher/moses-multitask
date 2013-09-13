@@ -171,12 +171,13 @@ public:
 
 
   /* For lattice rescoring */
+ /*
   void RescoreLattice();
   void CumulateCslmScores();
   void MinusBackwardScoreBreakdown();
   void ForwardSwitch();
   void UpdateHypoTotalScore( Hypothesis* hypo );
-
+*/
 
 };
 
