@@ -50,6 +50,9 @@ public:
   static const std::vector<FeatureFunction*>& GetAllFF() {
     return m_producers;
   }
+  static const std::vector<FeatureFunction*>& GetFeatureFunctionsForNow() {
+    return m_passes.at(StaticData::Instance().m_currPass);
+  }
 
   static FeatureFunction &FindFeatureFunction(const std::string& name);
 

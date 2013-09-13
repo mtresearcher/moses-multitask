@@ -18,7 +18,7 @@ class SearchGraphBuilder
 public:
   SearchGraphBuilder(SearchGraph& graph) :
       m_graph(graph), m_hypoMap(), m_vertexCount(0),
-      m_featureFunctions(FeatureFunction::GetAllFF())
+      m_featureFunctions(FeatureFunction::GetFeatureFunctionsForNow())
   {
     m_graph.m_featureDescriptions.resize(m_featureFunctions.size());
     m_graph.m_featureWeights.resize(m_featureFunctions.size());
