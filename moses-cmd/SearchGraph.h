@@ -41,7 +41,7 @@ public:
   std::string FeatureDescription(size_t featureIndex) const;
   const std::vector<float>& FeatureWeights(size_t featureIndex) const;
 private:
-  friend class SearchGraphBuilder;
+  class Builder;
 
   std::vector< Edge > m_allEdges;
   std::vector< std::vector< VertexId > > m_outgoingEdges, m_incomingEdges;
@@ -92,7 +92,7 @@ public:
   std::string GetSourceText() const;
   std::string GetTargetText() const;
 private:
-  friend class SearchGraphBuilder;
+  friend class SearchGraph;
   VertexId m_begin; //! origin of the edge
   VertexId m_end;   //! end of the edge
   std::vector< std::vector<float> > m_featureScores;

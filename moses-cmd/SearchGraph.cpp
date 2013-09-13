@@ -6,17 +6,15 @@
 namespace Moses
 {
 
-class SearchGraphBuilder
+class SearchGraph::Builder
 {
-  typedef SearchGraph::VertexId VertexId;
-
   SearchGraph& m_graph;
   typedef std::map<const Hypothesis*, VertexId> HypoMap;
   HypoMap m_hypoMap;
   VertexId m_vertexCount;
   const std::vector<FeatureFunction*>& m_featureFunctions;
 public:
-  SearchGraphBuilder(SearchGraph& graph) :
+  Builder(SearchGraph& graph) :
       m_graph(graph), m_hypoMap(), m_vertexCount(0),
       m_featureFunctions(FeatureFunction::GetFeatureFunctionsForNow())
   {
@@ -87,7 +85,7 @@ private:
 SearchGraph::SearchGraph(const Manager& manager)
 {
   const HypothesisStack& lastStack = manager.GetLastSearchStack();
-  SearchGraphBuilder builder(*this);
+  SearchGraph::Builder builder(*this);
   for (HypothesisStack::const_iterator it = lastStack.begin();
       it != lastStack.end(); ++it)
   {
