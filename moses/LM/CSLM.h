@@ -35,15 +35,10 @@ protected:
   static const int max_words=16384;
   boost::mutex cslm_mutex;
   boost::condition_variable cond;
-  bool busy;
-  size_t Id;
 public:
   LanguageModelCSLM(const std::string &line);
   virtual ~LanguageModelCSLM();
   void Load();  // Load CSLM Language Model
-  void SetInitialStatus() {busy =false;}
-  void TakeMach(){ busy =true; }
-  void SetId(size_t m) {Id = m ;}
 
   // Recoring functions
   void RescoreLattice( std::vector < HypothesisStack* >& hypoStackColl);

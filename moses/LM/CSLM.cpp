@@ -34,7 +34,7 @@ LanguageModelCSLM::LanguageModelCSLM(const std::string &line)
 	:LanguageModelSingleFactor("CSLM", line)
 	,m_srilmVocab(NULL)
 	,m_mach(NULL)
-	,m_trainer(NULL),busy(false) {
+	,m_trainer(NULL) {
 		ReadParameters();
 }
 
@@ -71,12 +71,10 @@ void LanguageModelCSLM::Load()
 
 
 /*************************************************************************************************************/
-/*************************************************************************************************************/
-/*************************************************************************************************************/
 /*************************    SEARCH SPACE RESCORING WITH CSLM Model    *************************************/
 /*************************************************************************************************************/
-/*************************************************************************************************************/
-/*************************************************************************************************************/
+
+
 
 /***************************************************************************************
  * Run into each Stack and calculate the CSLM score of each hypothesis and it's arc list
@@ -169,11 +167,6 @@ void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
 	int nb_w = m_srilmVocab->parseWords(str, vstr, max_words + 1);
 	int wid[nb_w];
 	m_srilmVocab->getIndices(vstr, (VocabIndex*)wid, nb_w + 1, m_srilmVocab->unkIndex() );
-//	 cerr<<" nb_w : "<<nb_w<<endl;
-//	 cerr<<" WordID To Eval : ";
-//	for(size_t j=0;j<nb_w;j++)
-//		cerr<<wid[j]<<" ";
-//	cerr<<endl;
 
 	// really useful?
 	//for(size_t k=0;k<Idx;k++)
@@ -183,11 +176,6 @@ void LanguageModelCSLM::GetCSLMScore(Hypothesis* hypo )
 	int n = startPos;
 	int *wptr;
 
-	// don't evaluate unigrams -> why ? we just added BOS !!
-	/*if( startPos == 1 ) {
-		hypo->m_cslmprobs[0] = 0.0f;
-		n++;
-	}*/
 
 	// Handle short contexts
 	while(n<nb_w && n<cslmOrder-1){

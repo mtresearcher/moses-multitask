@@ -1446,6 +1446,27 @@ SentenceStats& Manager::GetSentenceStats() const
 
 }
 
+
+/********************/
+
+void Manager::RescoreLattice()
+{
+
+				std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+
+				StaticData::Instance().GetCSLM()->RescoreLattice(hypoStackColl );
+
+				// BackwardScoreBDMinus() ;  // Clean the scoreBreakdown 
+
+				// ForwardSwitch();  // Forwad and switch Hypothesis (winning vs loser)
+
+
+}
+
+
+
+
+
 void Manager::CumulateCslmScores()
 {
 	//	cerr<<" --------- CSLM Scores  -------- "<<endl;
