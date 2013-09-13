@@ -61,14 +61,16 @@ public:
     m_begin(0), m_end(0),
     m_featureScores(),
     m_totalScore(std::numeric_limits<double>::infinity()),
-    m_translationOption(NULL)
+    m_targetPhrase(),
+    m_sourcePhrase()
   {}
 
   Edge(const Edge& other) :
     m_begin(other.m_begin), m_end(other.m_end),
     m_featureScores(other.m_featureScores),
     m_totalScore(other.m_totalScore),
-    m_translationOption(other.m_translationOption)
+    m_targetPhrase(other.m_targetPhrase),
+    m_sourcePhrase(other.m_sourcePhrase)
   {}
 
   VertexId Begin() const
@@ -87,9 +89,6 @@ public:
   {
     return m_totalScore;
   }
-  const TranslationOption& GetTranslationOption() const {
-    return *m_translationOption;
-  }
   std::string GetSourceText() const;
   std::string GetTargetText() const;
 private:
@@ -98,7 +97,8 @@ private:
   VertexId m_end;   //! end of the edge
   std::vector< std::vector<float> > m_featureScores;
   float m_totalScore;
-  const TranslationOption* m_translationOption;
+  TargetPhrase m_targetPhrase;
+  Phrase m_sourcePhrase;
 };
 
 class SearchGraph::EdgeIterator

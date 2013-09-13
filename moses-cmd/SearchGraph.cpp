@@ -195,7 +195,8 @@ SearchGraph::Edge::Edge(VertexId begin, VertexId end,
   const Hypothesis& hypothesis, const std::vector<FeatureFunction*>& allFFs) :
   m_begin(begin), m_end(end),
   m_featureScores(allFFs.size()), m_totalScore(0.0),
-  m_translationOption(&hypothesis.GetTranslationOption())
+  m_targetPhrase(hypothesis.GetCurrTargetPhrase()),
+  m_sourcePhrase(hypothesis.GetTranslationOption().GetInputPath().GetPhrase())
 {
   const Hypothesis& prevHypoth = *hypothesis.GetPrevHypo();
   m_totalScore = hypothesis.GetTotalScore() - prevHypoth.GetTotalScore();
@@ -228,13 +229,12 @@ static std::string FlattenPhrase(const Phrase& phrase)
 
 std::string SearchGraph::Edge::GetSourceText() const
 {
-  const InputPath& path = m_translationOption->GetInputPath();
-  return FlattenPhrase(path.GetPhrase());
+  return FlattenPhrase(m_sourcePhrase);
 }
 
 std::string SearchGraph::Edge::GetTargetText() const
 {
-  return FlattenPhrase(m_translationOption->GetTargetPhrase());
+  return FlattenPhrase(m_targetPhrase);
 }
 
 } // namespace Moses
