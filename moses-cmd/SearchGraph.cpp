@@ -191,11 +191,21 @@ const std::vector<float>& SearchGraph::FeatureWeights(size_t featureIndex) const
   return m_featureWeights[featureIndex];
 }
 
+static std::vector<Word> ExtractWords(const Phrase& phrase)
+{
+  size_t size = phrase.GetSize();
+  std::vector<Word> result(size);
+  for (size_t i = 0; i < size; ++i)
+    result[i] = phrase.GetWord(i);
+  return result;
+}
+
 SearchGraph::Edge::Edge(VertexId begin, VertexId end,
   const Hypothesis& hypothesis, const std::vector<FeatureFunction*>& allFFs) :
   m_begin(begin), m_end(end),
   m_featureScores(allFFs.size()), m_totalScore(0.0),
-  m_translationOption(&hypothesis.GetTranslationOption())
+  m_sourceWords(ExtractWords(hypothesis.GetTranslationOption().GetInputPath().GetPhrase())),
+  m_targetWords(ExtractWords(hypothesis.GetCurrTargetPhrase()))
 {
   const Hypothesis& prevHypoth = *hypothesis.GetPrevHypo();
   m_totalScore = hypothesis.GetTotalScore() - prevHypoth.GetTotalScore();
@@ -212,13 +222,13 @@ SearchGraph::Edge::Edge(VertexId begin, VertexId end,
   }
 }
 
-static std::string FlattenPhrase(const Phrase& phrase)
+static std::string FlattenPhrase(const std::vector<Word>& words)
 {
-  size_t size = phrase.GetSize();
+  size_t size = words.size();
   std::ostringstream oss;
   for (size_t i = 0; i < size; ++i)
   {
-    const Word& w = phrase.GetWord(i);
+    const Word& w = words[i];
     if (i != 0)
       oss << " ";
     oss << w.GetString(0);
@@ -228,13 +238,12 @@ static std::string FlattenPhrase(const Phrase& phrase)
 
 std::string SearchGraph::Edge::GetSourceText() const
 {
-  const InputPath& path = m_translationOption->GetInputPath();
-  return FlattenPhrase(path.GetPhrase());
+  return FlattenPhrase(m_sourceWords);
 }
 
 std::string SearchGraph::Edge::GetTargetText() const
 {
-  return FlattenPhrase(m_translationOption->GetTargetPhrase());
+  return FlattenPhrase(m_targetWords);
 }
 
 } // namespace Moses
