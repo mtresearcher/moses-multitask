@@ -237,4 +237,9 @@ std::string SearchGraph::Edge::GetTargetText() const
   return FlattenPhrase(m_translationOption->GetTargetPhrase());
 }
 
+void SearchGraph::Search(size_t pass)
+{
+
+}
+
 } // namespace Moses

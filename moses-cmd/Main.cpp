@@ -146,6 +146,7 @@ public:
      *
      *  Questions:
      */
+    searchGraph.Search(1);
 
 
 

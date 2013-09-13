@@ -980,6 +980,7 @@ void StaticData::LoadWeight2ndPass()
   }
 
   // weights
+  /*
   m_allWeights2.PlusEquals(m_allWeights);
   const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
   for (size_t i = 0; i < weightSpecification.size(); ++i) {
@@ -991,9 +992,9 @@ void StaticData::LoadWeight2ndPass()
 	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[0]);
 	  m_allWeights2.Assign(&ff, weights);
   }
-
+  */
 }
-
+/*
 void StaticData::SwitchPass(size_t newPass)
 {
 	if (newPass == 0) {
@@ -1004,7 +1005,7 @@ void StaticData::SwitchPass(size_t newPass)
 	}
 	m_currPass = newPass;
 }
-
+*/
 /**! Read in settings for alternative weights */
 bool StaticData::LoadAlternateWeightSettings()
 {

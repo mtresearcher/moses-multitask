@@ -1,14 +1,15 @@
 #pragma once
 
-#include "moses/TranslationOption.h"
 #include <vector>
 #include <memory>
 
 namespace Moses
 {
 
+class TranslationOption;
 class Hypothesis;
 class Manager;
+class FeatureFunction;
 
 /** SearchGraph class provides an abstraction for the search graph
  * It includes information about all feature functions and their weights
@@ -40,6 +41,8 @@ public:
 
   std::string FeatureDescription(size_t featureIndex) const;
   const std::vector<float>& FeatureWeights(size_t featureIndex) const;
+
+  void Search(size_t pass);
 private:
   friend class SearchGraphBuilder;
 

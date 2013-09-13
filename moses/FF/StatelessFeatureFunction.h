@@ -2,6 +2,7 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
+#include "moses-cmd/SearchGraph.h"
 
 namespace Moses
 {
@@ -40,6 +41,9 @@ public:
     **/
   virtual void EvaluateChart(const ChartHypothesis &hypo,
                              ScoreComponentCollection* accumulator) const = 0;
+
+  virtual void Evaluate(SearchGraph::Edge &edge ) const
+  {}
 
   virtual bool IsStateless() const {
     return true;
