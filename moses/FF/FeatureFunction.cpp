@@ -7,6 +7,7 @@
 #include "moses/Hypothesis.h"
 #include "moses/Manager.h"
 #include "moses/TranslationOption.h"
+#include "moses/StaticData.h"
 
 using namespace std;
 
@@ -116,3 +117,7 @@ std::vector<float> FeatureFunction::DefaultWeights() const
 
 }
 
+const std::vector<FeatureFunction*>& FeatureFunction::GetFeatureFunctionsForNow()
+{
+  return m_passes.at(StaticData::Instance().m_currPass);
+}
