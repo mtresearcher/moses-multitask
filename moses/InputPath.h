@@ -13,7 +13,7 @@ namespace Moses
 class PhraseDictionary;
 class TargetPhraseCollection;
 class ScoreComponentCollection;
-class ScorePair;
+struct ScorePair;
 class TargetPhrase;
 class InputPath;
 

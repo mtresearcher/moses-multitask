@@ -37,7 +37,7 @@ class PhraseDictionary;
 class TranslationOption;
 class TranslationOptionCollection;
 class ChartTranslationOptions;
-class XmlOption;
+struct XmlOption;
 
 
 /**

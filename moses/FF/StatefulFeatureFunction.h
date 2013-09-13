@@ -32,6 +32,7 @@ public:
   StatefulFeatureFunction(const std::string& description, const std::string &line);
   StatefulFeatureFunction(const std::string& description, size_t numScoreComponents, const std::string &line);
 
+  using FeatureFunction::Evaluate;
   /**
    * \brief This interface should be implemented.
    * Notes: When evaluating the value of this feature function, you should avoid
