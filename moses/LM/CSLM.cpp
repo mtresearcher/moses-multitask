@@ -17,6 +17,7 @@
 #include "moses/TypeDef.h"
 #include "CSLM.h"
 #include "TrainerNgramSlist.h"  // FROM CSLM
+#include "Mach.h" // from cslm toolkit
 
 #include "Vocab.h"
 #include "Ngram.h"
@@ -223,6 +224,72 @@ void LanguageModelCSLM::SetParameter(const std::string& key, const std::string& 
   }
 }
 
+LMResult LanguageModelCSLM::GetValue(const std::vector<const Word*> &contextFactor, State* finalState) const
+{
+
+	LMResult ret;
+	FactorType    factorType = GetFactorType();
+	size_t count = contextFactor.size();
+
+	if(count <= 0){
+		ret.score = 0.0;
+		ret.unknown = false;
+		return ret;
+	}
+
+	VocabString vstr[max_words+1];
+	const int max_words=16384;
+	const int max_chars=max_words*16;
+	char str[max_chars];
+	int nbw = 0;
+
+	std::string phrases;
+
+	size_t CSModelOrder = 7 ; // CSLM order need to be parsed from the config file!!!!
+
+	// Get the words to be evaluated
+
+	for(size_t i=0; count ;i++){
+		phrases.append(contextFactor[i]->GetString(0,false));
+		phrases.append(" ");
+	}
+
+	strcpy(str,phrases.c_str());
+	
+	int nb_w = m_srilmVocab->parseWords(str, vstr, max_words + 1); // Get the numb of words of this hypothesis  
+	int wid[nb_w];
+
+	m_srilmVocab->getIndices(vstr, (VocabIndex*) wid, nb_w + 1, m_srilmVocab->unkIndex() ); // Get indices in wid
+
+	if(nb_w > m_trainer->BlockGetFree() )
+		m_trainer->BlockFinish();
+
+	
+	size_t n = 2; // evaluate From bigram 
+	float res[nb_w-2]={ 0.0f };
+	
+	while( n < nb_w  ){ //   
+
+		if(n<CSModelOrder)
+			m_trainer->BlockEval(wid  , n   ,  res + n-2  );	
+		else
+			m_trainer->BlockEval(wid+n ,CSModelOrder,res + n-2)
+		
+		n++;
+	}
+
+
+	m_trainer->BlockFinish();
+
+	for(size_t j=0;j < nb_w;j++)
+	{
+		ret.score += res[j];
+	}
+
+
+
+	return ret;
+}
 
 
 }

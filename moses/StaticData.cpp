@@ -43,6 +43,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "DecodeGraph.h"
 #include "InputFileStream.h"
 #include "ScoreComponentCollection.h"
+#include "util/exception.hh"
 
 #ifdef WITH_THREADS
 #include <boost/thread.hpp>
@@ -510,6 +511,8 @@ bool StaticData::LoadData(Parameter *parameter)
 
   OverrideFeatures();
 
+  LoadWeight2ndPass();
+
   LoadFeatureFunctions();
 
   if (!LoadDecodeGraphs()) return false;
@@ -542,13 +545,6 @@ bool StaticData::LoadData(Parameter *parameter)
       return false;
     }
   }
-
-  if (m_parameter->GetParam("pass2-weight").size() > 0) {
-      if (!LoadWeight2ndPass()) {
-        return false;
-      }
-  }
-
 
   return true;
 }
@@ -883,7 +879,7 @@ void StaticData::CleanUpAfterSentenceProcessing(const InputType& source) const
 
 void StaticData::LoadFeatureFunctions()
 {
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetAllFF();
   std::vector<FeatureFunction*>::const_iterator iter;
   for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
     FeatureFunction *ff = *iter;
@@ -946,27 +942,24 @@ bool StaticData::CheckWeights() const
   return true;
 }
 
-bool StaticData::LoadWeight2ndPass()
+void StaticData::LoadWeight2ndPass()
 {
-  if (m_threadCount > 1) {
-	cerr << "ERROR: alternative weight settings currently not supported with multi-threading.";
-	return false;
-  }
-
-  // weights
-  m_allWeights2ndPass.PlusEquals(m_allWeights);
-  const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
-  for (size_t i = 0; i < weightSpecification.size(); ++i) {
-	  const string &line = weightSpecification[i];
-	  vector<string> keyValue = TokenizeFirstOnly(line, "=");
-	  CHECK(keyValue.size() == 2);
-
-	  vector<float> weights = Tokenize<float>(keyValue[1]);
-	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[0]);
-	  m_allWeights2ndPass.Assign(&ff, weights);
-  }
+	m_currPass = 0;
+	m_maxPass = 0;
 
   // config
+  if (!m_parameter->isParamSpecified("multipass-feature")) {
+	  FeatureFunction::m_passes.push_back(FeatureFunction::GetAllFF());
+	  StatelessFeatureFunction::m_passes.push_back(StatelessFeatureFunction::GetAllStatelessFF());
+	  StatefulFeatureFunction::m_passes.push_back(StatefulFeatureFunction::GetAllStatefulFF());
+
+	  return;
+  }
+
+  if (m_threadCount > 1) {
+	UTIL_THROW(util::Exception, "ERROR: multipass currently not supported with multi-threading.");
+  }
+
   const vector<string> &config = m_parameter->GetParam("multipass-feature");
   for (size_t i = 0; i < config.size(); ++i) {
 	  const string &line = config[i];
@@ -974,6 +967,8 @@ bool StaticData::LoadWeight2ndPass()
 	  CHECK(keyValue.size() == 2);
 
 	  size_t pass = Scan<size_t>(keyValue[0]);
+	  m_maxPass = max(m_maxPass, pass);
+
 	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[1]);
 	  const StatelessFeatureFunction &ffStateless = static_cast<StatelessFeatureFunction&>(ff);
 	  const StatefulFeatureFunction &ffStateful = static_cast<StatefulFeatureFunction&>(ff);
@@ -984,7 +979,30 @@ bool StaticData::LoadWeight2ndPass()
 
   }
 
-  return true;
+  // weights
+  m_allWeights2.PlusEquals(m_allWeights);
+  const vector<string> &weightSpecification = m_parameter->GetParam("pass2-weight");
+  for (size_t i = 0; i < weightSpecification.size(); ++i) {
+	  const string &line = weightSpecification[i];
+	  vector<string> keyValue = TokenizeFirstOnly(line, "=");
+	  CHECK(keyValue.size() == 2);
+
+	  vector<float> weights = Tokenize<float>(keyValue[1]);
+	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[0]);
+	  m_allWeights2.Assign(&ff, weights);
+  }
+
+}
+
+void StaticData::SwitchPass(size_t newPass)
+{
+	if (newPass == 0) {
+		m_allWeights = m_allWeights1;
+	}
+	else {
+		m_allWeights = m_allWeights2;
+	}
+	m_currPass = newPass;
 }
 
 /**! Read in settings for alternative weights */

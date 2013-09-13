@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include "moses/TypeDef.h"
+#include "util/check.hh"
 
 namespace Moses
 {
@@ -43,7 +44,8 @@ public:
   static std::vector<std::vector<FeatureFunction*> > m_passes;
 
   static const std::vector<FeatureFunction*>& GetFeatureFunctions(size_t pass) {
-    return m_producers;
+	CHECK(pass < m_passes.size());
+    return m_passes[pass];
   }
   static const std::vector<FeatureFunction*>& GetAllFF() {
     return m_producers;

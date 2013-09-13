@@ -1426,42 +1426,24 @@ void Manager::GetForwardBackwardSearchGraph(std::map< int, bool >* pConnected,
 }
 
 
-const Hypothesis *Manager::GetBestHypothesis() const {
+const Hypothesis *Manager::GetBestHypothesis() const
+{
   return m_search->GetBestHypothesis();
 }
 
-int Manager::GetNextHypoId() {
+int Manager::GetNextHypoId()
+{
   return m_hypoId++;
 }
 
-void Manager::ResetSentenceStats(const InputType& source) {
+void Manager::ResetSentenceStats(const InputType& source)
+{
   m_sentenceStats = std::auto_ptr<SentenceStats>(new SentenceStats(source));
 }
-SentenceStats& Manager::GetSentenceStats() const {
-  return *m_sentenceStats;
-}
-
-
-/********************************** Fethi Bougares and Loic Barrault ********************
- * 				search space rescoring with CSLM
- **********************************************************************************************/
-
-void Manager::RescoreLattice()
+SentenceStats& Manager::GetSentenceStats() const
 {
-	// 1- cerr<<" CSLMHypothesesScore "<<endl;
-	std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+  return *m_sentenceStats;
 
-	// cerr<<" hypoStackColl size : "<<hypoStackColl.size()<<endl;
-	StaticData::Instance().GetCSLM()->RescoreLattice(hypoStackColl);
-
-    //PrintCSLMScores(); // print and cumulate  to be done in one pass !!!!!!
-	CumulateCslmScores();
-
-	// 2- cerr<<" BackwardScoreBDMinus "<<endl;
-	MinusBackwardScoreBreakdown();
-
-	// 3- cerr<<" ForwardSwitch "<<endl;
-	ForwardSwitch();
 }
 
 void Manager::CumulateCslmScores()
@@ -1513,6 +1495,9 @@ void Manager::CumulateCslmScores()
 			}
 		}
 	}
+const HypothesisStack& Manager::GetLastSearchStack() const
+{
+  return *m_search->GetHypothesisStacks().back();
 }
 
 /**************************************************************************************
@@ -1626,3 +1611,6 @@ void Manager::UpdateHypoTotalScore( Hypothesis* hypo )
 
 
 }
+
+}
+

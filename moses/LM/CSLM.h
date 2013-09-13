@@ -6,14 +6,14 @@
 
 #include "moses/TrellisPath.h"
 //#include "HypothesisStack"
-#include "cslm/Mach.h" // from cslm toolkit
-#include "cslm/TrainerNgramSlist.h"
 #include "moses/StaticData.h"
 #include <boost/thread.hpp>
 #include "SingleFactor.h"
 
 class Vocab;
 class Ngram;
+class TrainerNgramSlist;
+class Mach;
 
 namespace Moses
 {
@@ -21,8 +21,6 @@ namespace Moses
 
 class HypothesisStack;
 class Hypothesis;
-// class TrainerNgramSlist;
-// class Mach;
 
 class LanguageModelCSLM : public LanguageModelSingleFactor
 {
@@ -43,7 +41,6 @@ public:
   LanguageModelCSLM(const std::string &line);
   virtual ~LanguageModelCSLM();
   void Load();  // Load CSLM Language Model
-  bool Load(char * CSLM_filepath, char * Wordlist_filepath, char * backofflm_filepath);  // Load CSLM Language Model
   void SetInitialStatus() {busy =false;}
   void TakeMach(){ busy =true; }
   void SetId(size_t m) {Id = m ;}
@@ -64,6 +61,7 @@ public:
    Mach *  GetMach() { return m_mach; }
    TrainerNgramSlist * GetTrainer() { return m_trainer; }
 
+   virtual LMResult GetValue(const std::vector<const Word*> &contextFactor, State* finalState = NULL) const;
 
 
 };

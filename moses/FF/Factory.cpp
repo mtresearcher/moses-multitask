@@ -34,6 +34,11 @@
 #include "moses/FF/SkeletonStatefulFF.h"
 
 #include "moses/LM/Ken.h"
+
+#ifdef LM_CS
+#include "moses/LM/CSLM.h"
+#endif
+
 #ifdef LM_IRST
 #include "moses/LM/IRST.h"
 #endif
@@ -142,6 +147,10 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(ControlRecombination);
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
+
+#ifdef LM_CS
+  MOSES_FNAME(LanguageModelCSLM);
+#endif
 
 #ifdef HAVE_SYNLM
   MOSES_FNAME(SyntacticLanguageModel);

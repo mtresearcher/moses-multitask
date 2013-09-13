@@ -42,7 +42,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "FactorCollection.h"
 #include "Parameter.h"
 #include "LM/Base.h"
-#include "LM/CSLM.h"
 #include "SentenceStats.h"
 #include "DecodeGraph.h"
 #include "TranslationOptionList.h"
@@ -211,24 +210,6 @@ protected:
   std::map< std::string, std::set< size_t > > m_weightSettingIgnoreDP; // decoding path
 
   std::pair<FactorType, FactorType> m_placeHolderFactor;
-
-  // CSLM rescoring member variables
-  bool m_uselmrescoring; //should we use CSLM to rescore the search space?
-  size_t m_lmRescoringNGramOrder;
-  size_t m_CSLMnGramOrder;
-  std::string  m_cslmFilePath;
-  std::string m_wlFilePath;
-  std::string m_backoffLmFilePath;
-  LanguageModelCSLM* m_cslmLanguageModel_rescoring;
-  LanguageModelSRI * m_backoffLM_rescoring; // SRILM backoff LM needed by CSLM
-  float m_lmRescoringWeight;
-
-  //std::vector<float> GetshowWeights() const{ return showWeights; }
-  std::vector<float> m_rescoringWeights; //set of weight for rescoring != decoding
-
-
-
-
 
   StaticData();
 
@@ -779,6 +760,9 @@ public:
   const std::pair<FactorType, FactorType> &GetPlaceholderFactor() const {
     return m_placeHolderFactor;
   }
+
+  size_t m_currPass, m_maxPass;
+  void SwitchPass(size_t newPass);
 
   // CSLM rescoring quick hack
 

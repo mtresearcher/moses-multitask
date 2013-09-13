@@ -138,6 +138,7 @@ public:
   void ProcessSentence();
   const Hypothesis *GetBestHypothesis() const;
   const Hypothesis *GetActualBestHypothesis() const;
+  const HypothesisStack& GetLastSearchStack() const;
   void CalcNBest(size_t count, TrellisPathList &ret,bool onlyDistinct=0) const;
   void CalcLatticeSamples(size_t count, TrellisPathList &ret) const;
   void PrintAllDerivations(long translationId, std::ostream& outputStream) const;
