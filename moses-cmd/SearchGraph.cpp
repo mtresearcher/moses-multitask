@@ -1,10 +1,103 @@
 #include "SearchGraph.h"
 #include "moses/Manager.h"
+#include "moses/Hypothesis.h"
+#include "moses/FF/FeatureFunction.h"
 
 #include <map>
+#include <numeric>
 
 namespace Moses
 {
+
+class SearchGraph::Edge::Impl
+{
+public:
+  Impl() :
+    m_begin(0), m_end(0),
+    m_featureScores(),
+    m_totalScore(std::numeric_limits<double>::infinity()),
+    m_targetPhrase(),
+    m_sourcePhrase()
+  {}
+
+  Impl(const Impl& other) :
+    m_begin(other.m_begin), m_end(other.m_end),
+    m_featureScores(other.m_featureScores),
+    m_totalScore(other.m_totalScore),
+    m_targetPhrase(other.m_targetPhrase),
+    m_sourcePhrase(other.m_sourcePhrase)
+  {}
+
+  void Init(VertexId begin, VertexId end, const Hypothesis& hypothesis,
+      const std::vector<FeatureFunction*>& allFFs)
+  {
+    m_begin = begin;
+    m_end = end;
+    const Hypothesis& prevHypoth = *hypothesis.GetPrevHypo();
+    m_totalScore = hypothesis.GetScore() - prevHypoth.GetScore();
+    m_targetPhrase = hypothesis.GetCurrTargetPhrase();
+    m_sourcePhrase =
+        hypothesis.GetTranslationOption().GetInputPath().GetPhrase();
+    m_featureScores.resize(allFFs.size());
+    const ScoreComponentCollection& currScores = hypothesis.GetScoreBreakdown();
+    const ScoreComponentCollection& prevScores = prevHypoth.GetScoreBreakdown();
+    for (size_t i = 0; i < allFFs.size(); ++i)
+    {
+      std::vector<float> vec1 = currScores.GetScoresForProducer(allFFs[i]);
+      std::vector<float> vec2 = prevScores.GetScoresForProducer(allFFs[i]);
+      m_featureScores[i].resize(allFFs[i]->GetNumScoreComponents());
+      for (size_t j = 0; j < m_featureScores[i].size(); ++j)
+      {
+        m_featureScores[i][j] = vec1[j] - vec2[j];
+      }
+    }
+  }
+
+  VertexId Begin() const
+  {
+    return m_begin;
+  }
+  VertexId End() const
+  {
+    return m_end;
+  }
+  const std::vector<float>& FeatureScores(size_t featureId) const
+  {
+    return m_featureScores.at(featureId);
+  }
+  float TotalScore() const
+  {
+    return m_totalScore;
+  }
+  std::string GetSourceText() const {
+    return FlattenPhrase(m_sourcePhrase);
+  }
+  std::string GetTargetText() const {
+    return FlattenPhrase(m_targetPhrase);
+  }
+
+  static std::string FlattenPhrase(const Phrase& phrase)
+  {
+    size_t size = phrase.GetSize();
+    std::ostringstream oss;
+    for (size_t i = 0; i < size; ++i)
+    {
+      const Word& w = phrase.GetWord(i);
+      if (i != 0)
+        oss << " ";
+      oss << w.GetString(0);
+    }
+    return oss.str();
+  }
+
+  // fields
+  VertexId m_begin; //! origin of the edge
+  VertexId m_end;   //! end of the edge
+  std::vector< std::vector<float> > m_featureScores;
+  float m_totalScore;
+  TargetPhrase m_targetPhrase;
+  Phrase m_sourcePhrase;
+};
 
 class SearchGraph::Builder
 {
@@ -60,7 +153,8 @@ private:
   void AddEdge(VertexId from, VertexId to, const Hypothesis& hypo)
   {
     size_t edgeId = m_graph.m_allEdges.size();
-    m_graph.m_allEdges.push_back(SearchGraph::Edge(from, to, hypo, m_featureFunctions));
+    m_graph.m_allEdges.push_back(SearchGraph::Edge());
+    m_graph.m_allEdges.back().m_impl->Init(from, to, hypo, m_featureFunctions);
     m_graph.m_incomingEdges[to].push_back(edgeId);
     m_graph.m_outgoingEdges[from].push_back(edgeId);
   }
@@ -189,50 +283,60 @@ const std::vector<float>& SearchGraph::FeatureWeights(size_t featureIndex) const
   return m_featureWeights[featureIndex];
 }
 
-SearchGraph::Edge::Edge(VertexId begin, VertexId end,
-  const Hypothesis& hypothesis, const std::vector<FeatureFunction*>& allFFs) :
-  m_begin(begin), m_end(end),
-  m_featureScores(allFFs.size()), m_totalScore(0.0),
-  m_targetPhrase(hypothesis.GetCurrTargetPhrase()),
-  m_sourcePhrase(hypothesis.GetTranslationOption().GetInputPath().GetPhrase())
+void SearchGraph::UpdateEdgeScore(Edge* edge)
 {
-  const Hypothesis& prevHypoth = *hypothesis.GetPrevHypo();
-  m_totalScore = hypothesis.GetTotalScore() - prevHypoth.GetTotalScore();
-  const ScoreComponentCollection& currScores = hypothesis.GetScoreBreakdown();
-  const ScoreComponentCollection& prevScores = prevHypoth.GetScoreBreakdown();
-  for (size_t i = 0; i < allFFs.size(); ++i) {
-    std::vector<float> vec1 = currScores.GetScoresForProducer(allFFs[i]);
-    std::vector<float> vec2 = prevScores.GetScoresForProducer(allFFs[i]);
-    m_featureScores[i].resize(allFFs[i]->GetNumScoreComponents());
-    for (size_t j = 0; j < m_featureScores[i].size(); ++j)
-    {
-      m_featureScores[i][j] = vec1[j] - vec2[j];
-    }
-  }
+  Edge::Impl* impl = edge->m_impl;
+  double totalScore = 0;
+  for (size_t i = 0; i < m_featureWeights.size(); ++i)
+    totalScore += std::inner_product(
+        impl->m_featureScores[i].begin(), impl->m_featureScores[i].end(),
+        m_featureWeights[i].begin(), 0.0f);
+  impl->m_totalScore = totalScore;
 }
 
-static std::string FlattenPhrase(const Phrase& phrase)
+SearchGraph::Edge::Edge():
+    m_impl(new Impl())
+{}
+
+SearchGraph::Edge::Edge(const Edge& other):
+    m_impl(new Impl(*other.m_impl))
+{}
+
+SearchGraph::Edge::~Edge()
 {
-  size_t size = phrase.GetSize();
-  std::ostringstream oss;
-  for (size_t i = 0; i < size; ++i)
-  {
-    const Word& w = phrase.GetWord(i);
-    if (i != 0)
-      oss << " ";
-    oss << w.GetString(0);
-  }
-  return oss.str();
+  delete m_impl;
+}
+
+SearchGraph::VertexId SearchGraph::Edge::Begin() const
+{
+  return m_impl->Begin();
+}
+
+SearchGraph::VertexId SearchGraph::Edge::End() const
+{
+  return m_impl->End();
+}
+
+const std::vector<float>& SearchGraph::Edge::FeatureScores(
+    size_t featureId) const
+{
+  return m_impl->FeatureScores(featureId);
+}
+
+float SearchGraph::Edge::TotalScore() const
+{
+  return m_impl->TotalScore();
 }
 
 std::string SearchGraph::Edge::GetSourceText() const
 {
-  return FlattenPhrase(m_sourcePhrase);
+  return m_impl->GetSourceText();
 }
 
 std::string SearchGraph::Edge::GetTargetText() const
 {
-  return FlattenPhrase(m_targetPhrase);
+  return m_impl->GetTargetText();
 }
 
 } // namespace Moses
+
