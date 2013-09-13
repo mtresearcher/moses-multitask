@@ -115,9 +115,10 @@ std::vector<float> FeatureFunction::DefaultWeights() const
   UTIL_THROW(util::Exception, "No default weights");
 }
 
-}
-
 const std::vector<FeatureFunction*>& FeatureFunction::GetFeatureFunctionsForNow()
 {
   return m_passes.at(StaticData::Instance().m_currPass);
 }
+
+}
+

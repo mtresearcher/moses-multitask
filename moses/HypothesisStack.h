@@ -59,7 +59,6 @@ public:
 
   virtual ~HypothesisStack();
   virtual bool AddPrune(Hypothesis *hypothesis) = 0;
-  virtual bool AddPrune_Rescoring(Hypothesis *hypothesis, Hypothesis * Oldhyp) = 0;
   virtual const Hypothesis *GetBestHypothesis() const = 0;
   virtual std::vector<const Hypothesis*> GetSortedList() const = 0;
 

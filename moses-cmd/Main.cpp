@@ -147,18 +147,6 @@ public:
      *  Questions:
      */
 
-    /* LAZY MULTIPASS = search space rescoring with CSLM
-     *
-     * */
-    if(staticData.UseLMRescoring() ){
-    	//cerr<<" Lattice Rescoring "<<endl;
-    	Timer rescoringTime;
-    	rescoringTime.start();
-    	VERBOSE(2, "Rescoring with CSLM starts"<<std::endl);
-    	manager.RescoreLattice();
-    	VERBOSE(2, "Rescoring with CSLM took "<<rescoringTime<<"seconds"<<std::endl);
-    }
-
 
 
     // output word graph
