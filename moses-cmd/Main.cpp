@@ -125,6 +125,33 @@ public:
     Manager manager(m_lineNumber, *m_source,staticData.GetSearchAlgorithm());
     manager.ProcessSentence();
 
+    //GOING MULTI-PASS!!!!!
+    /*  1. convert the stacks into a friendly graph data structure [Jacob]
+     *  1.1 lattice expansion (not needed now) [Jacob]
+     *  2. load new weights
+     *  3. maybe compute additional features requiring the whole search space (not for now)
+     *
+     *  4. go through this graph and
+     *  	4.1 compute additional score
+     *  	4.2 recompute total scores
+     *
+     *  Questions:
+     */
+
+    /* LAZY MULTIPASS = search space rescoring with CSLM
+     *
+     * */
+    if(staticData.UseLMRescoring() ){
+    	//cerr<<" Lattice Rescoring "<<endl;
+    	Timer rescoringTime;
+    	rescoringTime.start();
+    	VERBOSE(2, "Rescoring with CSLM starts"<<std::endl);
+    	manager.RescoreLattice();
+    	VERBOSE(2, "Rescoring with CSLM took "<<rescoringTime<<"seconds"<<std::endl);
+    }
+
+
+
     // output word graph
     if (m_wordGraphCollector) {
       ostringstream out;

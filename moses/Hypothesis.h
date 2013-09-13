@@ -86,6 +86,12 @@ protected:
 
   int m_id; /*! numeric ID of this hypothesis, used for logging */
 
+  /* variable needed by lattice rescoring */
+  int m_nbWords;
+  float m_currCslmScore;
+  float m_cslmScore;
+  float* m_cslmprobs;
+
   /*! used by initial seeding of the translation process */
   Hypothesis(Manager& manager, InputType const& source, const TranslationOption &initialTransOpt);
   /*! used when creating a new hypothesis using a translation option (phrase translation) */
@@ -93,8 +99,7 @@ protected:
 
 public:
 
-  float* m_cslmprobs;
-  int m_nbwords;
+
 
   static ObjectPool<Hypothesis> &GetObjectPool() {
     return s_objectPool;
@@ -234,6 +239,7 @@ public:
   const ScoreComponentCollection& GetScoreBreakdown() const {
     return m_scoreBreakdown;
   }
+
   float GetTotalScore() const {
     return m_totalScore;
   }
@@ -261,6 +267,29 @@ public:
   const TranslationOption &GetTranslationOption() const {
     return m_transOpt;
   }
+
+  /* Addition for lattice rescoring */
+  inline size_t GetNbWords() const { return m_nbWords ; }
+  inline void AddCslmScore(float score ){ m_currCslmScore += score ; }
+  inline void SetCslmScore(float cslmScore ){ m_cslmScore = cslmScore; }
+  inline float GetCurrCslmScore() const { return m_currCslmScore; }
+  inline float GetCslmScore() const { return m_cslmScore; }
+  void SetTotalScore(float totalScore){ m_totalScore = totalScore; }
+
+  void InnerSumCurrCslmScore();
+  void SetPrevHypo(const Hypothesis* newPrev);
+  //TODO: why a Getter doing so much?
+    ScoreComponentCollection& GetScoreBreakdownAddr() {
+  	/*if (!m_scoreBreakdown.get()) {
+  		m_scoreBreakdown.reset(new ScoreComponentCollection(m_currScoreBreakdown));
+        	if (m_prevHypo) {
+      		m_scoreBreakdown->PlusEquals(m_prevHypo->GetScoreBreakdown());
+        	}
+      }*/
+      return m_scoreBreakdown;
+    }
+
+
 };
 
 std::ostream& operator<<(std::ostream& out, const Hypothesis& hypothesis);

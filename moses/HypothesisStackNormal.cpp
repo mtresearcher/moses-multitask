@@ -278,6 +278,24 @@ std::ostream& operator<<(std::ostream& out, const HypothesisStackNormal& hypoCol
   return out;
 }
 
+/* For lattice rescoring */
+bool HypothesisStackNormal::AddPrune_Rescoring(Hypothesis *Newhypo, Hypothesis *Oldhypo)
+{
+	 VERBOSE(2," Add Hyp ID "<<Newhypo->GetId()<<" to Stack "<<" and remove "<<Oldhypo->GetId()<<endl);
+	 VERBOSE(2," Stack size Before erasing loser "<<m_hypos.size()<<endl);
+	 m_hypos.erase(Oldhypo);
+	 VERBOSE(2," Stack size after erasing  loser "<<m_hypos.size()<<endl);
+
+	 std::pair<iterator, bool> ret = m_hypos.insert(Newhypo);
+	 if (ret.second) {
+		VERBOSE(2," hyp Added "<<endl);
+		VERBOSE(2," Stack size After Adding Winner "<<m_hypos.size()<<endl);
+		return true;
+	 }
+	 return false;
+}
+
+
 
 }
 

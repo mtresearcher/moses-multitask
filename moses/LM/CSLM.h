@@ -6,8 +6,8 @@
 
 #include "moses/TrellisPath.h"
 //#include "HypothesisStack"
-#include "Mach.h" // from cslm toolkit
-#include "TrainerNgramSlist.h"
+#include "cslm/Mach.h" // from cslm toolkit
+#include "cslm/TrainerNgramSlist.h"
 #include "moses/StaticData.h"
 #include <boost/thread.hpp>
 #include "SingleFactor.h"
@@ -48,23 +48,15 @@ public:
   void TakeMach(){ busy =true; }
   void SetId(size_t m) {Id = m ;}
 
-  //virtual void RescorePath(TrellisPath *path ); // recalc LM score on hypothesis, returns ln probability
-  //virtual void RescoreNbest(TrellisPathList &nBest );
-
-
-  /*void RescoreLAT( std::vector < HypothesisStack* >& hypoStackColl);
-  void RescoreLATV1( std::vector < HypothesisStack* >& hypoStackColl);
-  void GetCSLMScore( Hypothesis* hypo);
-  void GetCSLMScoreOpt( Hypothesis* hypo);*/
-  void FinishPending();
-  //float UpdatePathTotalScore(TrellisPath * path );
+  // Recoring functions
+  void RescoreLattice( std::vector < HypothesisStack* >& hypoStackColl);
+  void GetCSLMScore( Hypothesis* hypo); // Request probability of hypo to CSLM (asynchonous-> the result will not be available directly)
+  void FinishPending(); // Ask the CSLM to compute and give the requested probabilities
 
   //Convert CSLM Score to natural log
   float lognat2ln(float prob) {  return prob * 2.30258509299405f ; }
 
-   //
   void SetParameter(const std::string& key, const std::string& value);
-
 
    // Gets
    size_t GetId() {return Id; }

@@ -42,6 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "FactorCollection.h"
 #include "Parameter.h"
 #include "LM/Base.h"
+#include "LM/CSLM.h"
 #include "SentenceStats.h"
 #include "DecodeGraph.h"
 #include "TranslationOptionList.h"
@@ -210,6 +211,24 @@ protected:
   std::map< std::string, std::set< size_t > > m_weightSettingIgnoreDP; // decoding path
 
   std::pair<FactorType, FactorType> m_placeHolderFactor;
+
+  // CSLM rescoring member variables
+  bool m_uselmrescoring; //should we use CSLM to rescore the search space?
+  size_t m_lmRescoringNGramOrder;
+  size_t m_CSLMnGramOrder;
+  std::string  m_cslmFilePath;
+  std::string m_wlFilePath;
+  std::string m_backoffLmFilePath;
+  LanguageModelCSLM* m_cslmLanguageModel_rescoring;
+  LanguageModelSRI * m_backoffLM_rescoring; // SRILM backoff LM needed by CSLM
+  float m_lmRescoringWeight;
+
+  //std::vector<float> GetshowWeights() const{ return showWeights; }
+  std::vector<float> m_rescoringWeights; //set of weight for rescoring != decoding
+
+
+
+
 
   StaticData();
 
@@ -760,7 +779,23 @@ public:
   const std::pair<FactorType, FactorType> &GetPlaceholderFactor() const {
     return m_placeHolderFactor;
   }
-};
 
+  // CSLM rescoring quick hack
+
+  bool UseLMRescoring() const { return m_uselmrescoring; } //should we use CSLM to rescore the search space?
+  inline size_t GetLMRescoringOrder() const{ return m_lmRescoringNGramOrder; }
+  inline size_t GetCSLMnGramOrder() const{ return m_CSLMnGramOrder; }
+  float GetLMRescoringWeight() const{ return m_lmRescoringWeight; }
+
+  std::string GetCSLMFile() const { return m_cslmFilePath; }
+  std::string GetWordList() const { return m_wlFilePath; }
+  std::string GetBackOffFile() const { return m_backoffLmFilePath; }
+  LanguageModelCSLM*  GetCSLM() const { return m_cslmLanguageModel_rescoring; }
+  LanguageModelSRI * Getrescorelm() const{ return m_backoffLM_rescoring;	} // SRILM backoff LM needed by CSLM
+
+  //std::vector<float> GetshowWeights() const{ return showWeights; }
+  std::vector<float> GetRescoringWeights() const{ return m_rescoringWeights; } //set of weight for rescoring != decoding
+
+};
 }
 #endif

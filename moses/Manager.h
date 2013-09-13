@@ -153,9 +153,7 @@ public:
   void OutputSearchGraphAsSLF(long translationId, std::ostream &outputSearchGraphStream) const;
   void OutputSearchGraphAsHypergraph(long translationId, std::ostream &outputSearchGraphStream) const;
   void GetSearchGraph(std::vector<SearchGraphNode>& searchGraph) const;
-  const InputType& GetSource() const {
-    return m_source;
-  }
+  const InputType& GetSource() const { return m_source; }
 
   /***
    * to be called after processing a sentence (which may consist of more than just calling ProcessSentence() )
@@ -169,6 +167,15 @@ public:
   */
   void GetForwardBackwardSearchGraph(std::map< int, bool >* pConnected,
                                      std::vector< const Hypothesis* >* pConnectedList, std::map < const Hypothesis*, std::set < const Hypothesis* > >* pOutgoingHyps, std::vector< float>* pFwdBwdScores) const;
+
+
+  /* For lattice rescoring */
+  void RescoreLattice();
+  void CumulateCslmScores();
+  void MinusBackwardScoreBreakdown();
+  void ForwardSwitch();
+  void UpdateHypoTotalScore( Hypothesis* hypo );
+
 
 };
 

@@ -1426,24 +1426,203 @@ void Manager::GetForwardBackwardSearchGraph(std::map< int, bool >* pConnected,
 }
 
 
-const Hypothesis *Manager::GetBestHypothesis() const
-{
+const Hypothesis *Manager::GetBestHypothesis() const {
   return m_search->GetBestHypothesis();
 }
 
-int Manager::GetNextHypoId()
-{
+int Manager::GetNextHypoId() {
   return m_hypoId++;
 }
 
-void Manager::ResetSentenceStats(const InputType& source)
-{
+void Manager::ResetSentenceStats(const InputType& source) {
   m_sentenceStats = std::auto_ptr<SentenceStats>(new SentenceStats(source));
 }
-SentenceStats& Manager::GetSentenceStats() const
-{
+SentenceStats& Manager::GetSentenceStats() const {
   return *m_sentenceStats;
-
 }
+
+
+/********************************** Fethi Bougares and Loic Barrault ********************
+ * 				search space rescoring with CSLM
+ **********************************************************************************************/
+
+void Manager::RescoreLattice()
+{
+	// 1- cerr<<" CSLMHypothesesScore "<<endl;
+	std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+
+	// cerr<<" hypoStackColl size : "<<hypoStackColl.size()<<endl;
+	StaticData::Instance().GetCSLM()->RescoreLattice(hypoStackColl);
+
+    //PrintCSLMScores(); // print and cumulate  to be done in one pass !!!!!!
+	CumulateCslmScores();
+
+	// 2- cerr<<" BackwardScoreBDMinus "<<endl;
+	MinusBackwardScoreBreakdown();
+
+	// 3- cerr<<" ForwardSwitch "<<endl;
+	ForwardSwitch();
+}
+
+void Manager::CumulateCslmScores()
+{
+	//	cerr<<" --------- CSLM Scores  -------- "<<endl;
+	std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+	std::vector < HypothesisStack* >::iterator iterStack;
+	//const vector<FactorType> &outputFactorOrder = StaticData::Instance().GetOutputFactorOrder();
+	//float sum=0;
+
+	for (iterStack = ++hypoStackColl.begin() ; iterStack != hypoStackColl.end() ; ++iterStack){
+		HypothesisStack::iterator iterHypo;
+		for(iterHypo = (*iterStack)->Nocbegin() ; iterHypo != (*iterStack)->Nocend() ; ++iterHypo){
+			//	cerr<<"After hypo ID "<<(*iterHypo)->GetId()<<" m_nbwords "<<(*iterHypo)->GetNBWords()<<" : ";
+			//TODO: should we initialize CslmScore?
+			(*iterHypo)->InnerSumCurrCslmScore();
+
+			/*for(size_t i = 0; i< (*iterHypo)->GetNbWords();i++ ){
+				//	cerr<<" "<<(*iterHypo)->m_cslmprobs[i];
+				(*iterHypo)->AddCslmScore((*iterHypo)->m_cslmprobs[i]);
+				//	sum += (*iterHypo)->m_cslmprobs[i] ;
+			}*/
+			if((*iterHypo)->GetCurrCslmScore()  > 0 )
+				cerr<<" Positive hyp cslm Score "<<(*iterHypo)->GetCurrCslmScore()<<endl;
+				//	(*iterHypo)->SetCurrCslmScore(sum);
+			(*iterHypo)->SetCslmScore( (*iterHypo)->GetCurrCslmScore() + (*iterHypo)->GetPrevHypo()->GetCslmScore() );
+				//	cerr<<" Sum = "<<sum <<" cumul = "<<(*iterHypo)->GetCslmScore()<<endl;
+
+			const ArcList *pAL =   (*iterHypo)->GetArcList();
+			if(pAL){
+				ArcList::const_iterator iterArc;
+				for (iterArc = pAL->begin() ; iterArc != pAL->end() ; ++iterArc){
+					Hypothesis *arc = const_cast<Hypothesis*>(*iterArc);
+					//	cerr<<"After hypo ID "<<arc->GetId()<<" m_nbwords "<<arc->GetNbWords()<<" : ";
+
+					//TODO: should we initialize CslmScore before?
+					arc->InnerSumCurrCslmScore();
+					/*for(size_t i= 0 ; i< arc->GetNbWords(); i++ ){
+						//	cerr<<" "<<arc->m_cslmprobs[i];
+						//	sum += (*iterHypo)->m_cslmprobs[i] ;
+						arc->AddCslmScore(arc->m_cslmprobs[i]);
+					}*/
+
+					if(arc->GetCurrCslmScore() > 0 ) cerr<<" Positive arc cslm score "<<arc->GetCurrCslmScore()<<endl;
+					//	arc->SetCurrCSLMScore(sum);
+					arc->SetCslmScore( arc->GetCurrCslmScore() + arc->GetPrevHypo()->GetCslmScore() );
+					//	cerr<<" Arc Sum = "<<sum<<" cumul = "<<arc->GetCslmScore()<<endl;
+				}
+			}
+		}
+	}
+}
+
+/**************************************************************************************
+ * Backward Pass : Minus Previous Breakdown Score To clean the Scores (Merci Loic ;) )
+ **************************************************************************************/
+void Manager::MinusBackwardScoreBreakdown()
+{
+	std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+	std::vector < HypothesisStack* >::iterator iterStack;
+
+	for (iterStack = --hypoStackColl.end() ; iterStack != hypoStackColl.begin() ; --iterStack){
+		HypothesisStack::iterator iterHypo;
+		for(iterHypo = (*iterStack)->Nocbegin() ; iterHypo != (*iterStack)->Nocend() ; ++iterHypo){
+			ScoreComponentCollection &hyp_scoreBreakdown     = (*iterHypo)->GetScoreBreakdownAddr();
+			hyp_scoreBreakdown.MinusEquals((*iterHypo)->GetPrevHypo()->GetScoreBreakdown() ); // Minus the actual previous
+			(*iterHypo)->GetScoreBreakdownAddr().CoreAssign(hyp_scoreBreakdown);  // Assign ScoreBreakdown
+			// update the cslm score
+			(*iterHypo)->SetCslmScore( (*iterHypo)->GetCslmScore() - (*iterHypo)->GetPrevHypo()->GetCslmScore() );
+
+			const ArcList *pAL = (*iterHypo)->GetArcList();
+			if(pAL){
+				ArcList::const_iterator iterArc;
+				for (iterArc = pAL->begin() ; iterArc != pAL->end() ; ++iterArc){
+					Hypothesis *arc = const_cast<Hypothesis*>(*iterArc);
+					ScoreComponentCollection &arc_scoreBreakdown = arc->GetScoreBreakdownAddr();
+					arc_scoreBreakdown.MinusEquals(arc->GetPrevHypo()->GetScoreBreakdown() );
+					arc->GetScoreBreakdownAddr().CoreAssign(arc_scoreBreakdown);
+					arc->SetCslmScore( arc->GetCslmScore() - arc->GetPrevHypo()->GetCslmScore() );
+				}
+			}
+		}
+	}
+}
+
+
+void Manager::ForwardSwitch()
+{
+	std::vector < HypothesisStack* > &hypoStackColl = const_cast<std::vector < HypothesisStack* >&>(m_search->GetHypothesisStacks());
+	std::vector < HypothesisStack* >::iterator iterStack;
+	const vector<FactorType> &outputFactorOrder = StaticData::Instance().GetOutputFactorOrder();
+	size_t stack_nb=1;
+
+	for (iterStack = ++hypoStackColl.begin() ; iterStack != hypoStackColl.end() ; ++iterStack) {
+		VERBOSE(2," Stack nb "<<stack_nb<<endl);
+		HypothesisStack::iterator iterHypo;
+		for(iterHypo = (*iterStack)->Nocbegin() ; iterHypo != (*iterStack)->Nocend() ; ++iterHypo) {
+			VERBOSE(2,endl<<endl<<" Hypo ID "<<(*iterHypo)->GetId()<<" Prev : "<<(*iterHypo)->GetPrevHypo()->GetId()
+					<< " Trans : "<<(*iterHypo)->GetCurrTargetPhrase().GetStringRep(outputFactorOrder)<<endl );
+			ScoreComponentCollection &hyp_scoreBreakdown = (*iterHypo)->GetScoreBreakdownAddr();
+
+			(*iterHypo)->SetPrevHypo( (*iterHypo)->GetPrevHypo()->GetWinningHypo() );
+
+			hyp_scoreBreakdown.PlusEquals((*iterHypo)->GetPrevHypo()->GetScoreBreakdown());
+			(*iterHypo)->GetScoreBreakdownAddr().CoreAssign(hyp_scoreBreakdown);
+			(*iterHypo)->SetCslmScore( (*iterHypo)->GetCurrCslmScore() + (*iterHypo)->GetPrevHypo()->GetCslmScore() );
+
+			UpdateHypoTotalScore(*iterHypo);
+
+			const ArcList *pAL = (*iterHypo)->GetArcList();
+			Hypothesis* NewHypoWinner = *iterHypo;
+			if(pAL){
+				VERBOSE(2,endl<<" ------------------ recombine BEGIN ----------------- "<<endl);
+				ArcList::const_iterator iterArc;
+				for (iterArc = pAL->begin() ; iterArc != pAL->end() ; ++iterArc){
+					Hypothesis *arc = const_cast<Hypothesis*>(*iterArc);
+					ScoreComponentCollection &arc_scoreBreakdown = arc->GetScoreBreakdownAddr();
+					arc->SetPrevHypo( arc->GetPrevHypo()->GetWinningHypo() );
+					arc_scoreBreakdown.PlusEquals( arc->GetPrevHypo()->GetScoreBreakdown());
+					arc->GetScoreBreakdownAddr().CoreAssign(arc_scoreBreakdown);
+					arc->SetCslmScore( arc->GetCurrCslmScore() + arc->GetPrevHypo()->GetCslmScore() );
+
+					UpdateHypoTotalScore(arc);
+
+					if(arc->GetTotalScore() > NewHypoWinner->GetTotalScore() )
+						NewHypoWinner = arc;
+				}
+			}
+
+			if( (*iterHypo)->GetId() != NewHypoWinner->GetId()  ){
+				VERBOSE(2," Winning changed : from "<< (*iterHypo)->GetId() <<" to "<<NewHypoWinner->GetId()<<endl );
+				NewHypoWinner->AddArc(*iterHypo); // Add iterHypo as arc of NewHypoWinner
+				NewHypoWinner->CleanupArcList(); // Set this as wining hypothesis
+				(*iterStack)->AddPrune_Rescoring(NewHypoWinner,*iterHypo); // Add NewHypoWinner to the Stack and remove iterHypo
+			}
+
+		}
+		stack_nb++;
+	}
+}
+
+
+/*********************************************************************
+ *  Add cslm score*cslm-weight to the totalScore of each hypothesis  *
+ *********************************************************************/
+void Manager::UpdateHypoTotalScore( Hypothesis* hypo )
+{
+
+  float TotalScore=0.0;
+  std::vector<float > Weights  = StaticData::Instance().GetRescoringWeights();
+  std::valarray<float > Scores = hypo->GetScoreBreakdown().getCoreFeatures();
+
+  if(Scores.size() != Weights.size()){
+      std::cerr<<" Problem of size Scores vs Weights "<<Scores.size()<<" <?> "<<Weights.size()<<endl;
+  }
+
+   for(size_t i=0;i<Scores.size();i++)
+        TotalScore += Scores[i]*Weights[i];
+  		TotalScore += hypo->GetCslmScore() * StaticData::Instance().GetLMRescoringWeight();
+  		hypo->SetTotalScore(TotalScore);
+}
+
 
 }

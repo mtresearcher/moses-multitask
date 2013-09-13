@@ -81,6 +81,7 @@ public:
   				AddNoPrune()
   */
   bool AddPrune(Hypothesis *hypothesis);
+  bool AddPrune_Rescoring(Hypothesis *hypothesis,Hypothesis *Oldhypo);
 
   /** set maximum number of hypotheses in the collection
    * \param maxHypoStackSize maximum number (typical number: 100)

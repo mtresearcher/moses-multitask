@@ -466,5 +466,13 @@ std::string Hypothesis::GetTargetPhraseStringRep() const
   return GetTargetPhraseStringRep(allFactors);
 }
 
+/* Lattice rescoring methods */
+ void Hypothesis::InnerSumCurrCslmScore(){
+	 //TODO: should we initialize m_currCslmScore?
+	for(size_t i = 0; i< m_nbWords; i++){
+		 m_currCslmScore += m_cslmprobs[i];
+	}
+ }
+
 }
 
