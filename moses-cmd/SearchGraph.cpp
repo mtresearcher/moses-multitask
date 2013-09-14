@@ -2,6 +2,7 @@
 #include "moses/Manager.h"
 #include "moses/Hypothesis.h"
 #include "moses/FF/FeatureFunction.h"
+#include "moses/FF/StatelessFeatureFunction.h"
 
 #include <map>
 #include <numeric>
@@ -340,6 +341,23 @@ std::string SearchGraph::Edge::GetTargetText() const
 
 void SearchGraph::Search(size_t pass)
 {
+	const std::vector<const StatelessFeatureFunction*> &slff = StatelessFeatureFunction::GetStatelessFeatureFunctions(pass);
+
+	std::vector<const StatelessFeatureFunction*>::const_iterator iter;
+	for (iter = slff.begin(); iter != slff.end(); ++iter) {
+		const StatelessFeatureFunction &ff = **iter;
+		// call Evaluate for all edges here
+
+		ff.DoNow();
+	}
+
+	for (iter = slff.begin(); iter != slff.end(); ++iter) {
+		const StatelessFeatureFunction &ff = **iter;
+		// call Evaluate for all edges here
+
+		ff.WaitUntilFinish();
+	}
+
 
 }
 

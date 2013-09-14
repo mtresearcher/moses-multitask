@@ -42,12 +42,17 @@ public:
   virtual void EvaluateChart(const ChartHypothesis &hypo,
                              ScoreComponentCollection* accumulator) const = 0;
 
-  virtual void Evaluate(SearchGraph::Edge &edge ) const
-  {}
-
   virtual bool IsStateless() const {
     return true;
   }
+
+  // multipass
+  virtual void Evaluate(SearchGraph::Edge &edge ) const
+  {}
+  virtual void DoNow() const
+  {}
+  virtual void WaitUntilFinish() const
+  {}
 
 };
 
