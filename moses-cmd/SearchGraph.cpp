@@ -212,7 +212,7 @@ public:
     m_newGraph(newGraph), m_oldGraph(oldGraph)
   {}
   void Build() {
-    throw std::exception("Not yet implemented");
+    CHECK(false);
   }
 };
 
