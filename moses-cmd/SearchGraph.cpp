@@ -17,7 +17,8 @@ public:
     m_featureScores(),
     m_totalScore(std::numeric_limits<double>::infinity()),
     m_targetPhrase(),
-    m_sourcePhrase()
+    m_sourcePhrase(),
+    m_sourceWordsRange(0, 0)
   {}
 
   Impl(const Impl& other) :
@@ -25,7 +26,8 @@ public:
     m_featureScores(other.m_featureScores),
     m_totalScore(other.m_totalScore),
     m_targetPhrase(other.m_targetPhrase),
-    m_sourcePhrase(other.m_sourcePhrase)
+    m_sourcePhrase(other.m_sourcePhrase),
+    m_sourceWordsRange(other.m_sourceWordsRange)
   {}
 
   void Init(VertexId begin, VertexId end, const Hypothesis& hypothesis,
@@ -38,6 +40,7 @@ public:
     m_targetPhrase = hypothesis.GetCurrTargetPhrase();
     m_sourcePhrase =
         hypothesis.GetTranslationOption().GetInputPath().GetPhrase();
+    m_sourceWordsRange = hypothesis.GetCurrSourceWordsRange();
     m_featureScores.resize(allFFs.size());
     const ScoreComponentCollection& currScores = hypothesis.GetScoreBreakdown();
     const ScoreComponentCollection& prevScores = prevHypoth.GetScoreBreakdown();
@@ -76,6 +79,10 @@ public:
     return FlattenPhrase(m_targetPhrase);
   }
 
+  WordsRange SourceWordsRange() const {
+    return m_sourceWordsRange;
+  }
+
   static std::string FlattenPhrase(const Phrase& phrase)
   {
     size_t size = phrase.GetSize();
@@ -97,6 +104,7 @@ public:
   float m_totalScore;
   TargetPhrase m_targetPhrase;
   Phrase m_sourcePhrase;
+  WordsRange m_sourceWordsRange;
 };
 
 class SearchGraph::Builder
@@ -120,24 +128,34 @@ public:
     }
   }
 
+  void Build(const Manager& manager)
+  {
+    const HypothesisStack& lastStack = manager.GetLastSearchStack();
+    PreliminaryEdgeList edges;
+    for (HypothesisStack::const_iterator it = lastStack.begin();
+        it != lastStack.end(); ++it)
+    {
+      MakePreliminaryEdgeList(*it, &edges);
+    }
+    VertexId sinkId = AddVertex(manager.GetBestHypothesis());
+    for (size_t i = 0; i < edges.size(); ++i)
+      AddEdge(edges[i].first, sinkId, *edges[i].second);
+  }
+
+private:
   VertexId DepthFirstSearch(const Hypothesis* hypo)
   {
     HypoMap::const_iterator hypoMapIter = m_hypoMap.find(hypo);
     if (hypoMapIter != m_hypoMap.end())
       return hypoMapIter->second;
     PreliminaryEdgeList edges;
-    if (hypo->GetId() != 0)
-    {
-      MakePreliminaryEdgeList(hypo, &edges);
-    }
+    MakePreliminaryEdgeList(hypo, &edges);
     VertexId result = AddVertex(hypo);
     for (size_t i = 0; i < edges.size(); ++i)
-    {
       AddEdge(edges[i].first, result, *edges[i].second);
-    }
     return result;
   }
-private:
+
   typedef std::vector<std::pair<VertexId, const Hypothesis*> > PreliminaryEdgeList;
 
   size_t AddVertex(const Hypothesis* hypo)
@@ -162,6 +180,8 @@ private:
   void MakePreliminaryEdgeList(const Hypothesis* hypo,
       PreliminaryEdgeList* output)
   {
+    if (hypo->GetId() == 0)
+      return;
     output->push_back(
         PreliminaryEdgeList::value_type(DepthFirstSearch(hypo->GetPrevHypo()),
             hypo));
@@ -178,13 +198,8 @@ private:
 
 SearchGraph::SearchGraph(const Manager& manager)
 {
-  const HypothesisStack& lastStack = manager.GetLastSearchStack();
   SearchGraph::Builder builder(*this);
-  for (HypothesisStack::const_iterator it = lastStack.begin();
-      it != lastStack.end(); ++it)
-  {
-    builder.DepthFirstSearch(*it);
-  }
+  builder.Build(manager);
 }
 
 namespace
@@ -336,6 +351,11 @@ std::string SearchGraph::Edge::GetSourceText() const
 std::string SearchGraph::Edge::GetTargetText() const
 {
   return m_impl->GetTargetText();
+}
+
+WordsRange SearchGraph::Edge::SourceWordsRange() const
+{
+  return m_impl->SourceWordsRange();
 }
 
 } // namespace Moses

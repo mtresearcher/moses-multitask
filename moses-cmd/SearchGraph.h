@@ -7,6 +7,7 @@ namespace Moses
 {
 
 class Manager;
+class WordsRange;
 
 /** SearchGraph class provides an abstraction for the search graph
  * It includes information about all feature functions and their weights
@@ -67,6 +68,7 @@ public:
   float TotalScore() const;
   std::string GetSourceText() const;
   std::string GetTargetText() const;
+  WordsRange SourceWordsRange() const;
 private:
   friend class SearchGraph;
   class Impl;
