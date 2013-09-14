@@ -1,5 +1,5 @@
 #include "MultiPassFF.h"
-#include "moses-cmd/SearchGraph.h"
+#include "moses/SearchGraph.h"
 
 namespace Moses
 {

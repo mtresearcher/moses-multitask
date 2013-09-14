@@ -45,7 +45,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "TranslationAnalysis.h"
 #include "IOWrapper.h"
 #include "mbr.h"
-#include "SearchGraph.h"
 
 #include "moses/Hypothesis.h"
 #include "moses/Manager.h"
@@ -54,6 +53,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/Timer.h"
 #include "moses/ThreadPool.h"
 #include "moses/OutputCollector.h"
+#include "moses/SearchGraph.h"
 
 #ifdef HAVE_PROTOBUF
 #include "hypergraph.pb.h"
@@ -146,8 +146,9 @@ public:
      *
      *  Questions:
      */
-    searchGraph.Search(1);
-
+    for (size_t pass = 1; pass <= StaticData::Instance().m_maxPass; ++pass) {
+    	searchGraph.Search(pass);
+    }
 
 
     // output word graph

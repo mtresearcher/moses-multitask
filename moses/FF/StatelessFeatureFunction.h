@@ -2,7 +2,7 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
-#include "moses-cmd/SearchGraph.h"
+#include "moses/SearchGraph.h"
 
 namespace Moses
 {

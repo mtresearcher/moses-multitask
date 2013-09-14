@@ -127,16 +127,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses-cmd/Main.h</locationURI>
 		</link>
 		<link>
-			<name>SearchGraph.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/moses-cmd/SearchGraph.cpp</locationURI>
-		</link>
-		<link>
-			<name>SearchGraph.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/moses-cmd/SearchGraph.h</locationURI>
-		</link>
-		<link>
 			<name>TranslationAnalysis.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses-cmd/TranslationAnalysis.cpp</locationURI>

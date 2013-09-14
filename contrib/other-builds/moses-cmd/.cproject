@@ -74,10 +74,6 @@
 									<listOptionValue builtIn="false" value="misc"/>
 									<listOptionValue builtIn="false" value="moses"/>
 									<listOptionValue builtIn="false" value="search"/>
-									<listOptionValue builtIn="false" value="mkl_intel_lp64"/>
-									<listOptionValue builtIn="false" value="mkl_intel_thread"/>
-									<listOptionValue builtIn="false" value="mkl_core"/>
-									<listOptionValue builtIn="false" value="iomp5"/>
 									<listOptionValue builtIn="false" value="irstlm"/>
 									<listOptionValue builtIn="false" value="OnDiskPt"/>
 									<listOptionValue builtIn="false" value="lm"/>

@@ -963,19 +963,23 @@ void StaticData::LoadWeight2ndPass()
   const vector<string> &config = m_parameter->GetParam("multipass-feature");
   for (size_t i = 0; i < config.size(); ++i) {
 	  const string &line = config[i];
-	  vector<string> keyValue = TokenizeFirstOnly(line, "=");
+	  vector<string> keyValue = TokenizeFirstOnly(line, " ");
 	  CHECK(keyValue.size() == 2);
 
 	  size_t pass = Scan<size_t>(keyValue[0]);
 	  m_maxPass = max(m_maxPass, pass);
 
 	  FeatureFunction &ff = FeatureFunction::FindFeatureFunction(keyValue[1]);
-	  const StatelessFeatureFunction &ffStateless = static_cast<StatelessFeatureFunction&>(ff);
-	  const StatefulFeatureFunction &ffStateful = static_cast<StatefulFeatureFunction&>(ff);
 
 	  AddMultipass(pass, &ff, FeatureFunction::m_passes);
-	  AddMultipass(pass, &ffStateless, StatelessFeatureFunction::m_passes);
-	  AddMultipass(pass, &ffStateful, StatefulFeatureFunction::m_passes);
+	  if (ff.IsStateless()) {
+		  const StatelessFeatureFunction &ffStateless = static_cast<StatelessFeatureFunction&>(ff);
+		  AddMultipass(pass, &ffStateless, StatelessFeatureFunction::m_passes);
+	  }
+	  else {
+		  const StatefulFeatureFunction &ffStateful = static_cast<StatefulFeatureFunction&>(ff);
+		  AddMultipass(pass, &ffStateful, StatefulFeatureFunction::m_passes);
+	  }
 
   }
 
