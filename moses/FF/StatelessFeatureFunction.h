@@ -2,6 +2,7 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
+#include "moses-cmd/SearchGraph.h"
 
 namespace Moses
 {
@@ -44,6 +45,14 @@ public:
   virtual bool IsStateless() const {
     return true;
   }
+
+  // multipass
+  virtual void Evaluate(SearchGraph::Edge &edge ) const
+  {}
+  virtual void DoNow() const
+  {}
+  virtual void WaitUntilFinish() const
+  {}
 
 };
 

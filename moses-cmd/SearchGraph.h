@@ -20,6 +20,7 @@ public:
   class EdgeIterator;
 
   explicit SearchGraph(const Manager &manager);
+  explicit SearchGraph(const SearchGraph& otherGraph); // build new graph with different features
 
   // Edge iterating functions
   std::auto_ptr<EdgeIterator> GetOutgoingEdgesIter(VertexId v) const;
@@ -39,11 +40,15 @@ public:
 
   std::string FeatureDescription(size_t featureIndex) const;
   const std::vector<float>& FeatureWeights(size_t featureIndex) const;
+
+  void Search(size_t pass);
+
 private:
   // Helpers
   void UpdateEdgeScore(Edge* edge);
 
-  class Builder;
+  class BuilderFromManager;
+  class BuilderFromGraph;
 
   // TODO: encapsulate all fields (as in Edge class)
   std::vector< Edge > m_allEdges;

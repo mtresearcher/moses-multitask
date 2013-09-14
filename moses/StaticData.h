@@ -78,7 +78,7 @@ protected:
   Parameter *m_parameter;
   std::vector<FactorType>	m_inputFactorOrder, m_outputFactorOrder;
   mutable ScoreComponentCollection m_allWeights;
-  mutable ScoreComponentCollection m_allWeights1, m_allWeights2;
+  //mutable ScoreComponentCollection m_allWeights1, m_allWeights2;
 
   std::vector<DecodeGraph*> m_decodeGraphs;
   std::vector<size_t> m_decodeGraphBackoff;
@@ -762,7 +762,7 @@ public:
   }
 
   size_t m_currPass, m_maxPass;
-  void SwitchPass(size_t newPass);
+  //void SwitchPass(size_t newPass);
 
   // CSLM rescoring quick hack
 /*

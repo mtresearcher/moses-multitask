@@ -2,6 +2,7 @@
 #include "moses/Manager.h"
 #include "moses/Hypothesis.h"
 #include "moses/FF/FeatureFunction.h"
+#include "moses/FF/StatelessFeatureFunction.h"
 
 #include <map>
 #include <numeric>
@@ -107,7 +108,7 @@ public:
   WordsRange m_sourceWordsRange;
 };
 
-class SearchGraph::Builder
+class SearchGraph::BuilderFromManager
 {
   SearchGraph& m_graph;
   typedef std::map<const Hypothesis*, VertexId> HypoMap;
@@ -115,7 +116,7 @@ class SearchGraph::Builder
   VertexId m_vertexCount;
   const std::vector<FeatureFunction*>& m_featureFunctions;
 public:
-  Builder(SearchGraph& graph) :
+  BuilderFromManager(SearchGraph& graph) :
       m_graph(graph), m_hypoMap(), m_vertexCount(0),
       m_featureFunctions(FeatureFunction::GetFeatureFunctionsForNow())
   {
@@ -198,8 +199,27 @@ private:
 
 SearchGraph::SearchGraph(const Manager& manager)
 {
-  SearchGraph::Builder builder(*this);
+  SearchGraph::BuilderFromManager builder(*this);
   builder.Build(manager);
+}
+
+class SearchGraph::BuilderFromGraph
+{
+  SearchGraph& m_newGraph;
+  const SearchGraph& m_oldGraph;
+public:
+  BuilderFromGraph(SearchGraph& newGraph, const SearchGraph& oldGraph):
+    m_newGraph(newGraph), m_oldGraph(oldGraph)
+  {}
+  void Build() {
+    throw std::exception("Not yet implemented");
+  }
+};
+
+SearchGraph::SearchGraph(const SearchGraph& otherGraph)
+{
+  BuilderFromGraph builder(*this, otherGraph);
+  builder.Build();
 }
 
 namespace
@@ -356,6 +376,26 @@ std::string SearchGraph::Edge::GetTargetText() const
 WordsRange SearchGraph::Edge::SourceWordsRange() const
 {
   return m_impl->SourceWordsRange();
+}
+
+void SearchGraph::Search(size_t pass)
+{
+	const std::vector<const StatelessFeatureFunction*> &slff = StatelessFeatureFunction::GetStatelessFeatureFunctions(pass);
+
+	std::vector<const StatelessFeatureFunction*>::const_iterator iter;
+	for (iter = slff.begin(); iter != slff.end(); ++iter) {
+		const StatelessFeatureFunction &ff = **iter;
+		// call Evaluate for all edges here
+
+		ff.DoNow();
+	}
+
+	for (iter = slff.begin(); iter != slff.end(); ++iter) {
+		const StatelessFeatureFunction &ff = **iter;
+		// call Evaluate for all edges here
+
+		ff.WaitUntilFinish();
+	}
 }
 
 } // namespace Moses
