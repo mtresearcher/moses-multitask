@@ -916,7 +916,7 @@ bool StaticData::CheckWeights() const
 {
   set<string> weightNames = m_parameter->GetWeightNames();
 
-  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions(0);
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetAllFF();
   for (size_t i = 0; i < ffs.size(); ++i) {
     const FeatureFunction &ff = *ffs[i];
     const string &descr = ff.GetScoreProducerDescription();
