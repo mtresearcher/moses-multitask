@@ -124,16 +124,6 @@ public:
     Manager manager(m_lineNumber, *m_source,staticData.GetSearchAlgorithm());
     manager.ProcessSentence();
 
-    Moses::SearchGraph searchGraph(manager);
-    TRACE_ERR("Search graph has " << searchGraph.NumberOfVertices() << " vertices." << std::endl);
-    for (std::auto_ptr<Moses::SearchGraph::EdgeIterator> iter = searchGraph.GetAllEdgesIter();
-        iter->Valid(); iter->Next())
-    {
-      const Moses::SearchGraph::Edge& edge = iter->CurrentEdge();
-      TRACE_ERR(edge.Begin() << " - " << edge.End() << ": " << edge.TotalScore() << " ");
-      TRACE_ERR("{" << edge.GetSourceText() << "} -> {" << edge.GetTargetText() << "}" << std::endl);
-    }
-
     //GOING MULTI-PASS!!!!!
     /*  1. convert the stacks into a friendly graph data structure [Jacob]
      *  1.1 lattice expansion (not needed now) [Jacob]
@@ -146,8 +136,12 @@ public:
      *
      *  Questions:
      */
-    for (size_t pass = 1; pass <= StaticData::Instance().m_maxPass; ++pass) {
-    	searchGraph.Search(pass);
+    size_t maxPass = StaticData::Instance().m_maxPass;
+    if (maxPass) {
+    	Moses::SearchGraph searchGraph(manager);
+    	for (size_t pass = 1; pass <= maxPass; ++pass) {
+    		searchGraph.Search(pass);
+    	}
     }
 
 
