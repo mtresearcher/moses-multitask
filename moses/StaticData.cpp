@@ -498,7 +498,6 @@ bool StaticData::LoadData(Parameter *parameter)
   FeatureRegistry registry;
   for (size_t i = 0; i < features.size(); ++i) {
     const string &line = Trim(features[i]);
-    cerr << "line=" << line << endl;
     if (line.empty())
       continue;
 
