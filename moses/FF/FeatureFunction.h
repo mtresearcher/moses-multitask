@@ -120,6 +120,13 @@ public:
 
   virtual void SetParameter(const std::string& key, const std::string& value);
   virtual void ReadParameters();
+
+  // multipass
+  virtual void DoNow() const
+  {}
+  virtual void WaitUntilFinish() const
+  {}
+
 };
 
 // adding multipass ff

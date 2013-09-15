@@ -2,6 +2,7 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
+#include "moses/SearchGraph.h"
 
 namespace Moses
 {
@@ -57,6 +58,9 @@ public:
     return false;
   }
 
+  // multipass
+  virtual FFState* Evaluate(SearchGraph::Edge &edge ) const
+  {}
 };
 
 

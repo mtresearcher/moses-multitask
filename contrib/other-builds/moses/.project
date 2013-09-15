@@ -1153,6 +1153,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/MultiPassFF.h</locationURI>
 		</link>
 		<link>
+			<name>FF/MultiPassFFStateful.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/MultiPassFFStateful.cpp</locationURI>
+		</link>
+		<link>
+			<name>FF/MultiPassFFStateful.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/MultiPassFFStateful.h</locationURI>
+		</link>
+		<link>
 			<name>FF/OSM-Feature</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>

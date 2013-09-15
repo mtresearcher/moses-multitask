@@ -49,10 +49,6 @@ public:
   // multipass
   virtual void Evaluate(SearchGraph::Edge &edge ) const
   {}
-  virtual void DoNow() const
-  {}
-  virtual void WaitUntilFinish() const
-  {}
 
 };
 
