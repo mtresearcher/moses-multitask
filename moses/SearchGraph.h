@@ -21,10 +21,10 @@ class Edge
   friend std::ostream& operator<<(std::ostream &out, const Edge &obj);
 
 public:
-  Edge(Hypothesis &hypo, const Edge *next, CollEdge &edges);
+  Edge(const Hypothesis &hypo, const Edge *next, CollEdge &edges);
   ~Edge();
 
-  Hypothesis &GetHypothesis()
+  const Hypothesis &GetHypothesis() const
   { return m_hypo; }
 
   //! transitive comparison used for adding objects into FactorCollection
@@ -33,7 +33,7 @@ public:
   }
 
 private:
-  Hypothesis &m_hypo;
+  const Hypothesis &m_hypo;
   const Edge *m_next;
 };
 

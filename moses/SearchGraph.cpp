@@ -42,17 +42,18 @@ void SearchGraph::Search(size_t pass)
 	}
 }
 
-Edge::Edge(Hypothesis &hypo, const Edge* next, CollEdge &edges)
+Edge::Edge(const Hypothesis &hypo, const Edge* next, CollEdge &edges)
 :m_hypo(hypo)
 ,m_next(next)
 {
   pair<CollEdge::iterator,bool> ret = edges.insert(this);
   if (!ret.second) {
 	 delete this;
+	 cerr << "duplicate " << endl;
 	 return;
   }
 
-	Hypothesis *prevHypo = const_cast<Hypothesis*>(hypo.GetPrevHypo());
+	const Hypothesis *prevHypo = hypo.GetPrevHypo();
 	if (prevHypo) {
 		  Edge *edge = new Edge(*prevHypo, this, edges);
 	}

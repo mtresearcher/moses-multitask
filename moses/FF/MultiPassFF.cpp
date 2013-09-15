@@ -7,9 +7,9 @@ namespace Moses
 {
 void MultiPassFF::Evaluate(Edge &edge ) const
 {
-	Hypothesis &hypo = edge.GetHypothesis();
-	ScoreComponentCollection &scores = hypo.GetScoreBreakdown();
-	scores.PlusEquals(this, 1.8);
+	const Hypothesis &hypo = edge.GetHypothesis();
+	ScoreComponentCollection &scores = const_cast<ScoreComponentCollection&>(hypo.GetScoreBreakdown());
+	scores.PlusEquals(this, 1.0);
 }
 
 }
