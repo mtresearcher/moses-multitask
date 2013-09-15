@@ -239,6 +239,9 @@ public:
   const ScoreComponentCollection& GetScoreBreakdown() const {
     return m_scoreBreakdown;
   }
+  ScoreComponentCollection& GetScoreBreakdown() {
+    return m_scoreBreakdown;
+  }
 
   float GetTotalScore() const {
     return m_totalScore;

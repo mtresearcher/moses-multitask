@@ -7,6 +7,7 @@ namespace Moses
 {
 
 class Manager;
+class Hypothesis;
 
 /** SearchGraph class provides an abstraction for the search graph
  * It includes information about all feature functions and their weights
@@ -18,12 +19,12 @@ public:
   class Edge;
 
   explicit SearchGraph(const Manager &manager);
-
+  ~SearchGraph();
 
   void Search(size_t pass);
 
 private:
-  std::vector<Edge> m_edges;
+  std::vector<Edge*> m_edges;
 };
 
 /** SearchGraph::Edge class provides a view to edges of the search graph
@@ -33,12 +34,14 @@ private:
 class SearchGraph::Edge
 {
 public:
-  Edge();
-  Edge(const Edge& other);
+  Edge(Hypothesis &hypo, const Edge *next, std::vector<Edge*> &edges);
   ~Edge();
 
+  Hypothesis &GetHypothesis()
+  { return m_hypo; }
 private:
-
+  Hypothesis &m_hypo;
+  const Edge *m_next;
 };
 
 
