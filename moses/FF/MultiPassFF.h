@@ -32,8 +32,10 @@ public:
 	                             ScoreComponentCollection* accumulator) const
 	  {}
 
-	  void Evaluate(Edge &edge ) const;
+	  void Evaluate(const Edge &edge ) const;
 
+protected:
+	  void Evaluate(const Hypothesis &hypo) const;
 
 };
 

@@ -59,7 +59,7 @@ public:
   }
 
   // multipass
-  virtual FFState* Evaluate(Edge &edge ) const
+  virtual FFState* Evaluate(const Edge &edge ) const
   {
 	  return NULL;
   }

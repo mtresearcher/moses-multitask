@@ -761,7 +761,7 @@ public:
     return m_placeHolderFactor;
   }
 
-  size_t m_currPass, m_maxPass;
+  size_t m_maxPass;
   //void SwitchPass(size_t newPass);
 
   // CSLM rescoring quick hack

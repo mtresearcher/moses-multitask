@@ -47,7 +47,7 @@ public:
   }
 
   // multipass
-  virtual void Evaluate(Edge &edge ) const
+  virtual void Evaluate(const Edge &edge ) const
   {}
 
 };
