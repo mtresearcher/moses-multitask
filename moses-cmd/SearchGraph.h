@@ -49,6 +49,7 @@ private:
 
   class BuilderFromManager;
   class BuilderFromGraph;
+  class BuilderBase;
 
   // TODO: encapsulate all fields (as in Edge class)
   std::vector< Edge > m_allEdges;

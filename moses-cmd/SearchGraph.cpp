@@ -6,6 +6,7 @@
 
 #include <map>
 #include <numeric>
+#include <stdexcept>
 
 namespace Moses
 {
@@ -108,17 +109,15 @@ public:
   WordsRange m_sourceWordsRange;
 };
 
-class SearchGraph::BuilderFromManager
+class SearchGraph::BuilderBase
 {
+protected:
   SearchGraph& m_graph;
-  typedef std::map<const Hypothesis*, VertexId> HypoMap;
-  HypoMap m_hypoMap;
-  VertexId m_vertexCount;
   const std::vector<FeatureFunction*>& m_featureFunctions;
-public:
-  BuilderFromManager(SearchGraph& graph) :
-      m_graph(graph), m_hypoMap(), m_vertexCount(0),
-      m_featureFunctions(FeatureFunction::GetFeatureFunctionsForNow())
+
+  BuilderBase(SearchGraph& graph):
+    m_graph(graph),
+    m_featureFunctions(FeatureFunction::GetFeatureFunctionsForNow())
   {
     m_graph.m_featureDescriptions.resize(m_featureFunctions.size());
     m_graph.m_featureWeights.resize(m_featureFunctions.size());
@@ -128,6 +127,18 @@ public:
       m_graph.m_featureWeights[i] = StaticData::Instance().GetWeights(m_featureFunctions[i]);
     }
   }
+};
+
+class SearchGraph::BuilderFromManager: SearchGraph::BuilderBase
+{
+  typedef std::map<const Hypothesis*, VertexId> HypoMap;
+  HypoMap m_hypoMap;
+  VertexId m_vertexCount;
+public:
+  BuilderFromManager(SearchGraph& graph) :
+      BuilderBase(graph),
+      m_hypoMap(), m_vertexCount(0)
+  {}
 
   void Build(const Manager& manager)
   {
@@ -203,16 +214,67 @@ SearchGraph::SearchGraph(const Manager& manager)
   builder.Build(manager);
 }
 
-class SearchGraph::BuilderFromGraph
+class SearchGraph::BuilderFromGraph: SearchGraph::BuilderBase
 {
-  SearchGraph& m_newGraph;
   const SearchGraph& m_oldGraph;
+  std::vector<int> m_featureReusage;
 public:
   BuilderFromGraph(SearchGraph& newGraph, const SearchGraph& oldGraph):
-    m_newGraph(newGraph), m_oldGraph(oldGraph)
+    BuilderBase(newGraph),
+    m_oldGraph(oldGraph)
   {}
   void Build() {
-    CHECK(false);
+    PrepareReusage();
+    m_graph.m_incomingEdges = m_oldGraph.m_incomingEdges;
+    m_graph.m_outgoingEdges = m_oldGraph.m_outgoingEdges;
+    m_graph.m_allEdges.reserve(m_oldGraph.m_allEdges.size());
+    for (std::vector<Edge>::const_iterator it = m_oldGraph.m_allEdges.begin();
+        it != m_oldGraph.m_allEdges.end(); ++it)
+    {
+      m_graph.m_allEdges.push_back(Edge(*it));
+      Edge::Impl* e = m_graph.m_allEdges.back().m_impl;
+      e->m_featureScores.clear();
+      e->m_featureScores.resize(m_featureFunctions.size());
+      for (size_t i = 0; i < m_featureFunctions.size(); ++i)
+      {
+        if (m_featureReusage[i] == -1)
+        {
+          e->m_featureScores[i] = CalculateFeatureScores(e, m_featureFunctions[i]);
+        } else {
+          e->m_featureScores[i] = it->FeatureScores(m_featureReusage[i]);
+        }
+      }
+    }
+  }
+private:
+  void PrepareReusage()
+  {
+    m_featureReusage.assign(m_featureFunctions.size(), -1);
+    for (size_t i = 0; i < m_featureFunctions.size(); ++i)
+    {
+      std::vector<std::string>::const_iterator it = std::find(
+          m_oldGraph.m_featureDescriptions.begin(),
+          m_oldGraph.m_featureDescriptions.end(),
+          m_graph.m_featureDescriptions[i]);
+      if (it != m_oldGraph.m_featureDescriptions.end())
+      {
+        size_t j = it - m_oldGraph.m_featureDescriptions.begin();
+        if (m_oldGraph.m_featureWeights[j].size() == m_graph.m_featureWeights[i].size())
+        {
+          m_featureReusage[i] = j;
+        }
+      }
+    }
+  }
+  static std::vector<float> CalculateFeatureScores(const Edge::Impl* edge, FeatureFunction* ff)
+  {
+    if (!ff->IsStateless())
+      throw new std::invalid_argument("can't rescore with a new stateful feature");
+    std::vector<float> result;
+    ScoreComponentCollection score, futureScore;
+    ff->Evaluate(edge->m_sourcePhrase, edge->m_targetPhrase, score, futureScore);
+    result = score.GetScoresForProducer(ff);
+    return result;
   }
 };
 
