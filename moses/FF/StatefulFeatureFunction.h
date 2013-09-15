@@ -2,11 +2,11 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
-#include "moses/SearchGraph.h"
 
 namespace Moses
 {
 class FFState;
+class Edge;
 
 /** base class for all stateful feature functions.
  * eg. LM, distortion penalty
@@ -59,8 +59,10 @@ public:
   }
 
   // multipass
-  virtual FFState* Evaluate(SearchGraph::Edge &edge ) const
-  {}
+  virtual FFState* Evaluate(Edge &edge ) const
+  {
+	  return NULL;
+  }
 };
 
 

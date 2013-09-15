@@ -32,7 +32,7 @@ public:
 	                             ScoreComponentCollection* accumulator) const
 	  {}
 
-	  void Evaluate(SearchGraph::Edge &edge ) const;
+	  void Evaluate(Edge &edge ) const;
 
 
 };

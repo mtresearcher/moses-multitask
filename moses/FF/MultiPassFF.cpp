@@ -5,7 +5,7 @@
 
 namespace Moses
 {
-void MultiPassFF::Evaluate(SearchGraph::Edge &edge ) const
+void MultiPassFF::Evaluate(Edge &edge ) const
 {
 	Hypothesis &hypo = edge.GetHypothesis();
 	ScoreComponentCollection &scores = hypo.GetScoreBreakdown();

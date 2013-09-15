@@ -7,9 +7,10 @@
 #include <map>
 #include <numeric>
 
+using namespace std;
+
 namespace Moses
 {
-
 
 SearchGraph::SearchGraph(const Manager& manager)
 {
@@ -19,7 +20,6 @@ SearchGraph::SearchGraph(const Manager& manager)
   {
 	  Hypothesis &hypo = **it;
 	  Edge *edge = new Edge(hypo, NULL, m_edges);
-
   }
 }
 
@@ -31,7 +31,7 @@ SearchGraph::~SearchGraph()
 void SearchGraph::Search(size_t pass)
 {
 	const std::vector<const StatelessFeatureFunction*> &slffs = StatelessFeatureFunction::GetStatelessFeatureFunctions(pass);
-	std::vector<Edge*>::iterator iter;
+	CollEdge::iterator iter;
 	for (iter = m_edges.begin(); iter != m_edges.end(); ++iter) {
 		Edge &edge = **iter;
 
@@ -42,20 +42,30 @@ void SearchGraph::Search(size_t pass)
 	}
 }
 
-SearchGraph::Edge::Edge(Hypothesis &hypo, const Edge* next, std::vector<Edge*> &edges)
+Edge::Edge(Hypothesis &hypo, const Edge* next, CollEdge &edges)
 :m_hypo(hypo)
 ,m_next(next)
 {
-	edges.push_back(this);
+  pair<CollEdge::iterator,bool> ret = edges.insert(this);
+  if (!ret.second) {
+	 delete this;
+	 return;
+  }
 
 	Hypothesis *prevHypo = const_cast<Hypothesis*>(hypo.GetPrevHypo());
-	  if (prevHypo) {
+	if (prevHypo) {
 		  Edge *edge = new Edge(*prevHypo, this, edges);
-	  }
+	}
 }
 
-SearchGraph::Edge::~Edge()
+Edge::~Edge()
 {
+}
+
+std::ostream& operator<<(std::ostream &out, const Edge &obj)
+{
+	out << "m_hypo=" << &obj.m_hypo;
+	return out;
 }
 
 } // namespace Moses

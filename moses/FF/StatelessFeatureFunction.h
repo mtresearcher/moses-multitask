@@ -2,10 +2,10 @@
 
 #include "FeatureFunction.h"
 #include "util/check.hh"
-#include "moses/SearchGraph.h"
 
 namespace Moses
 {
+class Edge;
 
 /** base class for all stateless feature functions.
  * eg. phrase table, word penalty, phrase penalty
@@ -47,7 +47,7 @@ public:
   }
 
   // multipass
-  virtual void Evaluate(SearchGraph::Edge &edge ) const
+  virtual void Evaluate(Edge &edge ) const
   {}
 
 };
