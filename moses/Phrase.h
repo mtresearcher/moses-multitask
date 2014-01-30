@@ -187,6 +187,11 @@ public:
 
   void OnlyTheseFactors(const FactorMask &factors);
 
+  /***
+   * print surface factor only for the given phrase
+   */
+  void OutputSurface(std::ostream &out, const std::vector<FactorType> &outputFactorOrder, bool reportAllFactors);
+
 };
 
 inline size_t hash_value(const Phrase& phrase)

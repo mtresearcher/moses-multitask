@@ -408,6 +408,35 @@ size_t Phrase::Find(const Phrase &sought, int maxUnknown) const
   return NOT_FOUND;
 }
 
+/***
+ * print surface factor only for the given phrase
+ */
+void Phrase::OutputSurface(std::ostream &out, const std::vector<FactorType> &outputFactorOrder, bool reportAllFactors)
+{
+  UTIL_THROW_IF2(outputFactorOrder.size() == 0,
+		  "Cannot be empty phrase");
+  if (reportAllFactors == true) {
+	out << *this;
+  } else {
+	size_t size = GetSize();
+	for (size_t pos = 0 ; pos < size ; pos++) {
+	  const Factor *factor = GetFactor(pos, outputFactorOrder[0]);
+	  out << *factor;
+	  UTIL_THROW_IF2(factor == NULL,
+			  "Empty factor 0 at position " << pos);
+
+	  for (size_t i = 1 ; i < outputFactorOrder.size() ; i++) {
+		const Factor *factor = GetFactor(pos, outputFactorOrder[i]);
+		UTIL_THROW_IF2(factor == NULL,
+			  "Empty factor " << i << " at position " << pos);
+
+		out << "|" << *factor;
+	  }
+	  out << " ";
+	}
+  }
+}
+
 TO_STRING_BODY(Phrase);
 
 // friend
