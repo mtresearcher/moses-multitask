@@ -415,6 +415,8 @@ inline std::string GetFirstString(const std::string& str, int& first_pos,  const
   return first_str;
 }
 
+void FixPrecision(std::ostream &, size_t size = 3);
+
 template<class T>
 T log_sum (T log_a, T log_b)
 {

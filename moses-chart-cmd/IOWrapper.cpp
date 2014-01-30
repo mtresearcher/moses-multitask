@@ -419,7 +419,7 @@ void IOWrapper::OutputBestHypo(const ChartHypothesis *hypo, long translationId)
   if (!m_singleBestOutputCollector)
     return;
   std::ostringstream out;
-  IOWrapper::FixPrecision(out);
+  FixPrecision(out);
   if (hypo != NULL) {
     VERBOSE(1,"BEST TRANSLATION: " << *hypo << endl);
     VERBOSE(3,"Best path: ");
@@ -462,7 +462,7 @@ void IOWrapper::OutputBestHypo(search::Applied applied, long translationId)
 {
   if (!m_singleBestOutputCollector) return;
   std::ostringstream out;
-  IOWrapper::FixPrecision(out);
+  FixPrecision(out);
   if (StaticData::Instance().GetOutputHypoScore()) {
     out << applied.GetScore() << ' ';
   }
@@ -498,7 +498,7 @@ void IOWrapper::OutputNBestList(const ChartTrellisPathList &nBestList, long tran
   if (m_nBestOutputCollector->OutputIsCout()) {
     // Set precision only if we're writing the n-best list to cout.  This is to
     // preserve existing behaviour, but should probably be done either way.
-    IOWrapper::FixPrecision(out);
+    FixPrecision(out);
 
     // Used to check StaticData's GetOutputHypoScore(), but it makes no sense with nbest output.
   }
@@ -583,7 +583,7 @@ void IOWrapper::OutputNBestList(const std::vector<search::Applied> &nbest, long 
   std::ostringstream out;
   // wtf? copied from the original OutputNBestList
   if (m_nBestOutputCollector->OutputIsCout()) {
-    IOWrapper::FixPrecision(out);
+    FixPrecision(out);
   }
   Phrase outputPhrase;
   ScoreComponentCollection features;
@@ -604,12 +604,6 @@ void IOWrapper::OutputNBestList(const std::vector<search::Applied> &nbest, long 
   out << std::flush;
   assert(m_nBestOutputCollector);
   m_nBestOutputCollector->Write(translationId, out.str());
-}
-
-void IOWrapper::FixPrecision(std::ostream &stream, size_t size)
-{
-  stream.setf(std::ios::fixed);
-  stream.precision(size);
 }
 
 template <class T>

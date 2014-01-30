@@ -248,8 +248,8 @@ int main(int argc, char* argv[])
       TRACE_ERR(endl);
     }
 
-    IOWrapper::FixPrecision(cout);
-    IOWrapper::FixPrecision(cerr);
+    FixPrecision(cout);
+    FixPrecision(cerr);
 
     // load data structures
     Parameter parameter;

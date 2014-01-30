@@ -203,6 +203,12 @@ std::string PassthroughSGML(std::string &line, const std::string tagName, const 
   return meta;
 }
 
+void FixPrecision(std::ostream &stream, size_t size)
+{
+  stream.setf(std::ios::fixed);
+  stream.precision(size);
 }
+
+} // namespace
 
 

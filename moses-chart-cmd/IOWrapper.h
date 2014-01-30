@@ -127,8 +127,6 @@ public:
   }
 
   void OutputAlignment(size_t translationId , const Moses::ChartHypothesis *hypo);
-
-  static void FixPrecision(std::ostream &, size_t size=3);
 };
 
 }
