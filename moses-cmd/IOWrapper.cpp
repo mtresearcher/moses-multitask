@@ -286,7 +286,7 @@ void OutputSurface(std::ostream &out, const Hypothesis &edge, const std::vector<
       out << ",";
       ScoreComponentCollection scoreBreakdown(edge.GetScoreBreakdown());
       scoreBreakdown.MinusEquals(edge.GetPrevHypo()->GetScoreBreakdown());
-      OutputAllFeatureScores(scoreBreakdown, out);
+      scoreBreakdown.OutputAllFeatureScores(out);
     }
     out << "| ";
   }
@@ -476,7 +476,7 @@ void OutputNBest(std::ostream& out
     out << " |||";
 
     // print scores with feature names
-    OutputAllFeatureScores(path.GetScoreBreakdown(), out );
+    path.GetScoreBreakdown().OutputAllFeatureScores(out );
 
     // total
     out << " ||| " << path.GetTotalScore();
@@ -523,27 +523,6 @@ void OutputNBest(std::ostream& out
   }
 
   out << std::flush;
-}
-
-void OutputAllFeatureScores(const Moses::ScoreComponentCollection &features
-                            , std::ostream &out)
-{
-  std::string lastName = "";
-  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetStatefulFeatureFunctions();
-  for( size_t i=0; i<sff.size(); i++ ) {
-    const StatefulFeatureFunction *ff = sff[i];
-    if (ff->GetScoreProducerDescription() != "BleuScoreFeature"
-        && ff->IsTuneable()) {
-    	features.OutputFeatureScores( out, ff, lastName );
-    }
-  }
-  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
-  for( size_t i=0; i<slf.size(); i++ ) {
-    const StatelessFeatureFunction *ff = slf[i];
-    if (ff->IsTuneable()) {
-      features.OutputFeatureScores( out, ff, lastName );
-    }
-  }
 }
 
 void OutputLatticeMBRNBest(std::ostream& out, const vector<LatticeMBRSolution>& solutions,long translationId)

@@ -149,8 +149,6 @@ void OutputNBest(std::ostream& out
                  , const std::vector<Moses::FactorType>& outputFactorOrder
                  , long translationId
                  , char reportSegmentation);
-void OutputAllFeatureScores(const Moses::ScoreComponentCollection &features
-                            , std::ostream &out);
 
 // creates a map of TARGET positions which should be replaced by word using placeholder
 std::map<size_t, const Moses::Factor*> GetPlaceholders(const Moses::Hypothesis &hypo, Moses::FactorType placeholderFactor);

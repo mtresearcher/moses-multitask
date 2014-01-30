@@ -411,6 +411,7 @@ public:
     m_scores.merge(other.m_scores);
   }
 
+  void OutputAllFeatureScores(std::ostream &out) const;
   void OutputFeatureScores( std::ostream& out
                             , const FeatureFunction *ff
                             , std::string &lastName ) const;

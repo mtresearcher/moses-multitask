@@ -3,6 +3,8 @@
 #include "util/exception.hh"
 #include "ScoreComponentCollection.h"
 #include "StaticData.h"
+#include "FF/StatelessFeatureFunction.h"
+#include "FF/StatefulFeatureFunction.h"
 
 using namespace std;
 
@@ -294,6 +296,26 @@ void ScoreComponentCollection::PlusEquals(const FeatureFunction* sp, const Score
     PlusEquals(sp, key, value);
   }
 }
+
+void ScoreComponentCollection::OutputAllFeatureScores(std::ostream &out) const
+{
+  std::string lastName = "";
+  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetStatefulFeatureFunctions();
+  for( size_t i=0; i<sff.size(); i++ ) {
+    const StatefulFeatureFunction *ff = sff[i];
+    if (ff->GetScoreProducerDescription() != "BleuScoreFeature"
+        && ff->IsTuneable()) {
+      OutputFeatureScores( out, ff, lastName );
+    }
+  }
+  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
+  for( size_t i=0; i<slf.size(); i++ ) {
+    const StatelessFeatureFunction *ff = slf[i];
+    if (ff->IsTuneable()) {
+      OutputFeatureScores( out, ff, lastName );
+    }
+  }
+} // OutputAllFeatureScores
 
 void ScoreComponentCollection::OutputFeatureScores( std::ostream& out
                           , const FeatureFunction *ff

@@ -99,9 +99,6 @@ protected:
   void WriteApplicationContext(std::ostream &out,
                                const ApplicationContext &context);
 
-  void OutputAllFeatureScores(const Moses::ScoreComponentCollection &features
-                              , std::ostream &out);
-
 public:
   IOWrapper(const std::vector<Moses::FactorType>	&inputFactorOrder
             , const std::vector<Moses::FactorType>	&outputFactorOrder

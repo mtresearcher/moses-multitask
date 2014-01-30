@@ -490,26 +490,6 @@ void IOWrapper::OutputBestNone(long translationId)
   }
 }
 
-void IOWrapper::OutputAllFeatureScores(const ScoreComponentCollection &features, std::ostream &out)
-{
-  std::string lastName = "";
-  const vector<const StatefulFeatureFunction*>& sff = StatefulFeatureFunction::GetStatefulFeatureFunctions();
-  for( size_t i=0; i<sff.size(); i++ ) {
-    const StatefulFeatureFunction *ff = sff[i];
-    if (ff->GetScoreProducerDescription() != "BleuScoreFeature"
-        && ff->IsTuneable()) {
-      features.OutputFeatureScores( out, ff, lastName );
-    }
-  }
-  const vector<const StatelessFeatureFunction*>& slf = StatelessFeatureFunction::GetStatelessFeatureFunctions();
-  for( size_t i=0; i<slf.size(); i++ ) {
-    const StatelessFeatureFunction *ff = slf[i];
-    if (ff->IsTuneable()) {
-      features.OutputFeatureScores( out, ff, lastName );
-    }
-  }
-} // namespace
-
 void IOWrapper::OutputNBestList(const ChartTrellisPathList &nBestList, long translationId)
 {
   std::ostringstream out;
@@ -549,7 +529,7 @@ void IOWrapper::OutputNBestList(const ChartTrellisPathList &nBestList, long tran
     // before each model type, the corresponding command-line-like name must be emitted
     // MERT script relies on this
 
-    OutputAllFeatureScores(path.GetScoreBreakdown(), out);
+    path.GetScoreBreakdown().OutputAllFeatureScores(out);
 
     // total
     out << " ||| " << path.GetTotalScore();
@@ -618,7 +598,7 @@ void IOWrapper::OutputNBestList(const std::vector<search::Applied> &nbest, long 
     out << translationId << " ||| ";
     outputPhrase.OutputSurface(out, m_outputFactorOrder, false);
     out << " ||| ";
-    OutputAllFeatureScores(features, out);
+    features.OutputAllFeatureScores(out);
     out << " ||| " << i->GetScore() << '\n';
   }
   out << std::flush;
