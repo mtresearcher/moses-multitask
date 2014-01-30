@@ -411,6 +411,10 @@ public:
     m_scores.merge(other.m_scores);
   }
 
+  void OutputFeatureScores( std::ostream& out
+                            , const FeatureFunction *ff
+                            , std::string &lastName ) const;
+
 #ifdef MPI_ENABLE
 public:
   friend class boost::serialization::access;

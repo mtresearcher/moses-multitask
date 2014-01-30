@@ -295,6 +295,32 @@ void ScoreComponentCollection::PlusEquals(const FeatureFunction* sp, const Score
   }
 }
 
+void ScoreComponentCollection::OutputFeatureScores( std::ostream& out
+                          , const FeatureFunction *ff
+                          , std::string &lastName ) const
+{
+  const StaticData &staticData = StaticData::Instance();
+  bool labeledOutput = staticData.IsLabeledNBestList();
+
+  // regular features (not sparse)
+  if (ff->GetNumScoreComponents() != 0) {
+    if( labeledOutput && lastName != ff->GetScoreProducerDescription() ) {
+      lastName = ff->GetScoreProducerDescription();
+      out << " " << lastName << "=";
+    }
+    vector<float> scores = GetScoresForProducer( ff );
+    for (size_t j = 0; j<scores.size(); ++j) {
+      out << " " << scores[j];
+    }
+  }
+
+  // sparse features
+  const FVector scores = GetVectorForProducer( ff );
+  for(FVector::FNVmap::const_iterator i = scores.cbegin(); i != scores.cend(); i++) {
+    out << " " << i->first << "= " << i->second;
+  }
 }
+
+} // namespace
 
 
