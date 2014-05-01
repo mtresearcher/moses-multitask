@@ -136,31 +136,6 @@ InputPathList &TranslationOptionCollectionConfusionNet::GetInputPathList(size_t 
   return m_inputPathMatrix[startPos][offset];
 }
 
-/* forcibly create translation option for a particular source word.
-	* call the base class' ProcessOneUnknownWord() for each possible word in the confusion network
-	* at a particular source position
-*/
-void TranslationOptionCollectionConfusionNet::ProcessUnknownWord(size_t sourcePos)
-{
-  ConfusionNet const& source=dynamic_cast<ConfusionNet const&>(m_source);
-
-  ConfusionNet::Column const& coll=source.GetColumn(sourcePos);
-  const InputPathList &inputPathList = GetInputPathList(sourcePos, sourcePos);
-
-  ConfusionNet::Column::const_iterator iterCol;
-  InputPathList::const_iterator iterInputPath;
-  size_t j=0;
-  for(iterCol = coll.begin(), iterInputPath = inputPathList.begin();
-      iterCol != coll.end();
-      ++iterCol , ++iterInputPath) {
-    const InputPath &inputPath = **iterInputPath;
-    size_t length = source.GetColumnIncrement(sourcePos, j++);
-    const ScorePair &inputScores = iterCol->second;
-    ProcessOneUnknownWord(inputPath ,sourcePos, length, &inputScores);
-  }
-
-}
-
 void TranslationOptionCollectionConfusionNet::CreateTranslationOptions()
 {
   if (!StaticData::Instance().GetUseLegacyPT()) {

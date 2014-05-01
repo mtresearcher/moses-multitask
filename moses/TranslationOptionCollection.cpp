@@ -35,7 +35,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "DecodeStepGeneration.h"
 #include "DecodeGraph.h"
 #include "InputPath.h"
-#include "moses/FF/UnknownWordPenaltyProducer.h"
 #include "moses/FF/LexicalReordering/LexicalReordering.h"
 #include "moses/FF/InputFeature.h"
 #include "util/exception.hh"
@@ -148,131 +147,6 @@ void TranslationOptionCollection::Prune()
 
   VERBOSE(2,"       Total translation options: " << total << std::endl
           << "Total translation options pruned: " << totalPruned << std::endl);
-}
-
-/** Force a creation of a translation option where there are none for a particular source position.
-* ie. where a source word has not been translated, create a translation option by
-*				1. not observing the table limits on phrase/generation tables
-*				2. using the handler ProcessUnknownWord()
-* Call this function once translation option collection has been filled with translation options
-*
-* This function calls for unknown words is complicated by the fact it must handle different input types.
-* The call stack is
-*		Base::ProcessUnknownWord()
-*			Inherited::ProcessUnknownWord(position)
-*				Base::ProcessOneUnknownWord()
-*
-*/
-
-void TranslationOptionCollection::ProcessUnknownWord()
-{
-  const vector<DecodeGraph*>& decodeGraphList = StaticData::Instance().GetDecodeGraphs();
-  size_t size = m_source.GetSize();
-  // try to translation for coverage with no trans by expanding table limit
-  for (size_t graphInd = 0 ; graphInd < decodeGraphList.size() ; graphInd++) {
-    const DecodeGraph &decodeGraph = *decodeGraphList[graphInd];
-    for (size_t pos = 0 ; pos < size ; ++pos) {
-      TranslationOptionList &fullList = GetTranslationOptionList(pos, pos);
-      size_t numTransOpt = fullList.size();
-      if (numTransOpt == 0) {
-        CreateTranslationOptionsForRange(decodeGraph, pos, pos, false, graphInd);
-      }
-    }
-  }
-
-  bool alwaysCreateDirectTranslationOption = StaticData::Instance().IsAlwaysCreateDirectTranslationOption();
-  // create unknown words for 1 word coverage where we don't have any trans options
-  for (size_t pos = 0 ; pos < size ; ++pos) {
-    TranslationOptionList &fullList = GetTranslationOptionList(pos, pos);
-    if (fullList.size() == 0 || alwaysCreateDirectTranslationOption)
-      ProcessUnknownWord(pos);
-  }
-}
-
-/** special handling of ONE unknown words. Either add temporarily add word to translation table,
-	* or drop the translation.
-	* This function should be called by the ProcessOneUnknownWord() in the inherited class
-	* At the moment, this unknown word handler is a bit of a hack, if copies over each factor from source
-	* to target word, or uses the 'UNK' factor.
-	* Ideally, this function should be in a class which can be expanded upon, for example,
-	* to create a morphologically aware handler.
-	*
-	* \param sourceWord the unknown word
-	* \param sourcePos
-	* \param length length covered by this word (may be > 1 for lattice input)
-	* \param inputScores a set of scores associated with unknown word (input scores from latties/CNs)
- */
-void TranslationOptionCollection::ProcessOneUnknownWord(const InputPath &inputPath,
-    size_t sourcePos,
-    size_t length,
-    const ScorePair *inputScores)
-{
-  const StaticData &staticData = StaticData::Instance();
-  const UnknownWordPenaltyProducer &unknownWordPenaltyProducer = UnknownWordPenaltyProducer::Instance();
-  float unknownScore = FloorScore(TransformScore(0));
-  const Word &sourceWord = inputPath.GetPhrase().GetWord(0);
-
-  // unknown word, add as trans opt
-  FactorCollection &factorCollection = FactorCollection::Instance();
-
-  size_t isDigit = 0;
-
-  const Factor *f = sourceWord[0]; // TODO hack. shouldn't know which factor is surface
-  const StringPiece s = f->GetString();
-  bool isEpsilon = (s=="" || s==EPSILON);
-  if (StaticData::Instance().GetDropUnknown()) {
-
-
-    isDigit = s.find_first_of("0123456789");
-    if (isDigit == string::npos)
-      isDigit = 0;
-    else
-      isDigit = 1;
-    // modify the starting bitmap
-  }
-
-  TargetPhrase targetPhrase;
-
-  if (!(staticData.GetDropUnknown() || isEpsilon) || isDigit) {
-    // add to dictionary
-
-    Word &targetWord = targetPhrase.AddWord();
-    targetWord.SetIsOOV(true);
-
-    for (unsigned int currFactor = 0 ; currFactor < MAX_NUM_FACTORS ; currFactor++) {
-      FactorType factorType = static_cast<FactorType>(currFactor);
-
-      const Factor *sourceFactor = sourceWord[currFactor];
-      if (sourceFactor == NULL)
-        targetWord[factorType] = factorCollection.AddFactor(UNKNOWN_FACTOR);
-      else
-        targetWord[factorType] = factorCollection.AddFactor(sourceFactor->GetString());
-    }
-    //create a one-to-one alignment between UNKNOWN_FACTOR and its verbatim translation
-
-    targetPhrase.SetAlignmentInfo("0-0");
-
-  } else {
-    // drop source word. create blank trans opt
-
-    //targetPhrase.SetAlignment();
-
-  }
-
-  targetPhrase.GetScoreBreakdown().Assign(&unknownWordPenaltyProducer, unknownScore);
-
-  // source phrase
-  const Phrase &sourcePhrase = inputPath.GetPhrase();
-  m_unksrcs.push_back(&sourcePhrase);
-  WordsRange range(sourcePos, sourcePos + length - 1);
-
-  targetPhrase.Evaluate(sourcePhrase);
-
-  TranslationOption *transOpt = new TranslationOption(range, targetPhrase);
-  transOpt->SetInputPath(inputPath);
-  Add(transOpt);
-
-
 }
 
 /** compute future score matrix in a dynamic programming fashion.
@@ -407,8 +281,6 @@ void TranslationOptionCollection::CreateTranslationOptions()
   }
 
   VERBOSE(3,"Translation Option Collection\n " << *this << endl);
-
-  ProcessUnknownWord();
 
   EvaluateWithSource();
 

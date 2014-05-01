@@ -77,11 +77,6 @@ protected:
 
   void CalcFutureScore();
 
-  //! Force a creation of a translation option where there are none for a particular source position.
-  void ProcessUnknownWord();
-  //! special handling of ONE unknown words.
-  virtual void ProcessOneUnknownWord(const InputPath &inputPath, size_t sourcePos, size_t length = 1, const ScorePair *inputScores = NULL);
-
   //! pruning: only keep the top n (m_maxNoTransOptPerCoverage) elements */
   void Prune();
 
@@ -92,9 +87,6 @@ protected:
   TranslationOptionList &GetTranslationOptionList(size_t startPos, size_t endPos);
   const TranslationOptionList &GetTranslationOptionList(size_t startPos, size_t endPos) const;
   void Add(TranslationOption *translationOption);
-
-  //! implemented by inherited class, called by this class
-  virtual void ProcessUnknownWord(size_t sourcePos)=0;
 
   void EvaluateWithSource();
 

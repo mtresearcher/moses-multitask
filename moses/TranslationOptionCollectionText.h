@@ -46,8 +46,6 @@ protected:
   InputPath &GetInputPath(size_t startPos, size_t endPos);
 
 public:
-  void ProcessUnknownWord(size_t sourcePos);
-
   TranslationOptionCollectionText(Sentence const& input, size_t maxNoTransOptPerCoverage, float translationOptionThreshold);
 
   bool HasXmlOptionsOverlappingRange(size_t startPosition, size_t endPosition) const;

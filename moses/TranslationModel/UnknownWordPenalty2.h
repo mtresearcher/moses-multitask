@@ -28,6 +28,8 @@ public:
 
   void SetParameter(const std::string& key, const std::string& value);
 
+  std::vector<float> DefaultWeights() const;
+
   TO_STRING();
 
 
