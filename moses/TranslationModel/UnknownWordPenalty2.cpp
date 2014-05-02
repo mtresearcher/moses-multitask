@@ -1,11 +1,28 @@
 // vim:tabstop=2
 #include "UnknownWordPenalty2.h"
 #include "moses/TypeDef.h"
+#include "moses/ChartRuleLookupManager.h"
 
 using namespace std;
 
 namespace Moses
 {
+class ChartRuleLookupUnk : public ChartRuleLookupManager
+{
+public:
+	ChartRuleLookupUnk(const ChartParser &parser,
+						 const ChartCellCollectionBase &cellColl)
+	:ChartRuleLookupManager(parser, cellColl)
+	{}
+
+  virtual void GetChartRuleCollection(
+	const WordsRange &range,
+	size_t lastPos,  // last position to consider if using lookahead
+	ChartParserCallback &outColl)
+  {}
+
+};
+
 UnknownWordPenalty2::UnknownWordPenalty2(const std::string &line)
 :PhraseDictionary(line)
 ,m_maxPhraseLength(1)
@@ -88,7 +105,8 @@ ChartRuleLookupManager* UnknownWordPenalty2::CreateRuleLookupManager(const Chart
     const ChartCellCollectionBase &cellCollection,
     std::size_t /*maxChartSpan*/)
 {
-  return NULL;
+  return new ChartRuleLookupUnk(parser, cellCollection);
+
 }
 
 
