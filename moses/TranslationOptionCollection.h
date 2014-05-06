@@ -69,7 +69,6 @@ protected:
   SquareMatrix				m_futureScore; /*< matrix of future costs for contiguous parts (span) of the input */
   const size_t				m_maxNoTransOptPerCoverage; /*< maximum number of translation options per input span */
   const float				m_translationOptionThreshold; /*< threshold for translation options with regard to best option for input span */
-  std::vector<const Phrase*> m_unksrcs;
   InputPathList m_inputPathQueue;
 
   TranslationOptionCollection(InputType const& src, size_t maxNoTransOptPerCoverage,
@@ -110,11 +109,6 @@ public:
   //! input sentence/confusion network
   const InputType& GetSource() const {
     return m_source;
-  }
-
-  //!List of unknowns (OOVs)
-  const std::vector<const Phrase*>& GetUnknownSources() const {
-    return m_unksrcs;
   }
 
   //! Create all possible translations from the phrase tables

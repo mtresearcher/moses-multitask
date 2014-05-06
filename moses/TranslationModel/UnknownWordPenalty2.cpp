@@ -2,6 +2,8 @@
 #include "UnknownWordPenalty2.h"
 #include "moses/TypeDef.h"
 #include "moses/ChartRuleLookupManager.h"
+#include "moses/DecodeGraph.h"
+#include "moses/DecodeStep.h"
 
 using namespace std;
 
@@ -45,25 +47,30 @@ void UnknownWordPenalty2::InitializeForInput(InputType const& source)
 void UnknownWordPenalty2::GetTargetPhraseCollectionBatch(const InputPathList &inputPathQueue) const
 {
   CacheColl &cache = GetCache();
+  const DecodeGraph &decodeGraph = GetContainer().GetContainer();
+  size_t backoff = decodeGraph.GetBackoff();
 
   InputPathList::const_iterator iter;
   for (iter = inputPathQueue.begin(); iter != inputPathQueue.end(); ++iter) {
     InputPath &inputPath = **iter;
     const Phrase &sourcePhrase = inputPath.GetPhrase();
 
-    if (inputPath.GetTotalRuleSize() == 0) {
-		if (sourcePhrase.GetSize() <= m_maxPhraseLength) {
-			TargetPhrase *tp = CreateTargetPhrase(sourcePhrase);
-			TargetPhraseCollection *tpColl = new TargetPhraseCollection();
-			tpColl->Add(tp);
+    if (sourcePhrase.GetSize() > m_maxPhraseLength) {
+    	// over max length
+    	continue;
+    }
 
-			// add target phrase to phrase-table cache
-			size_t hash = hash_value(sourcePhrase);
-			std::pair<const TargetPhraseCollection*, clock_t> value(tpColl, clock());
-			cache[hash] = value;
+    if (backoff == 0 || (backoff && inputPath.GetTotalRuleSize() == 0)) {
+		TargetPhrase *tp = CreateTargetPhrase(sourcePhrase);
+		TargetPhraseCollection *tpColl = new TargetPhraseCollection();
+		tpColl->Add(tp);
 
-			inputPath.SetTargetPhrases(*this, tpColl, NULL);
-		}
+		// add target phrase to phrase-table cache
+		size_t hash = hash_value(sourcePhrase);
+		std::pair<const TargetPhraseCollection*, clock_t> value(tpColl, clock());
+		cache[hash] = value;
+
+		inputPath.SetTargetPhrases(*this, tpColl, NULL);
     }
   }
 }
@@ -106,7 +113,6 @@ ChartRuleLookupManager* UnknownWordPenalty2::CreateRuleLookupManager(const Chart
     std::size_t /*maxChartSpan*/)
 {
   return new ChartRuleLookupUnk(parser, cellCollection);
-
 }
 
 

@@ -174,8 +174,8 @@ bool PhraseDictionaryTransliteration::SatisfyBackoff(const InputPath &inputPath)
   const Phrase &sourcePhrase = inputPath.GetPhrase();
 
   assert(m_container);
-  const DecodeGraph *decodeGraph = m_container->GetContainer();
-  size_t backoff = decodeGraph->GetBackoff();
+  const DecodeGraph &decodeGraph = m_container->GetContainer();
+  size_t backoff = decodeGraph.GetBackoff();
 
   if (backoff == 0) {
 	  // ie. don't backoff. Collect ALL translations

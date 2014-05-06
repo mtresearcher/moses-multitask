@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef moses_DecodeStep_h
 #define moses_DecodeStep_h
 
+#include <cassert>
 #include "TypeDef.h"
 #include "FactorTypeSet.h"
 #include "Phrase.h"
@@ -107,8 +108,11 @@ public:
 
   void SetContainer(const DecodeGraph *container)
   { m_container = container; }
-  const DecodeGraph *GetContainer() const
-  { return m_container; }
+  const DecodeGraph &GetContainer() const
+  {
+    assert(m_container);
+    return *m_container;
+  }
 
 };
 

@@ -441,6 +441,7 @@ public:
     }
 
     //list of unknown words
+    /*
     if (m_unknownsCollector) {
       const vector<const Phrase*>& unknowns = manager.getSntTranslationOptions()->GetUnknownSources();
       ostringstream out;
@@ -450,6 +451,7 @@ public:
       out << endl;
       m_unknownsCollector->Write(m_lineNumber, out.str());
     }
+	*/
 
     // report additional statistics
     manager.CalcDecoderStatistics();

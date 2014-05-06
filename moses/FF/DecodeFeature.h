@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define moses_DecodeFeature
 
 #include <vector>
+#include <cassert>
 
 #include "moses/FF/StatelessFeatureFunction.h"
 #include "moses/FactorTypeSet.h"
@@ -81,6 +82,11 @@ public:
 
   void SetContainer(const DecodeStep *container)
   { m_container = container; }
+  const DecodeStep &GetContainer() const
+  {
+    assert(m_container);
+    return *m_container;
+  }
 
 protected:
   std::vector<FactorType> m_input;
