@@ -112,9 +112,7 @@ ChartRuleLookupManager* UnknownWordPenalty2::CreateRuleLookupManager(const Chart
     const ChartCellCollectionBase &cellCollection,
     std::size_t /*maxChartSpan*/)
 {
-  cerr << "BEFORE\n";
   return new ChartRuleLookupUnk(parser, cellCollection);
-  cerr << "AFTER\n";
 }
 
 
