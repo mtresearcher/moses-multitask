@@ -195,8 +195,8 @@ template <class Model> lm::WordIndex Fill<Model>::Convert(const Word &word) cons
 }
 
 struct ChartCellBaseFactory {
-  ChartCellBase *operator()(size_t startPos, size_t endPos) const {
-    return new ChartCellBase(startPos, endPos);
+  ChartCellBase *operator()(size_t startPos, size_t endPos, const ChartParser &parser) const {
+    return new ChartCellBase(startPos, endPos, parser);
   }
 };
 
@@ -204,8 +204,8 @@ struct ChartCellBaseFactory {
 
 Manager::Manager(const InputType &source) :
   source_(source),
-  cells_(source, ChartCellBaseFactory()),
   parser_(source, cells_),
+  cells_(source, ChartCellBaseFactory(), parser_),
   n_best_(search::NBestConfig(StaticData::Instance().GetNBestSize())) {}
 
 Manager::~Manager()

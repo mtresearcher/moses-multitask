@@ -43,11 +43,12 @@ namespace Moses
 class ChartTranslationOptionList;
 class ChartCellCollection;
 class ChartManager;
+class ChartParser;
 
 class ChartCellBase
 {
 public:
-  ChartCellBase(size_t startPos, size_t endPos);
+  ChartCellBase(size_t startPos, size_t endPos, const ChartParser &parser);
 
   virtual ~ChartCellBase();
 

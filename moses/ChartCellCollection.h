@@ -30,19 +30,23 @@ namespace Moses
 {
 class InputType;
 class ChartManager;
+class ChartParser;
 
 class ChartCellCollectionBase
 {
 public:
-  template <class Factory> ChartCellCollectionBase(const InputType &input, const Factory &factory) :
-    m_cells(input.GetSize()) {
+  template <class Factory> ChartCellCollectionBase(const InputType &input,
+		  	  	  	  	  	  const Factory &factory,
+		  	  	  	  	  	  const ChartParser &parser)
+  :m_cells(input.GetSize())
+  {
 
     size_t size = input.GetSize();
     for (size_t startPos = 0; startPos < size; ++startPos) {
       std::vector<ChartCellBase*> &inner = m_cells[startPos];
       inner.reserve(size - startPos);
       for (size_t endPos = startPos; endPos < size; ++endPos) {
-        inner.push_back(factory(startPos, endPos));
+        inner.push_back(factory(startPos, endPos, parser));
       }
       /* Hack: ChartCellLabel shouldn't need to know its span, but the parser
        * gets it from there :-(.  The span is actually stored as a reference,
@@ -50,7 +54,7 @@ public:
        */
       const WordsRange &range = inner[0]->GetCoverage();
 
-      m_source.push_back(new ChartCellLabel(range, input.GetWord(startPos)));
+      m_source.push_back(new ChartCellLabel(parser, range, input.GetWord(startPos)));
     }
   }
 

@@ -31,6 +31,7 @@ namespace Moses
 {
 
 class ChartHypothesisCollection;
+class ChartParser;
 
 /** @todo I have no idea what's in here
  */
@@ -44,8 +45,9 @@ public:
   typedef MapType::const_iterator const_iterator;
   typedef MapType::iterator iterator;
 
-  ChartCellLabelSet(const WordsRange &coverage)
-  : m_coverage(coverage)
+  ChartCellLabelSet(const ChartParser &parser, const WordsRange &coverage)
+  : m_parser(parser)
+  , m_coverage(coverage)
   , m_map(FactorCollection::Instance().GetNumNonTerminals(), NULL)
   , m_size(0) { }
 
@@ -74,7 +76,7 @@ public:
       m_size++;
 
 
-      m_map[idx] = new ChartCellLabel(m_coverage, w);
+      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w);
     }
   }
 
@@ -89,7 +91,7 @@ public:
       ChartCellLabel::Stack s;
       s.cube = stack;
       m_size++;
-      m_map[idx] = new ChartCellLabel(m_coverage, w, s);
+      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w, s);
     }
   }
 
@@ -128,12 +130,13 @@ public:
     size_t idx = w[0]->GetId();
     if (! ChartCellExists(idx)) {
       m_size++;
-      m_map[idx] = new ChartCellLabel(m_coverage, w);
+      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w);
     }
     return m_map[idx]->MutableStack();
   }
 
 private:
+  const ChartParser &m_parser;
   const WordsRange &m_coverage;
   MapType m_map;
   size_t m_size;

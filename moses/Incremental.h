@@ -39,8 +39,8 @@ private:
   template <class Model, class Best> search::History PopulateBest(const Model &model, const std::vector<lm::WordIndex> &words, Best &out);
 
   const InputType &source_;
-  ChartCellCollectionBase cells_;
   ChartParser parser_;
+  ChartCellCollectionBase cells_;
 
   // Only one of single_best_ or n_best_ will be used, but it was easier to do this than a template.
   search::SingleBest single_best_;

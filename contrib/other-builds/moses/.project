@@ -137,6 +137,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses/ChartCellCollection.h</locationURI>
 		</link>
 		<link>
+			<name>ChartCellLabel.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/ChartCellLabel.cpp</locationURI>
+		</link>
+		<link>
 			<name>ChartCellLabel.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/ChartCellLabel.h</locationURI>

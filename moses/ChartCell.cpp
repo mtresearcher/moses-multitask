@@ -38,9 +38,9 @@ namespace Moses
 {
 extern bool g_mosesDebug;
 
-ChartCellBase::ChartCellBase(size_t startPos, size_t endPos) :
+ChartCellBase::ChartCellBase(size_t startPos, size_t endPos, const ChartParser &parser) :
   m_coverage(startPos, endPos),
-  m_targetLabelSet(m_coverage) {}
+  m_targetLabelSet(parser, m_coverage) {}
 
 ChartCellBase::~ChartCellBase() {}
 
@@ -49,7 +49,7 @@ ChartCellBase::~ChartCellBase() {}
  * \param manager pointer back to the manager
  */
 ChartCell::ChartCell(size_t startPos, size_t endPos, ChartManager &manager) :
-  ChartCellBase(startPos, endPos), m_manager(manager)
+  ChartCellBase(startPos, endPos, manager.GetParser()), m_manager(manager)
 {
   const StaticData &staticData = StaticData::Instance();
   m_nBestIsEnabled = staticData.IsNBestEnabled();
