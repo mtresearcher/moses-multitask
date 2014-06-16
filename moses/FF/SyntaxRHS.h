@@ -2,6 +2,7 @@
 
 #include <string>
 #include "StatelessFeatureFunction.h"
+#include "moses/NonTerminal.h"
 
 namespace Moses
 {
@@ -29,6 +30,9 @@ public:
                 ScoreComponentCollection* accumulator) const;
   void EvaluateChart(const ChartHypothesis &hypo,
                      ScoreComponentCollection* accumulator) const;
+
+protected:
+  bool IsValid(const Word &ruleNT, const NonTerminalSet &labels) const;
 
 };
 
