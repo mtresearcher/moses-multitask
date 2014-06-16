@@ -76,7 +76,7 @@ public:
       m_size++;
 
 
-      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w);
+      m_map[idx] = new ChartCellLabel(m_coverage, w);
     }
   }
 
@@ -91,7 +91,7 @@ public:
       ChartCellLabel::Stack s;
       s.cube = stack;
       m_size++;
-      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w, s);
+      m_map[idx] = new ChartCellLabel(m_coverage, w, s);
     }
   }
 
@@ -130,7 +130,7 @@ public:
     size_t idx = w[0]->GetId();
     if (! ChartCellExists(idx)) {
       m_size++;
-      m_map[idx] = new ChartCellLabel(m_parser, m_coverage, w);
+      m_map[idx] = new ChartCellLabel(m_coverage, w);
     }
     return m_map[idx]->MutableStack();
   }

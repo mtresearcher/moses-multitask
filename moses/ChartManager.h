@@ -97,10 +97,6 @@ public:
   }
 
   const ChartParser &GetParser() const { return m_parser; }
-
-  const InputPath &GetInputPath(size_t startPos, size_t endPos) const;
-  const InputPath &GetInputPath(const WordsRange &range) const;
-
 };
 
 }

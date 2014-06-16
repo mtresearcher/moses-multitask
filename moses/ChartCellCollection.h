@@ -54,7 +54,7 @@ public:
        */
       const WordsRange &range = inner[0]->GetCoverage();
 
-      m_source.push_back(new ChartCellLabel(parser, range, input.GetWord(startPos)));
+      m_source.push_back(new ChartCellLabel(range, input.GetWord(startPos)));
     }
   }
 

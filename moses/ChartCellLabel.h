@@ -51,17 +51,13 @@ public:
   };
 
 
-  ChartCellLabel(const InputPath &inputPath, const WordsRange &coverage, const Word &label,
+  ChartCellLabel(const WordsRange &coverage, const Word &label,
                  Stack stack=Stack())
-    : m_inputPath(inputPath)
-    , m_coverage(coverage)
+    : m_coverage(coverage)
     , m_label(label)
     , m_stack(stack)
     , m_bestScore(0) {
   }
-
-  ChartCellLabel(const ChartParser &parser, const WordsRange &coverage, const Word &label,
-                 Stack stack=Stack());
 
   const WordsRange &GetCoverage() const {
     return m_coverage;
@@ -96,7 +92,6 @@ public:
 private:
   const WordsRange &m_coverage;
   const Word &m_label;
-  const InputPath &m_inputPath;
   Stack m_stack;
   mutable float m_bestScore;
 };
