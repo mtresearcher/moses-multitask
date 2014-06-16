@@ -275,4 +275,14 @@ void ChartManager::FindReachableHypotheses( const ChartHypothesis *hypo, std::ma
   }
 }
 
+const InputPath &ChartManager::GetInputPath(size_t startPos, size_t endPos) const
+{
+	return m_parser.GetInputPath(startPos, endPos);
+}
+
+const InputPath &ChartManager::GetInputPath(const WordsRange &range) const
+{
+	return m_parser.GetInputPath(range);
+}
+
 } // namespace Moses
