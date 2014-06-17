@@ -51,7 +51,10 @@ void SyntaxRHS::Evaluate(const InputType &input
 		if (!isValid) {
 		  float score = m_hardConstraint ? - std::numeric_limits<float>::infinity() : 1;
 		  scoreBreakdown.PlusEquals(this, score);
-		  return;
+
+		  if (m_hardConstraint) {
+			  return;
+		  }
 		}
 
 		++ntInd;
