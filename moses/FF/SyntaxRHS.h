@@ -6,7 +6,7 @@
 
 namespace Moses
 {
-
+// penalize rule if using X when syntax label is available for input range.
 class SyntaxRHS : public StatelessFeatureFunction
 {
 public:
@@ -31,7 +31,11 @@ public:
   void EvaluateChart(const ChartHypothesis &hypo,
                      ScoreComponentCollection* accumulator) const;
 
+  void SetParameter(const std::string& key, const std::string& value);
+
 protected:
+  bool m_hardConstraint;
+
   bool IsValid(const Word &ruleNT, const NonTerminalSet &labels) const;
 
 };

@@ -14,6 +14,7 @@ namespace Moses
 {
 SyntaxRHS::SyntaxRHS(const std::string &line)
 :StatelessFeatureFunction(1, line)
+,m_hardConstraint(true)
 {
   ReadParameters();
 }
@@ -47,6 +48,12 @@ void SyntaxRHS::Evaluate(const InputType &input
 		const NonTerminalSet &labels = input.GetLabelSet(range.GetStartPos(), range.GetEndPos());
 		bool isValid = IsValid(word, labels);
 
+		if (!isValid) {
+		  float score = m_hardConstraint ? - std::numeric_limits<float>::infinity() : 1;
+		  scoreBreakdown.PlusEquals(this, score);
+		  return;
+		}
+
 		++ntInd;
 	  }
 	}
@@ -62,18 +69,36 @@ void SyntaxRHS::EvaluateChart(const ChartHypothesis &hypo,
 
 bool SyntaxRHS::IsValid(const Word &ruleNT, const NonTerminalSet &labels) const
 {
-  if (ruleNT == StaticData::Instance().GetInputDefaultNonTerminal()) {
-	  cerr << "hhh" << endl;
-  }
-
+  /*
   cerr << "ruleNT=" << ruleNT << " ";
 
   NonTerminalSet::const_iterator iter;
   for (iter = labels.begin(); iter != labels.end(); ++iter) {
-    const Word &word = *iter;
-    cerr << word << " ";
+	const Word &word = *iter;
+	cerr << word << " ";
   }
   cerr << endl;
+  */
+
+  if (ruleNT == StaticData::Instance().GetInputDefaultNonTerminal()) {
+	  // hiero non-term. 1 word in labels must be hiero. If more than 1, then the other is syntax
+	  bool ret = labels.size() > 1;
+	  return ret;
+  }
+  else {
+	  // rule non-term is syntax. Don't bother to check
+	  return true;
+  }
+
+}
+
+void SyntaxRHS::SetParameter(const std::string& key, const std::string& value)
+{
+  if (key == "hard-constraint") {
+	  m_hardConstraint = Scan<bool>(value);
+  } else {
+    StatelessFeatureFunction::SetParameter(key, value);
+  }
 }
 
 }
