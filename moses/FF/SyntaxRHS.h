@@ -32,11 +32,13 @@ public:
                      ScoreComponentCollection* accumulator) const;
 
   void SetParameter(const std::string& key, const std::string& value);
+  std::vector<float> DefaultWeights() const;
 
 protected:
   bool m_hardConstraint;
 
   bool IsValid(const Word &ruleNT, const NonTerminalSet &labels) const;
+  bool IsGlueRule(const TargetPhrase &targetPhrase) const;
 
 };
 

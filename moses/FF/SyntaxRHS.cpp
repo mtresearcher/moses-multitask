@@ -16,7 +16,16 @@ SyntaxRHS::SyntaxRHS(const std::string &line)
 :StatelessFeatureFunction(1, line)
 ,m_hardConstraint(true)
 {
+  m_tuneable = false;
   ReadParameters();
+}
+
+std::vector<float> SyntaxRHS::DefaultWeights() const
+{
+  UTIL_THROW_IF2(m_numScoreComponents != 1,
+          "SyntaxRHS must only have 1 score");
+  vector<float> ret(1, 1);
+  return ret;
 }
 
 void SyntaxRHS::Evaluate(const Phrase &source
@@ -34,6 +43,10 @@ void SyntaxRHS::Evaluate(const InputType &input
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection *estimatedFutureScore) const
 {
+	if (IsGlueRule(targetPhrase)) {
+		return;
+	}
+
 	const Phrase *source = targetPhrase.GetRuleSource();
 	assert(source);
 	assert(stackVec);
@@ -73,7 +86,7 @@ void SyntaxRHS::EvaluateChart(const ChartHypothesis &hypo,
 bool SyntaxRHS::IsValid(const Word &ruleNT, const NonTerminalSet &labels) const
 {
   /*
-  cerr << "ruleNT=" << ruleNT << " ";
+  cerr << "ruleNT=" << ruleNT << " " << labels.size() << " ";
 
   NonTerminalSet::const_iterator iter;
   for (iter = labels.begin(); iter != labels.end(); ++iter) {
@@ -85,7 +98,7 @@ bool SyntaxRHS::IsValid(const Word &ruleNT, const NonTerminalSet &labels) const
 
   if (ruleNT == StaticData::Instance().GetInputDefaultNonTerminal()) {
 	  // hiero non-term. 1 word in labels must be hiero. If more than 1, then the other is syntax
-	  bool ret = labels.size() > 1;
+	  bool ret = labels.size() == 1;
 	  return ret;
   }
   else {
@@ -102,6 +115,23 @@ void SyntaxRHS::SetParameter(const std::string& key, const std::string& value)
   } else {
     StatelessFeatureFunction::SetParameter(key, value);
   }
+}
+
+bool SyntaxRHS::IsGlueRule(const TargetPhrase &targetPhrase) const
+{
+	const Phrase *source = targetPhrase.GetRuleSource();
+	assert(source);
+
+	string sourceStr = source->ToString();
+	if (sourceStr == "<s> " || sourceStr == "X </s> " || sourceStr == "X X ") {
+	  // don't score glue rule
+	  //cerr << "sourceStr=" << sourceStr << endl;
+	  return true;
+	}
+	else {
+	  return false;
+	}
+
 }
 
 }
