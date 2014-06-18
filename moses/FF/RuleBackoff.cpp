@@ -14,7 +14,16 @@ RuleBackoff::RuleBackoff(const std::string &line)
 :StatelessFeatureFunction(1, line)
 ,m_minCount(20)
 {
+  m_tuneable = false;
   ReadParameters();
+}
+
+std::vector<float> SyntaxRHS::DefaultWeights() const
+{
+  UTIL_THROW_IF2(m_numScoreComponents != 1,
+          "SyntaxRHS must only have 1 score");
+  vector<float> ret(1, 1);
+  return ret;
 }
 
 void RuleBackoff::Evaluate(const Phrase &source
