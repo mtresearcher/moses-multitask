@@ -18,7 +18,7 @@ RuleBackoff::RuleBackoff(const std::string &line)
   ReadParameters();
 }
 
-std::vector<float> SyntaxRHS::DefaultWeights() const
+std::vector<float> RuleBackoff::DefaultWeights() const
 {
   UTIL_THROW_IF2(m_numScoreComponents != 1,
           "SyntaxRHS must only have 1 score");
