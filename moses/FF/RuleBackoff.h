@@ -6,10 +6,10 @@
 namespace Moses
 {
 
-class SkeletonStatelessFF : public StatelessFeatureFunction
+class RuleBackoff : public StatelessFeatureFunction
 {
 public:
-  SkeletonStatelessFF(const std::string &line);
+  RuleBackoff(const std::string &line);
 
   bool IsUseable(const FactorMask &mask) const {
     return true;
@@ -29,6 +29,7 @@ public:
                 ScoreComponentCollection* accumulator) const;
   void EvaluateChart(const ChartHypothesis &hypo,
                      ScoreComponentCollection* accumulator) const;
+  void Evaluate(ChartTranslationOptionList &transOptList) const;
 
 };
 

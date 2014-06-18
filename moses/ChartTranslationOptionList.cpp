@@ -193,6 +193,14 @@ void ChartTranslationOptionList::Evaluate(const InputType &input, const InputPat
 
   size_t newSize = m_size - numDiscard;
   m_size = newSize;
+
+
+  // Hieu
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
+  for (size_t i = 0; i < ffs.size(); ++i) {
+    const FeatureFunction &ff = *ffs[i];
+    ff.Evaluate(*this);
+  }
 }
 
 void ChartTranslationOptionList::SwapTranslationOptions(size_t a, size_t b)

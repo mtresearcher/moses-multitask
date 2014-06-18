@@ -21,6 +21,7 @@ class WordsRange;
 class FactorMask;
 class InputPath;
 class StackVec;
+class ChartTranslationOptionList;
 
 /** base class for all feature functions.
  */
@@ -116,6 +117,9 @@ public:
                         , const StackVec *stackVec
                         , ScoreComponentCollection &scoreBreakdown
                         , ScoreComponentCollection *estimatedFutureScore = NULL) const = 0;
+
+  virtual void Evaluate(ChartTranslationOptionList &transOptList) const
+  {}
 
   virtual void SetParameter(const std::string& key, const std::string& value);
   virtual void ReadParameters();

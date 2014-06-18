@@ -1257,6 +1257,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/ReferenceComparison.h</locationURI>
 		</link>
 		<link>
+			<name>FF/RuleBackoff.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/RuleBackoff.cpp</locationURI>
+		</link>
+		<link>
+			<name>FF/RuleBackoff.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/RuleBackoff.h</locationURI>
+		</link>
+		<link>
 			<name>FF/RuleScope.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/RuleScope.cpp</locationURI>
