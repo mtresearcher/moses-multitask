@@ -95,6 +95,11 @@ public:
 
   void CreateSourceRuleFromInputPath();
 
+  void Clear()
+  {
+	  m_collection.clear();
+  }
+
 private:
 
   StackVec m_stackVec; //! vector of hypothesis list!

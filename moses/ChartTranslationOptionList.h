@@ -47,6 +47,10 @@ public:
     return *m_collection[i];
   }
 
+  ChartTranslationOptions &Get(size_t i) {
+	  return *m_collection[i];
+  }
+
   //! number of translation options
   size_t GetSize() const {
     return m_size;
@@ -78,6 +82,7 @@ private:
     float m_thresholdScore;
   };
 
+  void DeleteEmpty();
   void SwapTranslationOptions(size_t a, size_t b);
 
   CollType m_collection;

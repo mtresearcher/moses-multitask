@@ -31,6 +31,10 @@ public:
                      ScoreComponentCollection* accumulator) const;
   void Evaluate(ChartTranslationOptionList &transOptList) const;
 
+  void SetParameter(const std::string& key, const std::string& value);
+
+protected:
+  float m_minCount;
 };
 
 }

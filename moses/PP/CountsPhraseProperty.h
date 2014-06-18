@@ -20,6 +20,8 @@ namespace Moses
 //    e.g. using awk:
 //
 //    $ zcat phrase-table.gz | awk -F' \|\|\| '  '{printf("%s {{Counts %s}}\n",$0,$5);}' | gzip -c > phrase-table.withCountsPP.gz
+//    or
+//    $ zcat phrase-table.5.gz | sed 's/ |||$//' | awk -F' \|\|\| '  '{printf("%s ||| {{Counts %s}}\n",$0,$5);}' | head
 //
 //    CountsPhraseProperty reads them from the phrase table and provides
 //    methods GetSourceMarginal(), GetTargetMarginal(), GetJointCount().

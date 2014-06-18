@@ -177,30 +177,37 @@ void ChartTranslationOptionList::Evaluate(const InputType &input, const InputPat
     transOpts.Evaluate(input, inputPath);
   }
 
-  // get rid of empty trans opts
-  size_t numDiscard = 0;
-  for (size_t i = 0; i < m_size; ++i) {
-    ChartTranslationOptions *transOpts = m_collection[i];
-    if (transOpts->GetSize() == 0) {
-    	//delete transOpts;
-      	++numDiscard;
-    }
-    else if (numDiscard) {
-    	SwapTranslationOptions(i - numDiscard, i);
-    	//m_collection[] = transOpts;
-    }
-  }
+  DeleteEmpty();
 
-  size_t newSize = m_size - numDiscard;
-  m_size = newSize;
-
-
-  // Hieu
+  // let the FF know about the other trans opts when deciding to score/discard
+  // useful for tranlation rule backoff
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   for (size_t i = 0; i < ffs.size(); ++i) {
     const FeatureFunction &ff = *ffs[i];
     ff.Evaluate(*this);
   }
+
+  DeleteEmpty();
+}
+
+void ChartTranslationOptionList::DeleteEmpty()
+{
+  // get rid of empty trans opts
+  size_t numDiscard = 0;
+  for (size_t i = 0; i < m_size; ++i) {
+	ChartTranslationOptions *transOpts = m_collection[i];
+	if (transOpts->GetSize() == 0) {
+		//delete transOpts;
+		++numDiscard;
+	}
+	else if (numDiscard) {
+		SwapTranslationOptions(i - numDiscard, i);
+		//m_collection[] = transOpts;
+	}
+  }
+
+  size_t newSize = m_size - numDiscard;
+  m_size = newSize;
 }
 
 void ChartTranslationOptionList::SwapTranslationOptions(size_t a, size_t b)
