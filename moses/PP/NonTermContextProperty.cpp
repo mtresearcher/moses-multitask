@@ -9,10 +9,12 @@ using namespace std;
 namespace Moses
 {
 NonTermContextProperty::NonTermContextProperty()
-:m_vec(4)
-,m_totalCount(0)
 {
+}
 
+NonTermContextProperty::~NonTermContextProperty()
+{
+	//RemoveAllInColl(m_probStores);
 }
 
 void NonTermContextProperty::ProcessValue(const std::string &value)
@@ -22,18 +24,29 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 
   FactorCollection &fc = FactorCollection::Instance();
 
-  for (size_t i = 0; i < toks.size(); i += 5) {
-	  float count = Scan<float>(toks[i + 4]);
-	  m_totalCount += count;
+  for (size_t i = 0; i < toks.size(); i += 6) {
+	  size_t ntInd = Scan<size_t>(toks[i]);
+	  float count = Scan<float>(toks[i + 5]);
 
 	  for (size_t j = 0; j < 4; ++j) {
-		  const Factor *factor = fc.AddFactor(toks[i + j], false);
-		  AddToMap(j, factor, count);
+		  const Factor *factor = fc.AddFactor(toks[i + j + 1], false);
+		  AddToMap(ntInd, j, factor, count);
 	  }
   }
 }
 
-void NonTermContextProperty::AddToMap(size_t index, const Factor *factor, float count)
+void NonTermContextProperty::AddToMap(size_t ntIndex, size_t index, const Factor *factor, float count)
+{
+  if (ntIndex <= m_probStores.size()) {
+	  m_probStores.resize(ntIndex + 1);
+  }
+
+  ProbStore &probStore = m_probStores[ntIndex];
+  probStore.AddToMap(index, factor, count);
+}
+
+//////////////////////////////////////////
+void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)
 {
 	Map &map = m_vec[index];
 
@@ -47,7 +60,7 @@ void NonTermContextProperty::AddToMap(size_t index, const Factor *factor, float 
 	}
 }
 
-float NonTermContextProperty::GetCount(size_t index, const Factor *factor) const
+float NonTermContextProperty::ProbStore::GetCount(size_t index, const Factor *factor) const
 {
 	const Map &map = m_vec[index];
 
