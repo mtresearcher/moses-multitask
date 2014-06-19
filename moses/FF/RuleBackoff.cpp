@@ -58,10 +58,10 @@ void RuleBackoff::Evaluate(ChartTranslationOptionList &transOptList) const
 	Coll transOptsToDelete;
 
 	// collect counts
-	cerr << "ChartTranslationOptionList:" << endl;
+	//cerr << "ChartTranslationOptionList:" << endl;
 	for (size_t i = 0; i < transOptList.GetSize(); ++i) {
 		ChartTranslationOptions &transOpts = transOptList.Get(i);
-		cerr << "ChartTranslationOptions " << i << "=" << transOpts.GetSize() << endl;
+		//cerr << "ChartTranslationOptions " << i << "=" << transOpts.GetSize() << endl;
 
 		/*
 		for (size_t j = 0; j < transOpts.GetSize(); ++j) {
@@ -69,6 +69,8 @@ void RuleBackoff::Evaluate(ChartTranslationOptionList &transOptList) const
 			cerr << "   " << transOpt << endl;
 		}
 		*/
+
+		UTIL_THROW_IF2(transOpts.GetSize() == 0, "transOpts can't be empty");
 
 		assert(transOpts.GetSize());
 		// get count
@@ -78,7 +80,8 @@ void RuleBackoff::Evaluate(ChartTranslationOptionList &transOptList) const
 
 		if (numNT == 0) {
 			const PhraseProperty *pp = tp.GetProperty("Counts");
-			assert(pp);
+			UTIL_THROW_IF2(pp == NULL, "Need Counts property");
+
 			const CountsPhraseProperty *countProp = static_cast<const CountsPhraseProperty *>(pp);
 
 			float counts = countProp->GetSourceMarginal();
