@@ -200,6 +200,8 @@ void Rule::NonTermContext(size_t ntInd, const ConsistentPhrase &cp, std::ostream
   int startPos = cp.corners[0];
   int endPos = cp.corners[1];
 
+  out << ntInd << " ";
+
   const Phrase &source = m_alignedSentence.GetPhrase(Moses::Input);
 
   if (startPos == 0) {
