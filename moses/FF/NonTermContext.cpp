@@ -4,6 +4,8 @@
 #include "moses/TargetPhrase.h"
 #include "moses/StackVec.h"
 #include "moses/ChartCellLabel.h"
+#include "moses/InputType.h"
+#include "moses/PP/NonTermContextProperty.h"
 
 using namespace std;
 
@@ -30,9 +32,16 @@ void NonTermContext::Evaluate(const InputType &input
                                    , ScoreComponentCollection *estimatedFutureScore) const
 {
 	assert(stackVec);
+
+	const PhraseProperty *prop = targetPhrase.GetProperty("NonTermContext");
+	if (prop == NULL) {
+		return;
+	}
+	const NonTermContextProperty &ntContextProp = *static_cast<const NonTermContextProperty*>(prop);
+
 	for (size_t i = 0; i < stackVec->size(); ++i) {
 		const ChartCellLabel &cell = *stackVec->at(i);
-		SetScores(i, scoreBreakdown, cell, targetPhrase);
+		SetScores(i, input, ntContextProp, cell, targetPhrase, scoreBreakdown);
 	}
 }
 
@@ -54,11 +63,16 @@ void NonTermContext::SetParameter(const std::string& key, const std::string& val
   }
 }
 
-void NonTermContext::SetScores(size_t ntInd, ScoreComponentCollection &scoreBreakdown,
+void NonTermContext::SetScores(size_t ntInd, const InputType &input,
+							const NonTermContextProperty &ntContextProp,
 							const ChartCellLabel &cell,
-							const TargetPhrase &targetPhrase) const
+							const TargetPhrase &targetPhrase,
+							ScoreComponentCollection &scoreBreakdown) const
 {
+	const WordsRange &range = cell.GetCoverage();
 
+	const Word &leftOuter = input.GetWord(range.GetStartPos() - 1);
+	//float prob = ntCgontextProp.
 }
 
 }

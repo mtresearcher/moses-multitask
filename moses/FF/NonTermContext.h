@@ -6,6 +6,7 @@
 namespace Moses
 {
 class ChartCellLabel;
+class NonTermContextProperty;
 
 class NonTermContext : public StatelessFeatureFunction
 {
@@ -36,9 +37,11 @@ public:
 protected:
   float m_const;
 
-  void SetScores(size_t ntInd, ScoreComponentCollection &scoreBreakdown,
-			const ChartCellLabel &cell,
-			const TargetPhrase &targetPhrase) const;
+  void SetScores(size_t ntInd, const InputType &input,
+		  	  const NonTermContextProperty &ntContextProp,
+		  	  const ChartCellLabel &cell,
+		  	  const TargetPhrase &targetPhrase,
+		  	  ScoreComponentCollection &scoreBreakdown) const;
 
 };
 
