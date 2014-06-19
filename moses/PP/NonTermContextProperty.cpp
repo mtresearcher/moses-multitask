@@ -28,9 +28,9 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 	  size_t ntInd = Scan<size_t>(toks[i]);
 	  float count = Scan<float>(toks[i + 5]);
 
-	  for (size_t j = 0; j < 4; ++j) {
-		  const Factor *factor = fc.AddFactor(toks[i + j + 1], false);
-		  AddToMap(ntInd, j, factor, count);
+	  for (size_t contextInd = 0; contextInd < 4; ++contextInd) {
+		  const Factor *factor = fc.AddFactor(toks[i + contextInd + 1], false);
+		  AddToMap(ntInd, contextInd, factor, count);
 	  }
   }
 }
@@ -45,7 +45,19 @@ void NonTermContextProperty::AddToMap(size_t ntIndex, size_t index, const Factor
   probStore.AddToMap(index, factor, count);
 }
 
+float NonTermContextProperty::GetProb(size_t ntInd,
+			size_t contextInd,
+			const Factor *factor,
+			float smoothConstant)
+{
+	UTIL_THROW_IF2(ntInd >= m_probStores.size(), "Invalid nt index=" << ntInd);
+	ProbStore &probStore = m_probStores[ntInd];
+	float ret = probStore.GetProb(contextInd, factor, smoothConstant);
+	return ret;
+}
+
 //////////////////////////////////////////
+
 void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)
 {
 	Map &map = m_vec[index];
@@ -58,20 +70,43 @@ void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *fac
 		float &currCount = iter->second;
 		currCount += count;
 	}
+
+	m_totalCount += count;
 }
 
-float NonTermContextProperty::ProbStore::GetCount(size_t index, const Factor *factor) const
-{
-	const Map &map = m_vec[index];
 
+float NonTermContextProperty::ProbStore::GetProb(size_t contextInd,
+			const Factor *factor,
+			float smoothConstant) const
+{
+  float count = GetCount(contextInd, factor, smoothConstant);
+  float total = GetTotalCount(contextInd, smoothConstant);
+  float ret = count / total;
+  return ret;
+}
+
+float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
+			const Factor *factor,
+			float smoothConstant) const
+{
+	const Map &map = m_vec[contextInd];
+
+	float count = smoothConstant;
 	Map::const_iterator iter = map.find(factor);
 	if (iter == map.end()) {
-		return 0;
+		// nothing
 	}
 	else {
-		float count = iter->second;
-		return count;
+		count += iter->second;
 	}
+
+	return count;
+}
+
+float NonTermContextProperty::ProbStore::GetTotalCount(size_t contextInd, float smoothConstant) const
+{
+	const Map &map = m_vec[contextInd];
+	return m_totalCount + smoothConstant * map.size();
 }
 
 

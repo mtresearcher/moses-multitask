@@ -32,7 +32,7 @@ void NonTermContext::Evaluate(const InputType &input
 	assert(stackVec);
 	for (size_t i = 0; i < stackVec->size(); ++i) {
 		const ChartCellLabel &cell = *stackVec->at(i);
-		SetScores(scoreBreakdown, cell, targetPhrase);
+		SetScores(i, scoreBreakdown, cell, targetPhrase);
 	}
 }
 
@@ -54,7 +54,7 @@ void NonTermContext::SetParameter(const std::string& key, const std::string& val
   }
 }
 
-void NonTermContext::SetScores(ScoreComponentCollection &scoreBreakdown,
+void NonTermContext::SetScores(size_t ntInd, ScoreComponentCollection &scoreBreakdown,
 							const ChartCellLabel &cell,
 							const TargetPhrase &targetPhrase) const
 {

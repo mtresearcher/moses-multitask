@@ -26,7 +26,10 @@ public:
     return NULL;
   };
 
-  float GetProb();
+  float GetProb(size_t ntInd,
+		  size_t contextInd,
+		  const Factor *factor,
+		  float smoothConstant);
 
 protected:
 
@@ -36,16 +39,22 @@ protected:
 	  Vec m_vec;
 	  float m_totalCount;
 
+	  float GetCount(size_t contextInd,
+			  const Factor *factor,
+			  float smoothConstant) const;
+	  float GetTotalCount(size_t contextInd, float smoothConstant) const;
+
   public:
 
 	  ProbStore()
 	  :m_vec(4)
+  	  ,m_totalCount(0)
 	  {}
 
-	  float GetTotalCount() const
-	  { return m_totalCount; }
+	  float GetProb(size_t contextInd,
+			  const Factor *factor,
+			  float smoothConstant) const;
 
-	  float GetCount(size_t index, const Factor *factor) const;
 	  float GetSize(size_t index) const
 	  { return m_vec[index].size(); }
 

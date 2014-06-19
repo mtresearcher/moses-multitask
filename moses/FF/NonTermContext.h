@@ -36,7 +36,7 @@ public:
 protected:
   float m_const;
 
-  void SetScores(ScoreComponentCollection &scoreBreakdown,
+  void SetScores(size_t ntInd, ScoreComponentCollection &scoreBreakdown,
 			const ChartCellLabel &cell,
 			const TargetPhrase &targetPhrase) const;
 
