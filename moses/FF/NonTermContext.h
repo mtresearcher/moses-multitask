@@ -5,6 +5,7 @@
 
 namespace Moses
 {
+class ChartCellLabel;
 
 class NonTermContext : public StatelessFeatureFunction
 {
@@ -29,6 +30,15 @@ public:
                 ScoreComponentCollection* accumulator) const;
   void EvaluateChart(const ChartHypothesis &hypo,
                      ScoreComponentCollection* accumulator) const;
+
+  void SetParameter(const std::string& key, const std::string& value);
+
+protected:
+  float m_const;
+
+  void SetScores(ScoreComponentCollection &scoreBreakdown,
+			const ChartCellLabel &cell,
+			const TargetPhrase &targetPhrase) const;
 
 };
 
