@@ -66,7 +66,7 @@ FFState* NonTermContextTarget::EvaluateChart(
 	const TargetPhrase &targetPhrase = hypo.GetTranslationOption().GetPhrase();
 	const PhraseProperty *prop = targetPhrase.GetProperty("NonTermContextTarget");
 	if (prop == NULL) {
-		return new NonTermContextTargetState();
+		return new NonTermContextTargetState(NULL, NULL);
 	}
 	const NonTermContextTargetProperty &ntContextProp = *static_cast<const NonTermContextTargetProperty*>(prop);
 
@@ -75,7 +75,7 @@ FFState* NonTermContextTarget::EvaluateChart(
 
 	// go thru each prev hypo & work out score
 	const std::vector<const ChartHypothesis*> &prevHypos = hypo.GetPrevHypos();
-	assert(ntAlignments.size() == prevHypos.size());
+	//assert(ntAlignments.size() == prevHypos.size());
 
 	for (size_t i = 0; i < prevHypos.size(); ++i) {
 		const ChartHypothesis &prevHypo = *prevHypos[i];
@@ -87,6 +87,15 @@ FFState* NonTermContextTarget::EvaluateChart(
 		const std::vector<const Factor*> &ntContext = state->GetWords();
 		SetScores(ntInd, ntContextProp, ntContext, *accumulator);
 	}
+
+	Phrase leftMost, rightMost;
+	hypo.GetOutputPhrase(1, 1, leftMost);
+	hypo.GetOutputPhrase(2, 1, rightMost);
+	assert(leftMost.GetSize() == 1);
+	assert(rightMost.GetSize() == 1);
+
+	NonTermContextTargetState *state = new NonTermContextTargetState(leftMost.GetFactor(0, 0), rightMost.GetFactor(0, 0));
+	return state;
 }
 
 //! return the state associated with the empty hypothesis for a given sentence

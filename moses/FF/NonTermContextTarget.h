@@ -13,8 +13,12 @@ class NonTermContextTargetProperty;
 class NonTermContextTargetState : public FFState
 {
 public:
-  NonTermContextTargetState()
-  {}
+  NonTermContextTargetState(const Factor *left, const Factor *right)
+  :m_leftRight(2)
+  {
+	  m_leftRight[0] = left;
+	  m_leftRight[1] = right;
+  }
 
   int Compare(const FFState& other) const;
 
