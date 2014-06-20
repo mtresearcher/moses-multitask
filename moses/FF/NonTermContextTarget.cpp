@@ -70,6 +70,9 @@ FFState* NonTermContextTarget::EvaluateChart(
 	}
 	const NonTermContextTargetProperty &ntContextProp = *static_cast<const NonTermContextTargetProperty*>(prop);
 
+	const AlignmentInfo &ntAlignments= targetPhrase.GetAlignNonTerm();
+
+
 	// go thru each prev hypo & work out score
 	const std::vector<const ChartHypothesis*> &prevHypos = hypo.GetPrevHypos();
 	for (size_t i = 0; i < prevHypos.size(); ++i) {
