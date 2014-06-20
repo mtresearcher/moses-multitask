@@ -70,11 +70,13 @@ FFState* NonTermContextTarget::EvaluateChart(
 	}
 	const NonTermContextTargetProperty &ntContextProp = *static_cast<const NonTermContextTargetProperty*>(prop);
 
-	const AlignmentInfo &ntAlignments= targetPhrase.GetAlignNonTerm();
-
+	//typedef std::vector< const std::pair<size_t,size_t>* > AlignVec;
+	//AlignVec ntAlignments = targetPhrase.GetAlignNonTerm().GetSortedAlignments(1);
 
 	// go thru each prev hypo & work out score
 	const std::vector<const ChartHypothesis*> &prevHypos = hypo.GetPrevHypos();
+	assert(ntAlignments.size() == prevHypos.size());
+
 	for (size_t i = 0; i < prevHypos.size(); ++i) {
 		const ChartHypothesis &prevHypo = *prevHypos[i];
 		const FFState *temp = prevHypo.GetFFState(featureID);
@@ -84,7 +86,6 @@ FFState* NonTermContextTarget::EvaluateChart(
 		size_t ntInd = i; // TODO have to change. Sorted by source
 		const std::vector<const Factor*> &ntContext = state->GetWords();
 		SetScores(ntInd, ntContextProp, ntContext, *accumulator);
-
 	}
 }
 

@@ -77,7 +77,7 @@ public:
   }
 
   std::vector< const std::pair<size_t,size_t>* > GetSortedAlignments(int order) const;
-  	  // 0 = no sort. 1 = target
+  	  // 0 = no sort, 1 = source, 2 = target
 
   std::vector<size_t> GetSourceIndex2PosMap() const;
 
