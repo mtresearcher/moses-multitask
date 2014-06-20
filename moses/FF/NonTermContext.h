@@ -35,7 +35,7 @@ public:
   void SetParameter(const std::string& key, const std::string& value);
 
 protected:
-  float m_const;
+  float m_smoothConst;
 
   void SetScores(size_t ntInd, const InputType &input,
 		  	  const NonTermContextProperty &ntContextProp,

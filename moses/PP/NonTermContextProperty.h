@@ -29,7 +29,7 @@ public:
   float GetProb(size_t ntInd,
 		  size_t contextInd,
 		  const Factor *factor,
-		  float smoothConstant);
+		  float smoothConstant) const;
 
 protected:
 

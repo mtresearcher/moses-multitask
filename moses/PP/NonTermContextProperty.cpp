@@ -48,10 +48,10 @@ void NonTermContextProperty::AddToMap(size_t ntIndex, size_t index, const Factor
 float NonTermContextProperty::GetProb(size_t ntInd,
 			size_t contextInd,
 			const Factor *factor,
-			float smoothConstant)
+			float smoothConstant) const
 {
 	UTIL_THROW_IF2(ntInd >= m_probStores.size(), "Invalid nt index=" << ntInd);
-	ProbStore &probStore = m_probStores[ntInd];
+	const ProbStore &probStore = m_probStores[ntInd];
 	float ret = probStore.GetProb(contextInd, factor, smoothConstant);
 	return ret;
 }
