@@ -1207,6 +1207,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/NonTermContext.h</locationURI>
 		</link>
 		<link>
+			<name>FF/NonTermContextTarget.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/NonTermContextTarget.cpp</locationURI>
+		</link>
+		<link>
+			<name>FF/NonTermContextTarget.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/NonTermContextTarget.h</locationURI>
+		</link>
+		<link>
 			<name>FF/OSM-Feature</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -1680,6 +1690,16 @@
 			<name>PP/NonTermContextProperty.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/PP/NonTermContextProperty.h</locationURI>
+		</link>
+		<link>
+			<name>PP/NonTermContextTargetProperty.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/PP/NonTermContextTargetProperty.cpp</locationURI>
+		</link>
+		<link>
+			<name>PP/NonTermContextTargetProperty.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/PP/NonTermContextTargetProperty.h</locationURI>
 		</link>
 		<link>
 			<name>PP/PhraseProperty.h</name>
