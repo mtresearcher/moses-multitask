@@ -76,7 +76,8 @@ public:
     return m_collection.size();
   }
 
-  std::vector< const std::pair<size_t,size_t>* > GetSortedAlignments() const;
+  std::vector< const std::pair<size_t,size_t>* > GetSortedAlignments(int order) const;
+  	  // 0 = no sort. 1 = target
 
   std::vector<size_t> GetSourceIndex2PosMap() const;
 
