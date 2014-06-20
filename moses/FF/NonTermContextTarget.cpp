@@ -4,6 +4,7 @@
 #include "moses/TargetPhrase.h"
 #include "moses/StackVec.h"
 #include "moses/ChartCellLabel.h"
+#include "moses/ChartHypothesis.h"
 #include "moses/InputType.h"
 #include "moses/PP/NonTermContextTargetProperty.h"
 
@@ -11,8 +12,23 @@ using namespace std;
 
 namespace Moses
 {
+int NonTermContextTargetState::Compare(const FFState& other) const
+{
+  const NonTermContextTargetState &otherState = static_cast<const NonTermContextTargetState&>(other);
+
+  if (m_leftRight == otherState.m_leftRight) {
+	  return 0;
+  }
+  else {
+	  int ret = (m_leftRight < otherState.m_leftRight) ? -1 : +1;
+	  return ret;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 NonTermContextTarget::NonTermContextTarget(const std::string &line)
-:StatelessFeatureFunction(2, line)
+:StatefulFeatureFunction(1, line)
 ,m_smoothConst(1)
 {
   ReadParameters();
@@ -31,27 +47,49 @@ void NonTermContextTarget::Evaluate(const InputType &input
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection *estimatedFutureScore) const
 {
-	assert(stackVec);
+}
 
+FFState* NonTermContextTarget::Evaluate(
+  const Hypothesis& cur_hypo,
+  const FFState* prev_state,
+  ScoreComponentCollection* accumulator) const
+{
+  abort();
+}
+
+FFState* NonTermContextTarget::EvaluateChart(
+  const ChartHypothesis &hypo,
+  int featureID /* used to index the state in the previous hypotheses */,
+  ScoreComponentCollection* accumulator) const
+{
+	// property
+	const TargetPhrase &targetPhrase = hypo.GetTranslationOption().GetPhrase();
 	const PhraseProperty *prop = targetPhrase.GetProperty("NonTermContextTarget");
 	if (prop == NULL) {
-		return;
+		return new NonTermContextTargetState();
 	}
 	const NonTermContextTargetProperty &ntContextProp = *static_cast<const NonTermContextTargetProperty*>(prop);
 
-	for (size_t i = 0; i < stackVec->size(); ++i) {
-		const ChartCellLabel &cell = *stackVec->at(i);
-		SetScores(i, input, ntContextProp, cell, targetPhrase, scoreBreakdown);
+	// go thru each prev hypo & work out score
+	const std::vector<const ChartHypothesis*> &prevHypos = hypo.GetPrevHypos();
+	for (size_t i = 0; i < prevHypos.size(); ++i) {
+		const ChartHypothesis &prevHypo = *prevHypos[i];
+		const FFState *temp = prevHypo.GetFFState(featureID);
+		const NonTermContextTargetState *state = static_cast<const NonTermContextTargetState*>(temp);
+		assert(state);
+
+		size_t ntInd = i; // TODO have to change. Sorted by source
+		const std::vector<const Factor*> &ntContext = state->GetWords();
+		SetScores(ntInd, ntContextProp, ntContext, *accumulator);
+
 	}
 }
 
-void NonTermContextTarget::Evaluate(const Hypothesis& hypo,
-                                   ScoreComponentCollection* accumulator) const
-{}
-
-void NonTermContextTarget::EvaluateChart(const ChartHypothesis &hypo,
-                                        ScoreComponentCollection* accumulator) const
-{}
+//! return the state associated with the empty hypothesis for a given sentence
+const FFState* NonTermContextTarget::EmptyHypothesisState(const InputType &input) const
+{
+  abort();
+}
 
 void NonTermContextTarget::SetParameter(const std::string& key, const std::string& value)
 {
@@ -59,35 +97,19 @@ void NonTermContextTarget::SetParameter(const std::string& key, const std::strin
 	  m_smoothConst = Scan<float>(value);
   }
   else {
-    StatelessFeatureFunction::SetParameter(key, value);
+    StatefulFeatureFunction::SetParameter(key, value);
   }
 }
 
-void NonTermContextTarget::SetScores(size_t ntInd, const InputType &input,
+void NonTermContextTarget::SetScores(size_t ntInd,
 							const NonTermContextTargetProperty &ntContextProp,
-							const ChartCellLabel &cell,
-							const TargetPhrase &targetPhrase,
+							const std::vector<const Factor*> &ntContext,
 							ScoreComponentCollection &scoreBreakdown) const
 {
-	const WordsRange &range = cell.GetCoverage();
-
-	const Word &leftOuter = input.GetWord(range.GetStartPos() - 1);
-	const Word &leftInner = input.GetWord(range.GetStartPos());
-	const Word &rightInner = input.GetWord(range.GetEndPos());
-	const Word &rightOuter = input.GetWord(range.GetEndPos() + 1);
-
-	float outer = ntContextProp.GetProb(ntInd, 0, leftOuter.GetFactor(0), m_smoothConst);
-	outer *= ntContextProp.GetProb(ntInd, 3, rightOuter.GetFactor(0), m_smoothConst);
-
-	float inner = ntContextProp.GetProb(ntInd, 1, leftInner.GetFactor(0), m_smoothConst);
-	inner *= ntContextProp.GetProb(ntInd, 2, rightInner.GetFactor(0), m_smoothConst);
-
-	vector<float> scores(2);
-	scores[0] = TransformScore(outer);
-	scores[1] = TransformScore(inner);
-
-	scoreBreakdown.PlusEquals(this, scores);
-
+  float prob = ntContextProp.GetProb(ntInd, 1, ntContext[0], m_smoothConst);
+  float prob2 = ntContextProp.GetProb(ntInd, 1, ntContext[1], m_smoothConst);
+  float score = TransformScore(prob * prob2);
+  scoreBreakdown.PlusEquals(this, score);
 }
 
 }
