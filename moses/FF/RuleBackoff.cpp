@@ -78,10 +78,13 @@ void RuleBackoff::Evaluate(ChartTranslationOptionList &transOptList) const
 		const TargetPhrase &tp = transOpt.GetPhrase();
 		size_t numNT = tp.GetNumNonTerminals();
 
-		if (numNT == 0) {
-			const PhraseProperty *pp = tp.GetProperty("Counts");
-			UTIL_THROW_IF2(pp == NULL, "Need Counts property");
+		const PhraseProperty *pp = tp.GetProperty("Counts");
+		if (pp == NULL) {
+			//cerr << "tp=" << tp << endl;
+			return; // glue rule doesn't have counts
+		}
 
+		if (numNT == 0) {
 			const CountsPhraseProperty *countProp = static_cast<const CountsPhraseProperty *>(pp);
 
 			float counts = countProp->GetSourceMarginal();
