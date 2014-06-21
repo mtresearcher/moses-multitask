@@ -43,9 +43,10 @@ public:
   bool nieceTerminal;
   int maxScope;
 
-  // prperties
+  // properties
   bool spanLength;
   bool nonTermContext;
+  bool nonTermContextTarget;
 
 };
 

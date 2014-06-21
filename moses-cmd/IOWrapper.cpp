@@ -307,7 +307,7 @@ void OutputBestSurface(std::ostream &out, const Hypothesis *hypo, const std::vec
 void OutputAlignment(ostream &out, const AlignmentInfo &ai, size_t sourceOffset, size_t targetOffset)
 {
   typedef std::vector< const std::pair<size_t,size_t>* > AlignVec;
-  AlignVec alignments = ai.GetSortedAlignments();
+  AlignVec alignments = ai.GetSortedAlignments(0);
 
   AlignVec::const_iterator it;
   for (it = alignments.begin(); it != alignments.end(); ++it) {

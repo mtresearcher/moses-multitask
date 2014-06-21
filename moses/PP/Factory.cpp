@@ -9,6 +9,7 @@
 #include "moses/PP/TreeStructurePhraseProperty.h"
 #include "moses/PP/SpanLengthPhraseProperty.h"
 #include "moses/PP/NonTermContextProperty.h"
+#include "moses/PP/NonTermContextTargetProperty.h"
 
 namespace Moses
 {
@@ -59,6 +60,7 @@ PhrasePropertyFactory::PhrasePropertyFactory()
   MOSES_PNAME2("Tree",TreeStructurePhraseProperty);
   MOSES_PNAME2("SpanLength", SpanLengthPhraseProperty);
   MOSES_PNAME2("NonTermContext", NonTermContextProperty);
+  MOSES_PNAME2("NonTermContextTarget", NonTermContextTargetProperty);
 }
 
 PhrasePropertyFactory::~PhrasePropertyFactory()

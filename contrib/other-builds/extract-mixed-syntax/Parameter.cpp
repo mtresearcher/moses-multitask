@@ -33,6 +33,7 @@ Parameter::Parameter()
 
 ,spanLength(false)
 ,nonTermContext(false)
+,nonTermContextTarget(false)
 {}
 
 Parameter::~Parameter() {

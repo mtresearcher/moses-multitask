@@ -41,7 +41,8 @@ int main(int argc, char** argv)
     ("NoNieceTerminal", "Don't extract rule if 1 of the non-term covers the same word as 1 of the terminals")
     ("MaxScope", po::value<int>()->default_value(params.maxScope), "maximum scope (see Hopkins and Langmead (2010)). Default is HIGH")
     ("SpanLength", "Property - span length of RHS each non-term")
-    ("NonTermContext", "Property - left and right, inside and outside words of each non-term");
+    ("NonTermContext", "Property - (source) left and right, inside and outside words of each non-term ")
+    ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term");
 
   po::variables_map vm;
   try
@@ -88,6 +89,7 @@ int main(int argc, char** argv)
   // properties
   if (vm.count("SpanLength")) params.spanLength = true;
   if (vm.count("NonTermContext")) params.nonTermContext = true;
+  if (vm.count("NonTermContextTarget")) params.nonTermContextTarget = true;
 
   // input files;
   string pathTarget = argv[1];

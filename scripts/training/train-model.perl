@@ -1551,6 +1551,7 @@ sub score_phrase_phrase_extract {
     my $MIN_COUNT_HIERARCHICAL = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /MinCountHierarchical ([\d\.]+)/) ? $1 : undef;
     my $SPAN_LENGTH = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /SpanLength/);
     my $NonTermContext = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /NonTermContext/);
+    my $NonTermContextTarget = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /NonTermContextTarget/);
     
     my $CORE_SCORE_OPTIONS = "";
     $CORE_SCORE_OPTIONS .= " --LogProb" if $LOG_PROB;
@@ -1592,6 +1593,7 @@ sub score_phrase_phrase_extract {
         $cmd .= " --GoodTuring" if $GOOD_TURING && $inverse eq "";
         $cmd .= " --SpanLength" if $SPAN_LENGTH && $inverse eq "";
         $cmd .= " --NonTermContext" if $NonTermContext && $inverse eq "";
+        $cmd .= " --NonTermContextTarget" if $NonTermContextTarget && $inverse eq "";
         $cmd .= " --UnalignedPenalty" if $UNALIGNED_COUNT;
         $cmd .= " --UnalignedFunctionWordPenalty ".($inverse ? $UNALIGNED_FW_F : $UNALIGNED_FW_E) if $UNALIGNED_FW_COUNT;
         $cmd .= " --MinCountHierarchical $MIN_COUNT_HIERARCHICAL" if $MIN_COUNT_HIERARCHICAL;

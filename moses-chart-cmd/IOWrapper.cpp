@@ -996,7 +996,7 @@ size_t IOWrapper::OutputAlignment(Alignments &retAlign, const Moses::ChartHypoth
 void IOWrapper::OutputAlignment(vector< set<size_t> > &retAlignmentsS2T, const AlignmentInfo &ai)
 {
   typedef std::vector< const std::pair<size_t,size_t>* > AlignVec;
-  AlignVec alignments = ai.GetSortedAlignments();
+  AlignVec alignments = ai.GetSortedAlignments(0);
 
   AlignVec::const_iterator it;
   for (it = alignments.begin(); it != alignments.end(); ++it) {

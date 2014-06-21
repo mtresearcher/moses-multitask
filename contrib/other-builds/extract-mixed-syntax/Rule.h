@@ -81,7 +81,7 @@ protected:
 	bool ContainTerm(const ConsistentPhrase &cp, const std::set<const Word*> &terms) const;
 	int CalcScope() const; // not yet correctly calculated
 
-	void NonTermContext(size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const;
-
+	void NonTermContext(int sourceTarget, size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const;
+		// sourceTarget: 1 = source, 2 = target
 };
 
