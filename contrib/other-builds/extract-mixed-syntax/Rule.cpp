@@ -189,36 +189,61 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
 	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
 		  const NonTerm &nonTerm = *m_nonterms[i];
 		  const ConsistentPhrase &cp = nonTerm.GetConsistentPhrase();
-		  NonTermContext(i, cp, out);
+		  NonTermContext(1, i, cp, out);
 	  }
 	  out << "}} ";
   }
+
+  // non-term context (target)
+  if (forward && params.nonTermContextTarget && m_nonterms.size()) {
+	  out << "{{NonTermContextTarget ";
+
+	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
+		  const NonTerm &nonTerm = *m_nonterms[i];
+		  const ConsistentPhrase &cp = nonTerm.GetConsistentPhrase();
+		  NonTermContext(2, i, cp, out);
+	  }
+	  out << "}} ";
+  }
+
 }
 
-void Rule::NonTermContext(size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const
+void Rule::NonTermContext(int sourceTarget, size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const
 {
-  int startPos = cp.corners[0];
-  int endPos = cp.corners[1];
+  int startPos, endPos;
+  const Phrase *phrase;
+
+  if (sourceTarget == 1) {
+	  startPos = cp.corners[0];
+	  endPos = cp.corners[1];
+	  phrase = &m_alignedSentence.GetPhrase(Moses::Input);
+  }
+  else if (sourceTarget == 2) {
+	  startPos = cp.corners[2];
+	  endPos = cp.corners[3];
+	  phrase = &m_alignedSentence.GetPhrase(Moses::Output);
+  }
+  else {
+	  abort();
+  }
 
   out << ntInd << " ";
-
-  const Phrase &source = m_alignedSentence.GetPhrase(Moses::Input);
 
   if (startPos == 0) {
     out << "<s> ";
   }
   else {
-	out << source[startPos - 1]->GetString() << " ";
+	out << phrase->at(startPos - 1)->GetString() << " ";
   }
 
-  out << source[startPos]->GetString() << " ";
-  out << source[endPos]->GetString() << " ";
+  out << phrase->at(startPos)->GetString() << " ";
+  out << phrase->at(endPos)->GetString() << " ";
 
-  if (endPos == source.size() - 1) {
+  if (endPos == phrase->size() - 1) {
     out << "</s> ";
   }
   else {
-	out << source[endPos + 1]->GetString() << " ";
+	out << phrase->at(endPos + 1)->GetString() << " ";
   }
 
 
