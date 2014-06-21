@@ -845,14 +845,14 @@ void outputPhrasePair(const ExtractionPhrasePair &phrasePair,
 
   if (nonTermContext && !inverseFlag) {
 	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContext");
-	  if (!propValue.empty()) {
+	  if (!propValue.empty() && propValue.size() < 50000) {
   	    phraseTableFile << " {{NonTermContext " << propValue << "}}";
 	  }
   }
 
   if (nonTermContextTarget && !inverseFlag) {
 	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContextTarget");
-	  if (!propValue.empty()) {
+	  if (!propValue.empty() && propValue.size() < 50000) {
   	    phraseTableFile << " {{NonTermContextTarget " << propValue << "}}";
 	  }
   }
