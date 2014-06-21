@@ -65,6 +65,7 @@ bool unalignedFWFlag = false;
 bool crossedNonTerm = false;
 bool spanLength = false;
 bool nonTermContext = false;
+bool nonTermContextTarget = false;
 
 int countOfCounts[COC_MAX+1];
 int totalDistinct = 0;
@@ -222,6 +223,9 @@ int main(int argc, char* argv[])
     } else if (strcmp(argv[i],"--NonTermContext") == 0) {
       nonTermContext = true;
       std::cerr << "non-term context" << std::endl;
+    } else if (strcmp(argv[i],"--NonTermContextTarget") == 0) {
+      nonTermContextTarget = true;
+      std::cerr << "non-term context (target)" << std::endl;
     } else {
       featureArgs.push_back(argv[i]);
       ++i;
@@ -843,6 +847,13 @@ void outputPhrasePair(const ExtractionPhrasePair &phrasePair,
 	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContext");
 	  if (!propValue.empty()) {
   	    phraseTableFile << " {{NonTermContext " << propValue << "}}";
+	  }
+  }
+
+  if (nonTermContextTarget && !inverseFlag) {
+	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContextTarget");
+	  if (!propValue.empty()) {
+  	    phraseTableFile << " {{NonTermContextTarget " << propValue << "}}";
 	  }
   }
 
