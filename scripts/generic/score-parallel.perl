@@ -13,13 +13,14 @@ sub GetSourcePhrase($);
 sub NumStr($);
 sub CutContextFile($$$);
 
-my $GZIP_EXEC = `pigz --help 2>/dev/null`; 
-if($GZIP_EXEC) {
+my $GZIP_EXEC; # = which("pigz"); 
+if(-f "/usr/bin/pigz") {
   $GZIP_EXEC = 'pigz';
 }
 else {
   $GZIP_EXEC = 'gzip';
 }
+print STDERR "using $GZIP_EXEC \n";
 
 #my $EXTRACT_SPLIT_LINES = 5000000;
 my $EXTRACT_SPLIT_LINES = 50000000;
