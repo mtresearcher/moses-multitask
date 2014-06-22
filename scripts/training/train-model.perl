@@ -294,13 +294,14 @@ else {
   $SORT_EXEC = 'sort';
 }
 
-my $GZIP_EXEC = `pigz --help 2>/dev/null`; 
-if($GZIP_EXEC) {
+my $GZIP_EXEC; # = which("pigz"); 
+if(-f "/usr/bin/pigz") {
   $GZIP_EXEC = 'pigz';
 }
 else {
   $GZIP_EXEC = 'gzip';
 }
+print STDERR "using $GZIP_EXEC \n";
 
 my $__SORT_BUFFER_SIZE = "";
 $__SORT_BUFFER_SIZE = "-S $_SORT_BUFFER_SIZE" if $_SORT_BUFFER_SIZE;
