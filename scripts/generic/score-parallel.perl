@@ -13,6 +13,14 @@ sub GetSourcePhrase($);
 sub NumStr($);
 sub CutContextFile($$$);
 
+my $GZIP_EXEC = `pigz --help 2>/dev/null`; 
+if($GZIP_EXEC) {
+  $GZIP_EXEC = 'pigz';
+}
+else {
+  $GZIP_EXEC = 'gzip';
+}
+
 #my $EXTRACT_SPLIT_LINES = 5000000;
 my $EXTRACT_SPLIT_LINES = 50000000;
 
@@ -88,7 +96,7 @@ else
 	}
 
 	my $filePath  = "$TMPDIR/extract.$fileCount.gz";
-	open (OUT, "| gzip -c > $filePath") or die "error starting gzip $!";
+	open (OUT, "| $GZIP_EXEC -c > $filePath") or die "error starting $GZIP_EXEC $!";
 	
 	my $lineCount = 0;
 	my $line;
@@ -121,7 +129,7 @@ else
 				++$fileCount;
 				my $filePath  = $fileCount;
 				$filePath     = "$TMPDIR/extract.$filePath.gz";
-				open (OUT, "| gzip -c > $filePath") or die "error starting gzip $!";
+				open (OUT, "| $GZIP_EXEC -c > $filePath") or die "error starting $GZIP_EXEC $!";
 			}
 		}
 		else
@@ -163,7 +171,7 @@ for (my $i = 0; $i < $fileCount; ++$i)
     $cmd .= "zcat $TMPDIR/phrase-table.half.$numStr.gz | $FlexibilityCmd $TMPDIR/extract.context.$i.gz";
     $cmd .= " --Inverse" if ($otherExtractArgs =~ /--Inverse/);
     $cmd .= " --Hierarchical" if ($otherExtractArgs =~ /--Hierarchical/);
-    $cmd .= " | gzip -c > $TMPDIR/phrase-table.half.$numStr.flex.gz\n";
+    $cmd .= " | $GZIP_EXEC -c > $TMPDIR/phrase-table.half.$numStr.flex.gz\n";
     $cmd .= "mv $TMPDIR/phrase-table.half.$numStr.flex.gz $TMPDIR/phrase-table.half.$numStr.gz\n";
   }
 
@@ -207,7 +215,7 @@ else
     $cmd .= "| LC_ALL=C $sortCmd -T $TMPDIR ";
   }
 
-  $cmd .= " | gzip -c > $ptHalf  2>> /dev/stderr ";
+  $cmd .= " | $GZIP_EXEC -c > $ptHalf  2>> /dev/stderr ";
 }
 print STDERR $cmd;
 systemCheck($cmd);
@@ -330,7 +338,7 @@ sub CutContextFile($$$)
     my $sourcePhrase;
 
     my $filePath  = "$TMPDIR/extract.context.$fileCount.gz";
-    open (OUT_CONTEXT, "| gzip -c > $filePath") or die "error starting gzip $!";
+    open (OUT_CONTEXT, "| $GZIP_EXEC -c > $filePath") or die "error starting $GZIP_EXEC $!";
 
     if ($lastline ne "") {
         print OUT_CONTEXT "$lastline\n";
