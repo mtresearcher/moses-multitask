@@ -113,6 +113,7 @@ int calcCrossedNonTerm( const PHRASE *phraseTarget, const ALIGNMENT *alignmentTa
 void printSourcePhrase( const PHRASE *phraseSource, const PHRASE *phraseTarget, const ALIGNMENT *targetToSourceAlignment, ostream &out );
 void printTargetPhrase( const PHRASE *phraseSource, const PHRASE *phraseTarget, const ALIGNMENT *targetToSourceAlignment, ostream &out );
 void invertAlignment( const PHRASE *phraseSource, const PHRASE *phraseTarget, const ALIGNMENT *inTargetToSourceAlignment, ALIGNMENT *outSourceToTargetAlignment );
+size_t NumNonTerminal(const PHRASE *phraseSource);
 
 
 int main(int argc, char* argv[])
@@ -846,21 +847,31 @@ void outputPhrasePair(const ExtractionPhrasePair &phrasePair,
   if (nonTermContext && !inverseFlag) {
 	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContext");
 	  if (!propValue.empty() && propValue.size() < 50000) {
-  	    phraseTableFile << " {{NonTermContext " << propValue << "}}";
+		size_t nNTs = NumNonTerminal(phraseSource);
+  	    phraseTableFile << " {{NonTermContext " << nNTs << " " << propValue << "}}";
 	  }
   }
 
   if (nonTermContextTarget && !inverseFlag) {
 	  string propValue = phrasePair.CollectAllPropertyValues("NonTermContextTarget");
 	  if (!propValue.empty() && propValue.size() < 50000) {
-  	    phraseTableFile << " {{NonTermContextTarget " << propValue << "}}";
+		size_t nNTs = NumNonTerminal(phraseSource);
+  	    phraseTableFile << " {{NonTermContextTarget " << nNTs << " " << propValue << "}}";
 	  }
   }
 
   phraseTableFile << std::endl;
 }
 
-
+size_t NumNonTerminal(const PHRASE *phraseSource)
+{
+    size_t nNTs = 0;
+    for(size_t j=0; j<phraseSource->size()-1; ++j) {
+      if (isNonTerminal(vcbS.getWord( phraseSource->at(j) )))
+        ++nNTs;
+    }
+    return nNTs;
+}
 
 bool calcCrossedNonTerm( size_t targetPos, size_t sourcePos, const ALIGNMENT *alignmentTargetToSource )
 {
