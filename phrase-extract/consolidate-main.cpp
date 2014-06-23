@@ -38,7 +38,7 @@ bool lowCountFlag = false;
 bool goodTuringFlag = false;
 bool kneserNeyFlag = false;
 bool logProbFlag = false;
-bool countProperty = false;
+bool countsProperty = false;
 inline float maybeLogProb( float a )
 {
   return logProbFlag ? log(a) : a;
@@ -115,8 +115,8 @@ int main(int argc, char* argv[])
     } else if (strcmp(argv[i],"--LogProb") == 0) {
       logProbFlag = true;
       cerr << "using log-probabilities\n";
-    } else if (strcmp(argv[i],"--Count") == 0) {
-      countProperty = true;
+    } else if (strcmp(argv[i],"--Counts") == 0) {
+    	countsProperty = true;
       cerr << "output counts as a property\n";
     } else {
       cerr << "ERROR: unknown option " << argv[i] << endl;
@@ -340,7 +340,7 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
       fileConsolidated << " ||| " << itemDirect[5];
     }
 
-    if (countProperty) {
+    if (countsProperty) {
     	fileConsolidated << " {{Counts " << countE << " " << countF << " " << countEF << "}}";
     }
 
