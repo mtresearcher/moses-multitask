@@ -24,12 +24,32 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 
   FactorCollection &fc = FactorCollection::Instance();
 
-  for (size_t i = 0; i < toks.size(); i += 6) {
-	  size_t ntInd = Scan<size_t>(toks[i]);
-	  float count = Scan<float>(toks[i + 5]);
+  size_t numNT = Scan<size_t>(toks[0]);
+  m_probStores.resize(numNT);
 
-	  for (size_t contextInd = 0; contextInd < 4; ++contextInd) {
-		  const Factor *factor = fc.AddFactor(toks[i + contextInd + 1], false);
+  size_t ind = 1;
+  while (ind < toks.size()) {
+	  vector<const Factor *> factors;
+
+	  for (size_t nt = 0; nt < numNT; ++nt) {
+		  size_t ntInd = Scan<size_t>(toks[ind]);
+		  assert(nt == ntInd);
+		  ++ind;
+
+		  for (size_t contextInd = 0; contextInd < 4; ++contextInd) {
+			  const Factor *factor = fc.AddFactor(toks[ind], false);
+			  factors.push_back(factor);
+			  ++ind;
+		  }
+	  }
+
+	  // done with the context. Just get the count and put it all into data structures
+	  float count = Scan<float>(toks[ind]);
+
+	  for (size_t i = 0; i < factors.size(); ++i) {
+		  size_t ntInd = i / 4;
+		  size_t contextInd = i % 4;
+		  const Factor *factor = factors[i];
 		  AddToMap(ntInd, contextInd, factor, count);
 	  }
   }
