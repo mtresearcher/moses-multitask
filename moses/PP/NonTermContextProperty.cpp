@@ -37,14 +37,17 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 		  ++ind;
 
 		  for (size_t contextInd = 0; contextInd < 4; ++contextInd) {
-			  const Factor *factor = fc.AddFactor(toks[ind], false);
+			//cerr << "toks[" << ind << "]=" << toks[ind] << endl;
+  			  const Factor *factor = fc.AddFactor(toks[ind], false);
 			  factors.push_back(factor);
 			  ++ind;
 		  }
 	  }
 
 	  // done with the context. Just get the count and put it all into data structures
-	  float count = Scan<float>(toks[ind]);
+	  // cerr << "count=" << toks[ind] << endl;
+          float count = Scan<float>(toks[ind]);
+          ++ind;
 
 	  for (size_t i = 0; i < factors.size(); ++i) {
 		  size_t ntInd = i / 4;
