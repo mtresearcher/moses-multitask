@@ -32,7 +32,7 @@ my($_EXTERNAL_BINDIR, $_ROOT_DIR, $_CORPUS_DIR, $_GIZA_E2F, $_GIZA_F2E, $_MODEL_
    $_DECODING_STEPS, $_PARALLEL, $_FACTOR_DELIMITER, @_PHRASE_TABLE,
    @_REORDERING_TABLE, @_GENERATION_TABLE, @_GENERATION_TYPE, $_GENERATION_CORPUS,
    $_DONT_ZIP,  $_MGIZA, $_MGIZA_CPUS, $_SNT2COOC, $_HMM_ALIGN, $_CONFIG, $_OSM, $_OSM_FACTORS, $_POST_DECODING_TRANSLIT, $_TRANSLITERATION_PHRASE_TABLE,
-   $_HIERARCHICAL,$_XML,$_SOURCE_SYNTAX,$_TARGET_SYNTAX,$_GLUE_GRAMMAR,$_GLUE_GRAMMAR_FILE,$_UNKNOWN_WORD_LABEL_FILE,$_GHKM,$_GHKM_TREE_FRAGMENTS,$_PCFG,@_EXTRACT_OPTIONS,@_SCORE_OPTIONS,
+   $_HIERARCHICAL,$_XML,$_SOURCE_SYNTAX,$_TARGET_SYNTAX,$_GLUE_GRAMMAR,$_GLUE_GRAMMAR_FILE,$_UNKNOWN_WORD_LABEL_FILE,$_GHKM,$_GHKM_TREE_FRAGMENTS,$_PCFG,@_EXTRACT_OPTIONS,@_SCORE_OPTIONS,@_CONSOLIDATE_OPTIONS,
    $_ALT_DIRECT_RULE_SCORE_1, $_ALT_DIRECT_RULE_SCORE_2, $_UNKNOWN_WORD_SOFT_MATCHES_FILE,
    $_OMIT_WORD_ALIGNMENT,$_FORCE_FACTORED_FILENAMES,
    $_MEMSCORE, $_FINAL_ALIGNMENT_MODEL,
@@ -115,6 +115,7 @@ $_HELP = 1
 		       'alt-direct-rule-score-2' => \$_ALT_DIRECT_RULE_SCORE_2,
 		       'extract-options=s' => \@_EXTRACT_OPTIONS,
 		       'score-options=s' => \@_SCORE_OPTIONS,
+		       'consolidate-options=s' => \@_CONSOLIDATE_OPTIONS,
 		       'source-syntax' => \$_SOURCE_SYNTAX,
 		       'target-syntax' => \$_TARGET_SYNTAX,
 		       'xml' => \$_XML,
@@ -193,6 +194,11 @@ chop($_SCORE_OPTIONS) if $_SCORE_OPTIONS;
 my $_EXTRACT_OPTIONS; # allow multiple switches
 foreach (@_EXTRACT_OPTIONS) { $_EXTRACT_OPTIONS .= $_." "; }
 chop($_EXTRACT_OPTIONS) if $_EXTRACT_OPTIONS;
+
+my $_CONSOLIDATE_OPTIONS; # allow multiple switches
+foreach (@_CONSOLIDATE_OPTIONS) { $_CONSOLIDATE_OPTIONS .= $_." "; }
+chop($_CONSOLIDATE_OPTIONS) if $_CONSOLIDATE_OPTIONS;
+
 my $_ADDITIONAL_INI; # allow multiple switches
 foreach (@_ADDITIONAL_INI) { $_ADDITIONAL_INI .= $_." "; }
 chop($_ADDITIONAL_INI) if $_ADDITIONAL_INI;
@@ -1660,7 +1666,9 @@ sub score_phrase_phrase_extract {
     $cmd .= " --SparseCountBinFeature $SPARSE_COUNT_BIN" if $SPARSE_COUNT_BIN;
     $cmd .= " --GoodTuring $ttable_file.half.f2e.gz.coc" if $GOOD_TURING;
     $cmd .= " --KneserNey $ttable_file.half.f2e.gz.coc" if $KNESER_NEY;
-    
+
+    $cmd .= " ".$_CONSOLIDATE_OPTIONS if defined($_CONSOLIDATE_OPTIONS);
+
     $cmd .= " | $GZIP_EXEC -c > $ttable_file.gz";
     
     safesystem($cmd) or die "ERROR: Consolidating the two phrase table halves failed";

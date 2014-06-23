@@ -2647,6 +2647,7 @@ sub get_training_setting {
     my $source_syntax = &get("GENERAL:input-parser");
     my $target_syntax = &get("GENERAL:output-parser");
     my $score_settings = &get("TRAINING:score-settings");
+    my $consolidate_settings = &get("TRAINING:consolidate-settings");
     my $parallel = &get("TRAINING:parallel");
     my $pcfg = &get("TRAINING:use-pcfg-feature");
     my $baseline_alignment = &get("TRAINING:baseline-alignment-model");
@@ -2671,6 +2672,7 @@ sub get_training_setting {
     $cmd .= "-source-syntax " if $source_syntax;
     $cmd .= "-glue-grammar " if $hierarchical;
     $cmd .= "-score-options '".$score_settings."' " if $score_settings;
+    $cmd .= "-consolidate-options '".$consolidate_settings."' " if $consolidate_settings;
     $cmd .= "-parallel " if $parallel;
     $cmd .= "-pcfg " if $pcfg;
     $cmd .= "-baseline-alignment-model $baseline_alignment " if defined($baseline_alignment) && ($step == 1 || $step == 2);
@@ -3047,6 +3049,7 @@ sub define_evaluation_analysis_coverage {
     my $script = &backoff_and_get("EVALUATION:$set:analysis");
     my $input_extension = &check_backoff_and_get("TRAINING:input-extension");
     my $score_settings = &get("TRAINING:score-settings");
+    my $consolidate_settings = &get("TRAINING:consolidate-settings");
 
     my $ttable_config;
 
@@ -3090,6 +3093,7 @@ sub define_evaluation_analysis_coverage {
 
     my $cmd = "$script -input $input -input-corpus $corpus.$input_extension $ttable_config -dir $analysis";
     $cmd .= " -score-options '$score_settings'" if $score_settings;
+    $cmd .= " -consolidate-options '$consolidate_settings'" if $consolidate_settings;
     &create_step($step_id,$cmd);
 }
 
