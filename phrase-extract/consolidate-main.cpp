@@ -338,15 +338,11 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
     // arbitrary key-value pairs
     fileConsolidated << " ||| ";
     if (itemDirect.size() >= 6) {
-<<<<<<< HEAD
     	fileConsolidated << itemDirect[5];
     }
 
     if (countsProperty) {
     	fileConsolidated << " {{Counts " << countE << " " << countF << " " << countEF << "}}";
-=======
-      fileConsolidated << itemDirect[5];
->>>>>>> d7cbef5cbe4ed3aa02d85d9c321cee372b0a6c5a
     }
 
     fileConsolidated << endl;
