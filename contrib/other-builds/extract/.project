@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>score</name>
+	<name>extract</name>
 	<comment></comment>
 	<projects>
-		<project>moses</project>
-		<project>util</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -28,26 +26,6 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>DomainFeature.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/DomainFeature.cpp</locationURI>
-		</link>
-		<link>
-			<name>DomainFeature.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/DomainFeature.h</locationURI>
-		</link>
-		<link>
-			<name>ExtractionPhrasePair.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/ExtractionPhrasePair.cpp</locationURI>
-		</link>
-		<link>
-			<name>ExtractionPhrasePair.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/ExtractionPhrasePair.h</locationURI>
-		</link>
-		<link>
 			<name>InputFileStream.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/InputFileStream.cpp</locationURI>
@@ -56,16 +34,6 @@
 			<name>InputFileStream.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/InputFileStream.h</locationURI>
-		</link>
-		<link>
-			<name>InternalStructFeature.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/InternalStructFeature.cpp</locationURI>
-		</link>
-		<link>
-			<name>InternalStructFeature.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/InternalStructFeature.h</locationURI>
 		</link>
 		<link>
 			<name>OutputFileStream.cpp</name>
@@ -78,19 +46,19 @@
 			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/OutputFileStream.h</locationURI>
 		</link>
 		<link>
-			<name>ScoreFeature.cpp</name>
+			<name>SentenceAlignment.cpp</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/ScoreFeature.cpp</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/SentenceAlignment.cpp</locationURI>
 		</link>
 		<link>
-			<name>ScoreFeature.h</name>
+			<name>SentenceAlignment.h</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/ScoreFeature.h</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/SentenceAlignment.h</locationURI>
 		</link>
 		<link>
-			<name>score-main.cpp</name>
+			<name>extract-main.cpp</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/score-main.cpp</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/phrase-extract/extract-main.cpp</locationURI>
 		</link>
 		<link>
 			<name>tables-core.cpp</name>
