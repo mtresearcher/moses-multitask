@@ -24,6 +24,8 @@ public:
 	std::string GetString() const
 	{ return m_str; }
 
+	std::string GetString(int factor) const;
+
 	int GetPos() const
 	{ return m_pos; }
 

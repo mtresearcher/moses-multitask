@@ -186,7 +186,7 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
   if (forward && params.nonTermContext && m_nonterms.size()) {
 	  out << "{{NonTermContext ";
 
-	  int numFactors = params.numInputFactors;
+	  int numFactors = params.nonTermContextFactor;
 
 	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
 		  const NonTerm &nonTerm = *m_nonterms[i];
@@ -200,7 +200,7 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
   if (forward && params.nonTermContextTarget && m_nonterms.size()) {
 	  out << "{{NonTermContextTarget ";
 
-	  int numFactors = params.numOutputFactors;
+	  int numFactors = params.nonTermContextFactor;
 
 	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
 		  const NonTerm &nonTerm = *m_nonterms[i];
@@ -212,18 +212,12 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
 
 }
 
-void Rule::DuplicateFactors(int numFactors, const std::string &symbol, std::ostream &out) const
+void Rule::NonTermContextFactor(int factor, const Word &word, std::ostream &out) const
 {
-  assert(numFactors >= 1);
-  out << symbol;
-
-  for (int i = 1; i < numFactors; ++i) {
-	  out << "|" << symbol;
-  }
-  out << " ";
+  out << word.GetString(factor) << " ";
 }
 
-void Rule::NonTermContext(int sourceTarget, int numFactors, size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const
+void Rule::NonTermContext(int sourceTarget, int factor, size_t ntInd, const ConsistentPhrase &cp, std::ostream &out) const
 {
   int startPos, endPos;
   const Phrase *phrase;
@@ -245,20 +239,22 @@ void Rule::NonTermContext(int sourceTarget, int numFactors, size_t ntInd, const 
   out << ntInd << " ";
 
   if (startPos == 0) {
-    DuplicateFactors(numFactors, "<s>", out);
+	  out << "<s> ";
   }
   else {
-	out << phrase->at(startPos - 1)->GetString() << " ";
+	NonTermContextFactor(factor, *phrase->at(startPos - 1), out);
+	out << " ";
   }
 
   out << phrase->at(startPos)->GetString() << " ";
   out << phrase->at(endPos)->GetString() << " ";
 
   if (endPos == phrase->size() - 1) {
-	  DuplicateFactors(numFactors, "</s>", out);
+	  out << "</s> ";
   }
   else {
-	out << phrase->at(endPos + 1)->GetString() << " ";
+	NonTermContextFactor(factor, *phrase->at(endPos + 1), out);
+	out << " ";
   }
 
 

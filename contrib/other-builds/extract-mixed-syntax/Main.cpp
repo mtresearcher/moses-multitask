@@ -43,8 +43,7 @@ int main(int argc, char** argv)
     ("SpanLength", "Property - span length of RHS each non-term")
     ("NonTermContext", "Property - (source) left and right, inside and outside words of each non-term ")
     ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term")
-    ("NumInputFactors", po::value<int>()->default_value(params.numInputFactors), "Number of input factors.")
-    ("NumOutputFactors", po::value<int>()->default_value(params.numOutputFactors), "Number of output factors.");
+    ("NonTermContextFactor", po::value<int>()->default_value(params.nonTermContextFactor), "Factor to use for non-term context property.");
 
   po::variables_map vm;
   try
@@ -92,9 +91,7 @@ int main(int argc, char** argv)
   if (vm.count("SpanLength")) params.spanLength = true;
   if (vm.count("NonTermContext")) params.nonTermContext = true;
   if (vm.count("NonTermContextTarget")) params.nonTermContextTarget = true;
-
-  if (vm.count("NumInputFactors")) params.numInputFactors = vm["NumInputFactors"].as<int>();
-  if (vm.count("NumOutputFactors")) params.numOutputFactors = vm["NumOutputFactors"].as<int>();
+  if (vm.count("NonTermContextFactor")) params.nonTermContextFactor = vm["NonTermContextFactor"].as<int>();
 
   // input files;
   string pathTarget = argv[1];

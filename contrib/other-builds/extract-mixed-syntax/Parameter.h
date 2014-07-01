@@ -47,8 +47,7 @@ public:
   bool spanLength;
   bool nonTermContext;
   bool nonTermContextTarget;
-  int numInputFactors;
-  int numOutputFactors;
+  int nonTermContextFactor;
 
 };
 

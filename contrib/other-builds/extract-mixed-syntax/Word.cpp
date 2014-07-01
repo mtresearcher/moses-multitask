@@ -6,6 +6,7 @@
  */
 #include <limits>
 #include "Word.h"
+#include "moses/Util.h"
 
 using namespace std;
 
@@ -54,3 +55,14 @@ int Word::CompareString(const Word &other) const
 {
   return m_str.compare(other.m_str);
 }
+
+std::string Word::GetString(int factor) const
+{
+  vector<string> toks;
+  Moses::Tokenize(toks, m_str, "|");
+
+  assert(factor < toks.size());
+  return toks[factor];
+}
+
+
