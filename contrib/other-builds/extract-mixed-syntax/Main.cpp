@@ -94,7 +94,7 @@ int main(int argc, char** argv)
   if (vm.count("NonTermContextTarget")) params.nonTermContextTarget = true;
 
   if (vm.count("NumInputFactors")) params.numInputFactors = vm["NumInputFactors"].as<int>();
-  if (vm.count("NumOutputFactors")) params.numInputFactors = vm["NumOutputFactors"].as<int>();
+  if (vm.count("NumOutputFactors")) params.numOutputFactors = vm["NumOutputFactors"].as<int>();
 
   // input files;
   string pathTarget = argv[1];

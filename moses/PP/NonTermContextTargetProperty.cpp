@@ -19,6 +19,7 @@ NonTermContextTargetProperty::~NonTermContextTargetProperty()
 
 void NonTermContextTargetProperty::ProcessValue(const std::string &value)
 {
+  cerr << "value=" << value << endl;
   vector<string> toks;
   Tokenize(toks, value);
 
