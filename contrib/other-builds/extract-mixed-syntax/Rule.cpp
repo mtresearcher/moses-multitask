@@ -186,12 +186,12 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
   if (forward && params.nonTermContext && m_nonterms.size()) {
 	  out << "{{NonTermContext ";
 
-	  int numFactors = params.nonTermContextFactor;
+	  int factor = params.nonTermContextFactor;
 
 	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
 		  const NonTerm &nonTerm = *m_nonterms[i];
 		  const ConsistentPhrase &cp = nonTerm.GetConsistentPhrase();
-		  NonTermContext(1, numFactors, i, cp, out);
+		  NonTermContext(1, factor, i, cp, out);
 	  }
 	  out << "}} ";
   }
@@ -200,12 +200,12 @@ void Rule::Output(std::ostream &out, bool forward, const Parameter &params) cons
   if (forward && params.nonTermContextTarget && m_nonterms.size()) {
 	  out << "{{NonTermContextTarget ";
 
-	  int numFactors = params.nonTermContextFactor;
+	  int factor = params.nonTermContextFactor;
 
 	  for (size_t i = 0; i < m_nonterms.size(); ++i) {
 		  const NonTerm &nonTerm = *m_nonterms[i];
 		  const ConsistentPhrase &cp = nonTerm.GetConsistentPhrase();
-		  NonTermContext(2, numFactors, i, cp, out);
+		  NonTermContext(2, factor, i, cp, out);
 	  }
 	  out << "}} ";
   }
