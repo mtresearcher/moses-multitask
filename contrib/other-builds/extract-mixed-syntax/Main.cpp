@@ -42,7 +42,9 @@ int main(int argc, char** argv)
     ("MaxScope", po::value<int>()->default_value(params.maxScope), "maximum scope (see Hopkins and Langmead (2010)). Default is HIGH")
     ("SpanLength", "Property - span length of RHS each non-term")
     ("NonTermContext", "Property - (source) left and right, inside and outside words of each non-term ")
-    ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term");
+    ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term")
+    ("NumInputFactors", po::value<int>()->default_value(params.numInputFactors), "Number of input factors.")
+    ("NumOutputFactors", po::value<int>()->default_value(params.numOutputFactors), "Number of output factors.");
 
   po::variables_map vm;
   try
