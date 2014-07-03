@@ -238,23 +238,26 @@ void Rule::NonTermContext(int sourceTarget, int factor, size_t ntInd, const Cons
 
   out << ntInd << " ";
 
+  // left outside
   if (startPos == 0) {
 	  out << "<s> ";
   }
   else {
 	NonTermContextFactor(factor, *phrase->at(startPos - 1), out);
-	out << " ";
   }
 
-  out << phrase->at(startPos)->GetString() << " ";
-  out << phrase->at(endPos)->GetString() << " ";
+  // left inside
+  NonTermContextFactor(factor, *phrase->at(startPos), out);
 
+  // right inside
+  NonTermContextFactor(factor, *phrase->at(endPos), out);
+
+  // right outside
   if (endPos == phrase->size() - 1) {
 	  out << "</s> ";
   }
   else {
 	NonTermContextFactor(factor, *phrase->at(endPos + 1), out);
-	out << " ";
   }
 
 
