@@ -36,6 +36,7 @@ public:
 
 protected:
   float m_smoothConst;
+  FactorType m_factor;
 
   void SetScores(size_t ntInd, const InputType &input,
 		  	  const NonTermContextProperty &ntContextProp,

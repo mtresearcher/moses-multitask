@@ -14,6 +14,7 @@ namespace Moses
 NonTermContext::NonTermContext(const std::string &line)
 :StatelessFeatureFunction(2, line)
 ,m_smoothConst(1)
+,m_factor(0)
 {
   ReadParameters();
 }
@@ -58,6 +59,9 @@ void NonTermContext::SetParameter(const std::string& key, const std::string& val
   if (key == "constant") {
 	  m_smoothConst = Scan<float>(value);
   }
+  else if (key == "factor") {
+	  m_factor = Scan<FactorType>(value);
+  }
   else {
     StatelessFeatureFunction::SetParameter(key, value);
   }
@@ -76,11 +80,11 @@ void NonTermContext::SetScores(size_t ntInd, const InputType &input,
 	const Word &rightInner = input.GetWord(range.GetEndPos());
 	const Word &rightOuter = input.GetWord(range.GetEndPos() + 1);
 
-	float outer = ntContextProp.GetProb(ntInd, 0, leftOuter.GetFactor(0), m_smoothConst);
-	outer *= ntContextProp.GetProb(ntInd, 3, rightOuter.GetFactor(0), m_smoothConst);
+	float outer = ntContextProp.GetProb(ntInd, 0, leftOuter.GetFactor(m_factor), m_smoothConst);
+	outer *= ntContextProp.GetProb(ntInd, 3, rightOuter.GetFactor(m_factor), m_smoothConst);
 
-	float inner = ntContextProp.GetProb(ntInd, 1, leftInner.GetFactor(0), m_smoothConst);
-	inner *= ntContextProp.GetProb(ntInd, 2, rightInner.GetFactor(0), m_smoothConst);
+	float inner = ntContextProp.GetProb(ntInd, 1, leftInner.GetFactor(m_factor), m_smoothConst);
+	inner *= ntContextProp.GetProb(ntInd, 2, rightInner.GetFactor(m_factor), m_smoothConst);
 
 	vector<float> scores(2);
 	scores[0] = TransformScore(outer);
