@@ -49,5 +49,6 @@ public:
   bool nonTermContextTarget;
   int nonTermContextFactor;
 
+  int numSourceFactors, numTargetFactors;
 };
 

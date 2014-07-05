@@ -35,6 +35,9 @@ Parameter::Parameter()
 ,nonTermContext(false)
 ,nonTermContextTarget(false)
 ,nonTermContextFactor(0)
+
+,numSourceFactors(1)
+,numTargetFactors(1)
 {}
 
 Parameter::~Parameter() {

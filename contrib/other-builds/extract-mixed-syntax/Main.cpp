@@ -40,10 +40,16 @@ int main(int argc, char** argv)
     ("MaxSpanFreeNonTermSource", po::value<int>()->default_value(params.maxSpanFreeNonTermSource), "Max number of words covered by beginning/end NT. Default = 0 (no limit)")
     ("NoNieceTerminal", "Don't extract rule if 1 of the non-term covers the same word as 1 of the terminals")
     ("MaxScope", po::value<int>()->default_value(params.maxScope), "maximum scope (see Hopkins and Langmead (2010)). Default is HIGH")
+
     ("SpanLength", "Property - span length of RHS each non-term")
+
     ("NonTermContext", "Property - (source) left and right, inside and outside words of each non-term ")
     ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term")
     ("NonTermContextFactor", po::value<int>()->default_value(params.nonTermContextFactor), "Factor to use for non-term context property.");
+
+    ("NumSourceFactors", po::value<int>()->default_value(params.numSourceFactors), "Number of source factors.");
+    ("NumTargetFactors", po::value<int>()->default_value(params.numTargetFactors), "Number of target factors.");
+
 
   po::variables_map vm;
   try
@@ -92,6 +98,9 @@ int main(int argc, char** argv)
   if (vm.count("NonTermContext")) params.nonTermContext = true;
   if (vm.count("NonTermContextTarget")) params.nonTermContextTarget = true;
   if (vm.count("NonTermContextFactor")) params.nonTermContextFactor = vm["NonTermContextFactor"].as<int>();
+
+  if (vm.count("NumSourceFactors")) params.numSourceFactors = vm["NumSourceFactors"].as<int>();
+  if (vm.count("NumTargetFactors")) params.numTargetFactors = vm["NumTargetFactors"].as<int>();
 
   // input files;
   string pathTarget = argv[1];
