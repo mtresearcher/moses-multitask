@@ -45,11 +45,12 @@ int main(int argc, char** argv)
 
     ("NonTermContext", "Property - (source) left and right, inside and outside words of each non-term ")
     ("NonTermContextTarget", "Property - (target) left and right, inside and outside words of each non-term")
-    ("NonTermContextFactor", po::value<int>()->default_value(params.nonTermContextFactor), "Factor to use for non-term context property.");
+    ("NonTermContextFactor", po::value<int>()->default_value(params.nonTermContextFactor), "Factor to use for non-term context property.")
 
-    ("NumSourceFactors", po::value<int>()->default_value(params.numSourceFactors), "Number of source factors.");
-    ("NumTargetFactors", po::value<int>()->default_value(params.numTargetFactors), "Number of target factors.");
+    ("NumSourceFactors", po::value<int>()->default_value(params.numSourceFactors), "Number of source factors.")
+    ("NumTargetFactors", po::value<int>()->default_value(params.numTargetFactors), "Number of target factors.")
 
+    ("HieroNonTerm", po::value<string>()->default_value(params.hieroNonTerm), "Hiero non-terminal label, including bracket");
 
   po::variables_map vm;
   try
@@ -101,6 +102,8 @@ int main(int argc, char** argv)
 
   if (vm.count("NumSourceFactors")) params.numSourceFactors = vm["NumSourceFactors"].as<int>();
   if (vm.count("NumTargetFactors")) params.numTargetFactors = vm["NumTargetFactors"].as<int>();
+
+  if (vm.count("HieroNonTerm")) params.hieroNonTerm = vm["HieroNonTerm"].as<string>();
 
   // input files;
   string pathTarget = argv[1];
