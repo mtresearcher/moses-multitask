@@ -45,7 +45,7 @@ public:
 
   Scores GetProb(const Phrase& f, const Phrase& e) const;
 
-  virtual FFState* Evaluate(const Hypothesis& cur_hypo,
+  virtual FFState* EvaluateWhenApplied(const Hypothesis& cur_hypo,
                             const FFState* prev_state,
                             ScoreComponentCollection* accumulator) const;
 
@@ -54,14 +54,14 @@ public:
                                  ScoreComponentCollection*) const {
     UTIL_THROW(util::Exception, "LexicalReordering is not valid for chart decoder");
   }
-  void Evaluate(const InputType &input
+  void EvaluateWithSourceContext(const InputType &input
                 , const InputPath &inputPath
                 , const TargetPhrase &targetPhrase
                 , const StackVec *stackVec
                 , ScoreComponentCollection &scoreBreakdown
                 , ScoreComponentCollection *estimatedFutureScore = NULL) const
   {}
-  void Evaluate(const Phrase &source
+  void EvaluateInIsolation(const Phrase &source
                 , const TargetPhrase &targetPhrase
                 , ScoreComponentCollection &scoreBreakdown
                 , ScoreComponentCollection &estimatedFutureScore) const

@@ -31,12 +31,12 @@ public:
 
   void SetParameter(const std::string& key, const std::string& value);
 
-	void Evaluate(const Phrase &source
+	void EvaluateInIsolation(const Phrase &source
 	                        , const TargetPhrase &targetPhrase
 	                        , ScoreComponentCollection &scoreBreakdown
 	                        , ScoreComponentCollection &estimatedFutureScore) const
 	{}
-  virtual void Evaluate(const InputType &input
+  virtual void EvaluateWithSourceContext(const InputType &input
                         , const InputPath &inputPath
                         , const TargetPhrase &targetPhrase
                         , const StackVec *stackVec
@@ -44,7 +44,7 @@ public:
                         , ScoreComponentCollection *estimatedFutureScore = NULL)  const
 	{}
 
-  virtual void Evaluate(const Hypothesis& hypo,
+  virtual void EvaluateWhenApplied(const Hypothesis& hypo,
                         ScoreComponentCollection* accumulator) const
   {}
   void EvaluateChart(const ChartHypothesis &hypo,

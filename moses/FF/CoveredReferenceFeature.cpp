@@ -40,13 +40,13 @@ int CoveredReferenceState::Compare(const FFState& other) const
 //  return (m_coveredRef.size() < otherState.m_coveredRef.size()) ? -1 : +1;
 }
 
-void CoveredReferenceFeature::Evaluate(const Phrase &source
+void CoveredReferenceFeature::EvaluateInIsolation(const Phrase &source
                                   , const TargetPhrase &targetPhrase
                                   , ScoreComponentCollection &scoreBreakdown
                                   , ScoreComponentCollection &estimatedFutureScore) const
 {}
 
-void CoveredReferenceFeature::Evaluate(const InputType &input
+void CoveredReferenceFeature::EvaluateWithSourceContext(const InputType &input
                                   , const InputPath &inputPath
                                   , const TargetPhrase &targetPhrase
                                   , const StackVec *stackVec
@@ -90,7 +90,7 @@ void CoveredReferenceFeature::SetParameter(const std::string& key, const std::st
   }
 }
 
-FFState* CoveredReferenceFeature::Evaluate(
+FFState* CoveredReferenceFeature::EvaluateWhenApplied(
   const Hypothesis& cur_hypo,
   const FFState* prev_state,
   ScoreComponentCollection* accumulator) const

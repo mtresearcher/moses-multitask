@@ -23,13 +23,13 @@ SkeletonStatefulFF::SkeletonStatefulFF(const std::string &line)
   ReadParameters();
 }
 
-void SkeletonStatefulFF::Evaluate(const Phrase &source
+void SkeletonStatefulFF::EvaluateInIsolation(const Phrase &source
                                   , const TargetPhrase &targetPhrase
                                   , ScoreComponentCollection &scoreBreakdown
                                   , ScoreComponentCollection &estimatedFutureScore) const
 {}
 
-void SkeletonStatefulFF::Evaluate(const InputType &input
+void SkeletonStatefulFF::EvaluateWithSourceContext(const InputType &input
                                   , const InputPath &inputPath
                                   , const TargetPhrase &targetPhrase
                                   , const StackVec *stackVec
@@ -37,7 +37,7 @@ void SkeletonStatefulFF::Evaluate(const InputType &input
                                   , ScoreComponentCollection *estimatedFutureScore) const
 {}
 
-FFState* SkeletonStatefulFF::Evaluate(
+FFState* SkeletonStatefulFF::EvaluateWhenApplied(
   const Hypothesis& cur_hypo,
   const FFState* prev_state,
   ScoreComponentCollection* accumulator) const

@@ -28,7 +28,7 @@ std::vector<float> SyntaxRHS::DefaultWeights() const
   return ret;
 }
 
-void SyntaxRHS::Evaluate(const Phrase &source
+void SyntaxRHS::EvaluateInIsolation(const Phrase &source
                                    , const TargetPhrase &targetPhrase
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection &estimatedFutureScore) const
@@ -36,7 +36,7 @@ void SyntaxRHS::Evaluate(const Phrase &source
   targetPhrase.SetRuleSource(source);
 }
 
-void SyntaxRHS::Evaluate(const InputType &input
+void SyntaxRHS::EvaluateWithSourceContext(const InputType &input
                                    , const InputPath &inputPath
                                    , const TargetPhrase &targetPhrase
                                    , const StackVec *stackVec
@@ -75,7 +75,7 @@ void SyntaxRHS::Evaluate(const InputType &input
 	}
 }
 
-void SyntaxRHS::Evaluate(const Hypothesis& hypo,
+void SyntaxRHS::EvaluateWhenApplied(const Hypothesis& hypo,
                                    ScoreComponentCollection* accumulator) const
 {}
 

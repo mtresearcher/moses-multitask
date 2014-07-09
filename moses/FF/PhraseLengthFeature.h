@@ -24,7 +24,7 @@ public:
     return true;
   }
 
-  void Evaluate(const Hypothesis& hypo,
+  void EvaluateWhenApplied(const Hypothesis& hypo,
                 ScoreComponentCollection* accumulator) const
   {}
 
@@ -33,7 +33,7 @@ public:
     throw std::logic_error("PhraseLengthFeature not valid in chart decoder");
   }
 
-  void Evaluate(const InputType &input
+  void EvaluateWithSourceContext(const InputType &input
                 , const InputPath &inputPath
                 , const TargetPhrase &targetPhrase
                 , const StackVec *stackVec
@@ -41,7 +41,7 @@ public:
                 , ScoreComponentCollection *estimatedFutureScore = NULL) const
   {}
 
-  virtual void Evaluate(const Phrase &source
+  virtual void EvaluateInIsolation(const Phrase &source
                         , const TargetPhrase &targetPhrase
                         , ScoreComponentCollection &scoreBreakdown
                         , ScoreComponentCollection &estimatedFutureScore) const;
