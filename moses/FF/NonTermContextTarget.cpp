@@ -34,13 +34,13 @@ NonTermContextTarget::NonTermContextTarget(const std::string &line)
   ReadParameters();
 }
 
-void NonTermContextTarget::Evaluate(const Phrase &source
+void NonTermContextTarget::EvaluateInIsolation(const Phrase &source
                                    , const TargetPhrase &targetPhrase
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection &estimatedFutureScore) const
 {}
 
-void NonTermContextTarget::Evaluate(const InputType &input
+void NonTermContextTarget::EvaluateWithSourceContext(const InputType &input
                                    , const InputPath &inputPath
                                    , const TargetPhrase &targetPhrase
                                    , const StackVec *stackVec
@@ -49,7 +49,7 @@ void NonTermContextTarget::Evaluate(const InputType &input
 {
 }
 
-FFState* NonTermContextTarget::Evaluate(
+FFState* NonTermContextTarget::EvaluateWhenApplied(
   const Hypothesis& cur_hypo,
   const FFState* prev_state,
   ScoreComponentCollection* accumulator) const
@@ -57,7 +57,7 @@ FFState* NonTermContextTarget::Evaluate(
   abort();
 }
 
-FFState* NonTermContextTarget::EvaluateChart(
+FFState* NonTermContextTarget::EvaluateWhenApplied(
   const ChartHypothesis &hypo,
   int featureID /* used to index the state in the previous hypotheses */,
   ScoreComponentCollection* accumulator) const

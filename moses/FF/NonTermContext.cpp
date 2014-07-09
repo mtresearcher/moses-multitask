@@ -19,13 +19,13 @@ NonTermContext::NonTermContext(const std::string &line)
   ReadParameters();
 }
 
-void NonTermContext::Evaluate(const Phrase &source
+void NonTermContext::EvaluateInIsolation(const Phrase &source
                                    , const TargetPhrase &targetPhrase
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection &estimatedFutureScore) const
 {}
 
-void NonTermContext::Evaluate(const InputType &input
+void NonTermContext::EvaluateWithSourceContext(const InputType &input
                                    , const InputPath &inputPath
                                    , const TargetPhrase &targetPhrase
                                    , const StackVec *stackVec
@@ -46,11 +46,11 @@ void NonTermContext::Evaluate(const InputType &input
 	}
 }
 
-void NonTermContext::Evaluate(const Hypothesis& hypo,
+void NonTermContext::EvaluateWhenApplied(const Hypothesis& hypo,
                                    ScoreComponentCollection* accumulator) const
 {}
 
-void NonTermContext::EvaluateChart(const ChartHypothesis &hypo,
+void NonTermContext::EvaluateWhenApplied(const ChartHypothesis &hypo,
                                         ScoreComponentCollection* accumulator) const
 {}
 

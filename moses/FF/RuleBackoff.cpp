@@ -26,7 +26,7 @@ std::vector<float> RuleBackoff::DefaultWeights() const
   return ret;
 }
 
-void RuleBackoff::Evaluate(const Phrase &source
+void RuleBackoff::EvaluateInIsolation(const Phrase &source
                                    , const TargetPhrase &targetPhrase
                                    , ScoreComponentCollection &scoreBreakdown
                                    , ScoreComponentCollection &estimatedFutureScore) const
@@ -34,7 +34,7 @@ void RuleBackoff::Evaluate(const Phrase &source
   targetPhrase.SetRuleSource(source);
 }
 
-void RuleBackoff::Evaluate(const InputType &input
+void RuleBackoff::EvaluateWithSourceContext(const InputType &input
                                    , const InputPath &inputPath
                                    , const TargetPhrase &targetPhrase
                                    , const StackVec *stackVec
@@ -43,11 +43,11 @@ void RuleBackoff::Evaluate(const InputType &input
 {
 }
 
-void RuleBackoff::Evaluate(const Hypothesis& hypo,
+void RuleBackoff::EvaluateWhenApplied(const Hypothesis& hypo,
                                    ScoreComponentCollection* accumulator) const
 {}
 
-void RuleBackoff::EvaluateChart(const ChartHypothesis &hypo,
+void RuleBackoff::EvaluateWhenApplied(const ChartHypothesis &hypo,
                                         ScoreComponentCollection* accumulator) const
 {}
 
