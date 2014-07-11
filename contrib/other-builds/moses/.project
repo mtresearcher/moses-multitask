@@ -1562,6 +1562,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/Ken.h</locationURI>
 		</link>
 		<link>
+			<name>LM/LBLLM.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/LBLLM.cpp</locationURI>
+		</link>
+		<link>
+			<name>LM/LBLLM.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/LBLLM.h</locationURI>
+		</link>
+		<link>
 			<name>LM/LDHT.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/LDHT.cpp</locationURI>
@@ -1670,6 +1680,11 @@
 			<name>LM/backward.arpa</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/backward.arpa</locationURI>
+		</link>
+		<link>
+			<name>LM/oxlm</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
 			<name>PP/CountsPhraseProperty.cpp</name>
@@ -2010,6 +2025,16 @@
 			<name>FF/OSM-Feature/osmHyp.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/FF/OSM-Feature/osmHyp.h</locationURI>
+		</link>
+		<link>
+			<name>LM/oxlm/Mapper.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/oxlm/Mapper.cpp</locationURI>
+		</link>
+		<link>
+			<name>LM/oxlm/Mapper.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/moses/LM/oxlm/Mapper.h</locationURI>
 		</link>
 		<link>
 			<name>TranslationModel/CYKPlusParser/ChartRuleLookupManagerCYKPlus.cpp</name>

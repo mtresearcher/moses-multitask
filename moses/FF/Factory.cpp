@@ -96,6 +96,10 @@
 #include "moses/LM/DALMWrapper.h"
 #endif
 
+#ifdef LM_LBL
+#include "moses/LM/LBLLM.h"
+#endif
+
 #include "util/exception.hh"
 
 #include <vector>
@@ -246,6 +250,11 @@ FeatureRegistry::FeatureRegistry()
 #endif
 #ifdef LM_DALM
   MOSES_FNAME2("DALM", LanguageModelDALM);
+#endif
+#ifdef LM_LBL
+  MOSES_FNAME2("LBLLM-LM", LBLLM<oxlm::LM>);
+  MOSES_FNAME2("LBLLM-FactoredLM", LBLLM<oxlm::FactoredLM>);
+  MOSES_FNAME2("LBLLM-FactoredMaxentLM", LBLLM<oxlm::FactoredMaxentLM>);
 #endif
 
   Add("KENLM", new KenFactory());

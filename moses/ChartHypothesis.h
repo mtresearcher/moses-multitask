@@ -139,6 +139,7 @@ public:
   Phrase GetOutputPhrase() const;
 
   // get leftmost/rightmost words only
+  // leftRightMost: 1=left, 2=right
   void GetOutputPhrase(int leftRightMost, int numWords, Phrase &outPhrase) const;
 
   int RecombineCompare(const ChartHypothesis &compare) const;
