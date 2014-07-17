@@ -79,6 +79,15 @@ float NonTermContextProperty::GetProb(size_t ntInd,
 	return ret;
 }
 
+float NonTermContextProperty::GetProb(size_t ntInd,
+		  size_t contextInd,
+		  const Factor *factor1,
+		  const Factor *factor2,
+		  float smoothConstant) const
+{
+
+}
+
 //////////////////////////////////////////
 
 void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)

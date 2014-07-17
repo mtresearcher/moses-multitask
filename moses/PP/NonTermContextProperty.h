@@ -31,6 +31,13 @@ public:
 		  const Factor *factor,
 		  float smoothConstant) const;
 
+  // 0 = inside. 1 = outside
+  float GetProb(size_t ntInd,
+		  size_t contextInd,
+		  const Factor *factor1,
+		  const Factor *factor2,
+		  float smoothConstant) const;
+
 protected:
 
   class ProbStore {

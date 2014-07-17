@@ -5,6 +5,7 @@
 #include "moses/StackVec.h"
 #include "moses/ChartCellLabel.h"
 #include "moses/ChartHypothesis.h"
+#include "moses/ChartManager.h"
 #include "moses/InputType.h"
 #include "moses/PP/NonTermContextTargetProperty.h"
 
@@ -93,6 +94,11 @@ FFState* NonTermContextTarget::EvaluateWhenApplied(
 	hypo.GetOutputPhrase(2, 1, rightMost);
 	assert(leftMost.GetSize() == 1);
 	assert(rightMost.GetSize() == 1);
+
+	// calc state
+	const WordsRange &range = hypo.GetCurrSourceRange();
+	const ChartManager &mgr = hypo.GetManager();
+	const InputType &input = mgr.GetSource();
 
 	NonTermContextTargetState *state = new NonTermContextTargetState(leftMost.GetFactor(0, 0), rightMost.GetFactor(0, 0));
 	return state;
