@@ -8,6 +8,75 @@ using namespace std;
 
 namespace Moses
 {
+
+void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)
+{
+	Map &map = m_vecInd[index];
+
+	Map::iterator iter = map.find(factor);
+	if (iter == map.end()) {
+		map[factor] = count;
+	}
+	else {
+		float &currCount = iter->second;
+		currCount += count;
+	}
+
+	m_totalCount += count;
+}
+
+void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *left, const Factor *right, float count)
+{
+	MapJoint &map = m_vecJoint[index];
+
+	std::pair<const Factor*, const Factor*> key(left, right);
+	MapJoint::iterator iter = map.find(key);
+	if (iter == map.end()) {
+		map[key] = count;
+	}
+	else {
+		float &currCount = iter->second;
+		currCount += count;
+	}
+
+}
+
+float NonTermContextProperty::ProbStore::GetProb(size_t contextInd,
+			const Factor *factor,
+			float smoothConstant) const
+{
+  float count = GetCount(contextInd, factor, smoothConstant);
+  float total = GetTotalCount(contextInd, smoothConstant);
+  float ret = count / total;
+  return ret;
+}
+
+float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
+			const Factor *factor,
+			float smoothConstant) const
+{
+	const Map &map = m_vecInd[contextInd];
+
+	float count = smoothConstant;
+	Map::const_iterator iter = map.find(factor);
+	if (iter == map.end()) {
+		// nothing
+	}
+	else {
+		count += iter->second;
+	}
+
+	return count;
+}
+
+float NonTermContextProperty::ProbStore::GetTotalCount(size_t contextInd, float smoothConstant) const
+{
+	const Map &map = m_vecInd[contextInd];
+	return m_totalCount + smoothConstant * map.size();
+}
+
+///////////////////////////////////////
+
 NonTermContextProperty::NonTermContextProperty()
 {
 }
@@ -29,7 +98,8 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 
   size_t ind = 1;
   while (ind < toks.size()) {
-	  vector<const Factor *> factors;
+	  vector<const Factor *> factorsInd;
+	  vector<std::pair<const Factor *, const Factor *> > factorsJoint;
 
 	  for (size_t nt = 0; nt < numNT; ++nt) {
 		  size_t ntInd = Scan<size_t>(toks[ind]);
@@ -38,34 +108,62 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 
 		  for (size_t contextInd = 0; contextInd < 4; ++contextInd) {
 			//cerr << "toks[" << ind << "]=" << toks[ind] << endl;
-  			  const Factor *factor = fc.AddFactor(toks[ind], false);
-			  factors.push_back(factor);
-			  ++ind;
+  			const Factor *factor = fc.AddFactor(toks[ind], false);
+  			factorsInd.push_back(factor);
+		    ++ind;
 		  }
 	  }
 
 	  // done with the context. Just get the count and put it all into data structures
 	  // cerr << "count=" << toks[ind] << endl;
-          float count = Scan<float>(toks[ind]);
-          ++ind;
+	  float count = Scan<float>(toks[ind]);
+	  ++ind;
 
-	  for (size_t i = 0; i < factors.size(); ++i) {
+	  // indie
+	  for (size_t i = 0; i < factorsInd.size(); ++i) {
 		  size_t ntInd = i / 4;
 		  size_t contextInd = i % 4;
-		  const Factor *factor = factors[i];
+		  const Factor *factor = factorsInd[i];
 		  AddToMap(ntInd, contextInd, factor, count);
+	  }
+
+	  // joint
+	  for (size_t i = 0; i < factorsInd.size(); i += 4) {
+		  size_t ntInd = i / 4;
+		  const Factor *outsideLeft = factorsInd[i];
+		  const Factor *insideLeft = factorsInd[i + 1];
+		  const Factor *insideRight = factorsInd[i + 2];
+		  const Factor *outsideRight = factorsInd[i + 3];
+
+		  AddToMap(ntInd, 0, insideLeft, insideRight, count);
+		  AddToMap(ntInd, 1, outsideLeft, outsideRight, count);
+
 	  }
   }
 }
 
-void NonTermContextProperty::AddToMap(size_t ntIndex, size_t index, const Factor *factor, float count)
+void NonTermContextProperty::AddToMap(size_t ntIndex, size_t contextIndex, const Factor *factor, float count)
 {
   if (ntIndex <= m_probStores.size()) {
 	  m_probStores.resize(ntIndex + 1);
   }
 
   ProbStore &probStore = m_probStores[ntIndex];
-  probStore.AddToMap(index, factor, count);
+  probStore.AddToMap(contextIndex, factor, count);
+}
+
+void NonTermContextProperty::AddToMap(size_t ntIndex,
+									size_t contextIndex,
+									const Factor *left,
+									const Factor *right,
+									float count)
+{
+	  if (ntIndex <= m_probStores.size()) {
+		  m_probStores.resize(ntIndex + 1);
+	  }
+
+	  ProbStore &probStore = m_probStores[ntIndex];
+	  probStore.AddToMap(contextIndex, left, right, count);
 }
 
 float NonTermContextProperty::GetProb(size_t ntInd,
@@ -85,61 +183,10 @@ float NonTermContextProperty::GetProb(size_t ntInd,
 		  const Factor *factor2,
 		  float smoothConstant) const
 {
+  abort();
 
 }
 
-//////////////////////////////////////////
-
-void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)
-{
-	Map &map = m_vec[index];
-
-	Map::iterator iter = map.find(factor);
-	if (iter == map.end()) {
-		map[factor] = count;
-	}
-	else {
-		float &currCount = iter->second;
-		currCount += count;
-	}
-
-	m_totalCount += count;
-}
-
-
-float NonTermContextProperty::ProbStore::GetProb(size_t contextInd,
-			const Factor *factor,
-			float smoothConstant) const
-{
-  float count = GetCount(contextInd, factor, smoothConstant);
-  float total = GetTotalCount(contextInd, smoothConstant);
-  float ret = count / total;
-  return ret;
-}
-
-float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
-			const Factor *factor,
-			float smoothConstant) const
-{
-	const Map &map = m_vec[contextInd];
-
-	float count = smoothConstant;
-	Map::const_iterator iter = map.find(factor);
-	if (iter == map.end()) {
-		// nothing
-	}
-	else {
-		count += iter->second;
-	}
-
-	return count;
-}
-
-float NonTermContextProperty::ProbStore::GetTotalCount(size_t contextInd, float smoothConstant) const
-{
-	const Map &map = m_vec[contextInd];
-	return m_totalCount + smoothConstant * map.size();
-}
 
 
 } // namespace Moses

@@ -14,6 +14,44 @@ class Factor;
 
 class NonTermContextProperty : public PhraseProperty
 {
+//////////////////////////////////////
+  class ProbStore {
+	  typedef std::map<const Factor*, float> Map; // map word -> prob
+	  typedef std::vector<Map> Vec;
+	  Vec m_vecInd; // left outside, left inside, right inside, right outside
+
+	  typedef std::map< std::pair<const Factor*, const Factor*>, float> MapJoint; // map word -> prob
+	  typedef std::vector<MapJoint> VecJoint;
+	  VecJoint m_vecJoint; // inside, outside
+	  float m_totalCount;
+
+	  float GetCount(size_t contextInd,
+			  const Factor *factor,
+			  float smoothConstant) const;
+	  float GetTotalCount(size_t contextInd, float smoothConstant) const;
+
+  public:
+
+	  ProbStore()
+	  :m_vecInd(4)
+	  ,m_vecJoint(2)
+	  ,m_totalCount(0)
+	  {}
+
+	  float GetProb(size_t contextInd, // left outside, left inside, right inside, right outside
+			  const Factor *factor,
+			  float smoothConstant) const;
+
+	  float GetSize(size_t index) const
+	  { return m_vecInd[index].size(); }
+
+	  void AddToMap(size_t index, const Factor *factor, float count);
+	  void AddToMap(size_t index, const Factor *left, const Factor *right, float count);
+
+  };
+/////////////////////////////////////////////
+// class NonTermContextProperty
+
 public:
 
   NonTermContextProperty();
@@ -39,40 +77,15 @@ public:
 		  float smoothConstant) const;
 
 protected:
-
-  class ProbStore {
-	  typedef std::map<const Factor*, float> Map; // map word -> prob
-	  typedef std::vector<Map> Vec; // left outside, left inside, right inside, right outside
-	  Vec m_vec;
-	  float m_totalCount;
-
-	  float GetCount(size_t contextInd,
-			  const Factor *factor,
-			  float smoothConstant) const;
-	  float GetTotalCount(size_t contextInd, float smoothConstant) const;
-
-  public:
-
-	  ProbStore()
-	  :m_vec(4)
-  	  ,m_totalCount(0)
-	  {}
-
-	  float GetProb(size_t contextInd,
-			  const Factor *factor,
-			  float smoothConstant) const;
-
-	  float GetSize(size_t index) const
-	  { return m_vec[index].size(); }
-
-	  void AddToMap(size_t index, const Factor *factor, float count);
-
-  };
-
   // by nt index
   std::vector<ProbStore> m_probStores;
 
-  void AddToMap(size_t ntIndex, size_t index, const Factor *factor, float count);
+  void AddToMap(size_t ntIndex, size_t contextIndex, const Factor *factor, float count);
+  void AddToMap(size_t ntIndex,
+				size_t contextIndex,
+				const Factor *left,
+				const Factor *right,
+				float count);
 
 };
 
