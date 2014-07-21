@@ -37,7 +37,7 @@ public:
 protected:
   float m_smoothConst;
   FactorType m_factor;
-  int m_type;
+  int m_type; // 0 = indie. 1 = joint
 
   void SetScores(size_t ntInd, const InputType &input,
 		  	  const NonTermContextProperty &ntContextProp,

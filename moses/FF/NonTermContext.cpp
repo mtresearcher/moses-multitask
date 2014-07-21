@@ -67,8 +67,11 @@ void NonTermContext::SetParameter(const std::string& key, const std::string& val
 	  if (value == "independent") {
 		  m_type = 0;
 	  }
-	  else if (value == "inside-joint") {
+	  else if (value == "joint") {
 		  m_type = 1;
+	  }
+	  else {
+		  UTIL_THROW(util::Exception, "Unknown type: " << value);
 	  }
   }
   else {
