@@ -28,6 +28,11 @@ class NonTermContextProperty : public PhraseProperty
 	  float GetCount(size_t contextInd,
 			  const Factor *factor,
 			  float smoothConstant) const;
+	  float GetCount(size_t contextInd,
+	  			const Factor *left,
+	  			const Factor *right,
+	  			float smoothConstant) const;
+
 	  float GetTotalCount(size_t contextInd, float smoothConstant) const;
 
   public:
@@ -41,6 +46,10 @@ class NonTermContextProperty : public PhraseProperty
 	  float GetProb(size_t contextInd, // left outside, left inside, right inside, right outside
 			  const Factor *factor,
 			  float smoothConstant) const;
+	  float GetProb(size_t contextInd,
+	  			const Factor *left,
+	  			const Factor *right,
+	  			float smoothConstant) const;
 
 	  float GetSize(size_t index) const
 	  { return m_vecInd[index].size(); }
@@ -72,8 +81,8 @@ public:
   // 0 = inside. 1 = outside
   float GetProb(size_t ntInd,
 		  size_t contextInd,
-		  const Factor *factor1,
-		  const Factor *factor2,
+		  const Factor *left,
+		  const Factor *right,
 		  float smoothConstant) const;
 
 protected:

@@ -51,6 +51,17 @@ float NonTermContextProperty::ProbStore::GetProb(size_t contextInd,
   return ret;
 }
 
+float NonTermContextProperty::ProbStore::GetProb(size_t contextInd,
+			const Factor *left,
+			const Factor *right,
+			float smoothConstant) const
+{
+  float count = GetCount(contextInd, left, right, smoothConstant);
+  float total = GetTotalCount(contextInd, smoothConstant);
+  float ret = count / total;
+  return ret;
+}
+
 float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
 			const Factor *factor,
 			float smoothConstant) const
@@ -59,6 +70,26 @@ float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
 
 	float count = smoothConstant;
 	Map::const_iterator iter = map.find(factor);
+	if (iter == map.end()) {
+		// nothing
+	}
+	else {
+		count += iter->second;
+	}
+
+	return count;
+}
+
+float NonTermContextProperty::ProbStore::GetCount(size_t contextInd,
+			const Factor *left,
+			const Factor *right,
+			float smoothConstant) const
+{
+	const MapJoint &map = m_vecJoint[contextInd];
+
+	float count = smoothConstant;
+	std::pair<const Factor*, const Factor*> key(left, right);
+	MapJoint::const_iterator iter = map.find(key);
 	if (iter == map.end()) {
 		// nothing
 	}
@@ -179,12 +210,14 @@ float NonTermContextProperty::GetProb(size_t ntInd,
 
 float NonTermContextProperty::GetProb(size_t ntInd,
 		  size_t contextInd,
-		  const Factor *factor1,
-		  const Factor *factor2,
+		  const Factor *left,
+		  const Factor *right,
 		  float smoothConstant) const
 {
-  abort();
-
+	UTIL_THROW_IF2(ntInd >= m_probStores.size(), "Invalid nt index=" << ntInd);
+	const ProbStore &probStore = m_probStores[ntInd];
+	float ret = probStore.GetProb(contextInd, left, right, smoothConstant);
+	return ret;
 }
 
 
