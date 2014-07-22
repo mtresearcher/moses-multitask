@@ -159,6 +159,7 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 	  }
 
 	  // joint
+    /*
 	  for (size_t i = 0; i < factorsInd.size(); i += 4) {
 		  size_t ntInd = i / 4;
 		  const Factor *outsideLeft = factorsInd[i];
@@ -170,6 +171,7 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 		  AddToMap(ntInd, 1, outsideLeft, outsideRight, count);
 
 	  }
+    */
   }
 }
 
