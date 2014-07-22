@@ -119,6 +119,20 @@ NonTermContextProperty::~NonTermContextProperty()
 
 void NonTermContextProperty::ProcessValue(const std::string &value)
 {
+  /*
+   format is:
+	 {{NonTermContext 1 0 ! dfc ! !  0.181818 0 ! 警告 ! !  0.181818}}
+
+	1. number of NTs
+	2. NT index (from 0)
+	3. left outer
+	4. left inner
+	5. right inner
+	6. right outer
+	7. count
+	repeat from (2)
+  */
+
   vector<string> toks;
   Tokenize(toks, value);
 
