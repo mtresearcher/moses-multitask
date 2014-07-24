@@ -22,6 +22,7 @@ clean
 	rerun-on-change: max-sentence-length $moses-script-dir/training/clean-corpus-n.perl
 	template: $moses-script-dir/training/clean-corpus-n.perl IN $input-extension $output-extension OUT 1 $max-sentence-length OUT.lines-retained
 	error: there is a blank factor
+	error: is too long! at
 parse
 	in: clean-stem
 	out: parsed-stem
@@ -104,7 +105,7 @@ tokenize
 train
 	in: tokenized
 	out: recase-config
-	template: $moses-script-dir/recaser/train-recaser.perl -train-script $TRAINING:script -dir OUT.model -corpus IN -scripts-root-dir $moses-script-dir -config OUT -ngram-count $lm-training
+	template: $moses-script-dir/recaser/train-recaser.perl -train-script $TRAINING:script -dir OUT.model -corpus IN -scripts-root-dir $moses-script-dir -config OUT $recasing-settings
 	default-name: recasing/moses.ini
         tmp-name: recasing/model
 	ignore-unless: EVALUATION:recaser
@@ -116,6 +117,7 @@ consolidate
 	out: tokenized-stem
 	default-name: truecaser/corpus
 	template: $moses-script-dir/ems/support/consolidate-training-data.perl $input-extension $output-extension OUT IN
+	error: number of lines don't match
 train
 	in: tokenized-stem
 	out: truecase-model
@@ -159,7 +161,6 @@ mock-parse
 factorize
 	in: mock-parsed-corpus
 	out: factorized-corpus
-	rerun-on-change: TRAINING:output-factors
 	default-name: lm/factored
 	pass-unless: factors	
 	parallelizable: yes
@@ -277,7 +278,7 @@ split-tuning
 	template: $output-splitter -model IN1.$output-extension < IN > OUT
 interpolate
 	in: script split-tuning LM:lm
-	rerun-on-change: srilm-dir group
+	rerun-on-change: srilm-dir group weights
 	out: lm
 	default-name: lm/interpolated-lm
 randomize
@@ -563,7 +564,6 @@ extract-phrases
 	rerun-on-change: max-phrase-length translation-factors reordering-factors hierarchical-rule-set extract-settings training-options script use-ghkm domain-features baseline-extract lexicalized-reordering
         only-existence-matters: domain-features
 	default-name: model/extract
-	ignore-if: suffix-array
 build-reordering
 	in: extracted-phrases
 	out: reordering-table
@@ -576,7 +576,14 @@ build-ttable
 	out: phrase-translation-table
 	rerun-on-change: translation-factors hierarchical-rule-set score-settings training-options script EVALUATION:report-precision-by-coverage include-word-alignment-in-rules domain-features
 	default-name: model/phrase-table
-	ignore-if: suffix-array
+	ignore-if: suffix-array mmsapt
+	final-model: yes
+build-mmsapt
+	in: corpus-mml-postfilter=OR=word-alignment corpus-mml-postfilter=OR=corpus-mml-prefilter=OR=corpus
+	out: phrase-translation-table
+	ignore-unless: mmsapt
+	default-name: model/phrase-table-mmsapt
+	template: $moses-script-dir/training/build-mmsapt.perl --alignment IN.$alignment-symmetrization-method --corpus IN1 --f $input-extension --e $output-extension --dir OUT --settings '$mmsapt'
 	final-model: yes
 sigtest-filter-suffix-array
 	in: corpus-mml-postfilter=OR=corpus-mml-prefilter=OR=corpus
@@ -635,7 +642,7 @@ create-config
 	in: sigtest-filter-reordering-table sigtest-filter-phrase-translation-table transliteration-table generation-table sparse corpus-mml-prefilter=OR=corpus-mml-postfilter=OR=domains osm-model INTERPOLATED-LM:binlm LM:binlm 
 	out: config
 	ignore-if: use-hiero
-	rerun-on-change: decoding-steps alignment-factors translation-factors reordering-factors generation-factors lexicalized-reordering training-options script decoding-graph-backoff score-settings additional-ini
+	rerun-on-change: decoding-steps alignment-factors translation-factors reordering-factors generation-factors lexicalized-reordering training-options script decoding-graph-backoff score-settings additional-ini mmsapt
 	default-name: model/moses.ini
 	error: Unknown option
 	final-model: yes
@@ -1077,7 +1084,7 @@ decode
 	default-name: evaluation/output
 	qsub-script: yes
 	ignore-if: use-hiero
-	rerun-on-change: decoder decoder-settings nbest report-segmentation report-precision-by-coverage analyze-search-graph wade
+	rerun-on-change: decoder decoder-settings nbest report-segmentation report-precision-by-coverage analyze-search-graph wade TRAINING:post-decoding-transliteration
 	error: Translation was not performed correctly
 	not-error: trans: No such file or directory
 	final-model: yes
