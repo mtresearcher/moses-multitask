@@ -141,11 +141,12 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
   size_t numNT = Scan<size_t>(toks[0]);
   m_probStores.resize(numNT);
 
+  // indie
   size_t ind = 1;
   while (ind < toks.size()) {
 	  vector<const Factor *> factorsInd;
-	  vector<std::pair<const Factor *, const Factor *> > factorsJoint;
 
+	  // read in 1 block of all NT in the rule
 	  for (size_t nt = 0; nt < numNT; ++nt) {
 		  size_t ntInd = Scan<size_t>(toks[ind]);
 		  assert(nt == ntInd);
@@ -173,7 +174,6 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 	  }
 
 	  // joint
-    /*
 	  for (size_t i = 0; i < factorsInd.size(); i += 4) {
 		  size_t ntInd = i / 4;
 		  const Factor *outsideLeft = factorsInd[i];
@@ -183,10 +183,9 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 
 		  AddToMap(ntInd, 0, insideLeft, insideRight, count);
 		  AddToMap(ntInd, 1, outsideLeft, outsideRight, count);
-
 	  }
-    */
-  }
+  } // while (ind < toks.size()) {
+
 }
 
 void NonTermContextProperty::AddToMap(size_t ntIndex, size_t contextIndex, const Factor *factor, float count)
