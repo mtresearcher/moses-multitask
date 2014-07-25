@@ -23,6 +23,7 @@ class NonTermContextProperty : public PhraseProperty
 	  typedef std::map< std::pair<const Factor*, const Factor*>, float> MapJoint; // map word -> prob
 	  typedef std::vector<MapJoint> VecJoint;
 	  VecJoint m_vecJoint; // inside, outside
+
 	  float m_totalCount;
 
 	  float GetCount(size_t contextInd,
@@ -36,12 +37,7 @@ class NonTermContextProperty : public PhraseProperty
 	  float GetTotalCount(size_t contextInd, float smoothConstant) const;
 
   public:
-
-	  ProbStore()
-	  :m_vecInd(4)
-	  ,m_vecJoint(2)
-	  ,m_totalCount(0)
-	  {}
+    ProbStore();
 
 	  float GetProb(size_t contextInd, // left outside, left inside, right inside, right outside
 			  const Factor *factor,

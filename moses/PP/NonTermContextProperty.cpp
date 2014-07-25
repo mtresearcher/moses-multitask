@@ -1,13 +1,19 @@
-#include "moses/PP/NonTermContextProperty.h"
 #include <string>
 #include <assert.h>
+#include "moses/PP/NonTermContextProperty.h"
 #include "moses/Util.h"
 #include "moses/FactorCollection.h"
+#include "util/exception.hh"
 
 using namespace std;
 
 namespace Moses
 {
+NonTermContextProperty::ProbStore::ProbStore()
+:m_vecInd(4)
+,m_vecJoint(2)
+,m_totalCount(0)
+{}
 
 void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *factor, float count)
 {
@@ -27,6 +33,8 @@ void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *fac
 
 void NonTermContextProperty::ProbStore::AddToMap(size_t index, const Factor *left, const Factor *right, float count)
 {
+  UTIL_THROW_IF2(index >= m_vecJoint.size(), "index (" << index << ") is bigger than vector (" << m_vecJoint.size() << ")");
+
 	MapJoint &map = m_vecJoint[index];
 
 	std::pair<const Factor*, const Factor*> key(left, right);
@@ -180,6 +188,7 @@ void NonTermContextProperty::ProcessValue(const std::string &value)
 		  const Factor *insideLeft = factorsInd[i + 1];
 		  const Factor *insideRight = factorsInd[i + 2];
 		  const Factor *outsideRight = factorsInd[i + 3];
+  		//cerr << *outsideLeft << " " << *insideLeft << " " << *insideRight << " " << *outsideRight << endl;
 
 		  AddToMap(ntInd, 0, insideLeft, insideRight, count);
 		  AddToMap(ntInd, 1, outsideLeft, outsideRight, count);
@@ -204,10 +213,9 @@ void NonTermContextProperty::AddToMap(size_t ntIndex,
 									const Factor *right,
 									float count)
 {
-	  if (ntIndex <= m_probStores.size()) {
-		  m_probStores.resize(ntIndex + 1);
-	  }
+    //cerr << "ntIndex=" << ntIndex << " m_probStores=" << m_probStores.size() << endl;
 
+    UTIL_THROW_IF2(ntIndex >= m_probStores.size(), "NT index (" << ntIndex << ") is bigger than vector (" << m_probStores.size() << ")");
 	  ProbStore &probStore = m_probStores[ntIndex];
 	  probStore.AddToMap(contextIndex, left, right, count);
 }

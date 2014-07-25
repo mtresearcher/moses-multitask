@@ -93,6 +93,7 @@ void NonTermContext::SetScores(size_t ntInd, const InputType &input,
 	const Word &rightOuter = input.GetWord(range.GetEndPos() + 1);
 
 	if (m_type == 0) {
+    //cerr << "if (m_type == 0) {" << endl;
 		float outer = ntContextProp.GetProb(ntInd, 0, leftOuter.GetFactor(m_factor), m_smoothConst);
 		outer *= ntContextProp.GetProb(ntInd, 3, rightOuter.GetFactor(m_factor), m_smoothConst);
 
@@ -106,6 +107,7 @@ void NonTermContext::SetScores(size_t ntInd, const InputType &input,
 		scoreBreakdown.PlusEquals(this, scores);
 	}
 	else if (m_type == 1) {
+    //cerr << "if (m_type == 1) {" << endl;
 		float inner = ntContextProp.GetProb(ntInd,
 											0,
 											leftInner.GetFactor(m_factor),
@@ -123,7 +125,6 @@ void NonTermContext::SetScores(size_t ntInd, const InputType &input,
 		scores[1] = TransformScore(inner);
 
 		scoreBreakdown.PlusEquals(this, scores);
-
 	}
 }
 
