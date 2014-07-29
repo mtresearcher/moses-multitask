@@ -18,6 +18,7 @@ public:
   virtual ~Parameter();
 
   int maxSpan;
+  int minSpan;
   int maxNonTerm;
   int maxHieroNonTerm;
   int maxSymbolsTarget;

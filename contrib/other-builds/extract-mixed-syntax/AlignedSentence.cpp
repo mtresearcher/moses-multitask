@@ -153,7 +153,12 @@ void AlignedSentence::CreateConsistentPhrases(const Parameter &params)
 		continue;
 
 	  // source phrase has to be within limits
-	  if( maxS-minS >= params.maxSpan )
+	  size_t width = maxS - minS + 1;
+
+	  if( width < params.minSpan )
+		continue;
+
+	  if( width > params.maxSpan )
 		continue;
 
 	  // check if source words are aligned to out of bound target words
