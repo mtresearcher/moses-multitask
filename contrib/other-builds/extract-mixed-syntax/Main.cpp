@@ -79,6 +79,7 @@ int main(int argc, char** argv)
   }
 
   if (vm.count("MaxSpan")) params.maxSpan = vm["MaxSpan"].as<int>();
+  if (vm.count("MinSpan")) params.minSpan = vm["MinSpan"].as<int>();
   if (vm.count("GZOutput")) params.gzOutput = true;
   if (vm.count("GlueGrammar")) params.gluePath = vm["GlueGrammar"].as<string>();
   if (vm.count("SentenceOffset")) params.sentenceOffset = vm["SentenceOffset"].as<long>();
