@@ -84,6 +84,8 @@ void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
 		assert(sp);
 
 		int scope = sp->GetScope();
+		UTIL_THROW_IF2(scope > 2, "Max scope = 2. Current scope = " << scope);
+
 		const std::pair<size_t, size_t> &allowableRange = m_scopeRange[scope];
 
 		if (width < allowableRange.first || width > allowableRange.second) {
