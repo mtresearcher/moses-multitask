@@ -11,7 +11,7 @@ using namespace std;
 namespace Moses
 {
 ScopeSpan::ScopeSpan(const std::string &line)
-:StatelessFeatureFunction(1, line)
+:StatelessFeatureFunction(0, line)
 ,m_minCount(20)
 ,m_scopeRange(3, std::pair<size_t, size_t>(0,100000))
 {
@@ -21,9 +21,8 @@ ScopeSpan::ScopeSpan(const std::string &line)
 
 std::vector<float> ScopeSpan::DefaultWeights() const
 {
-  UTIL_THROW_IF2(m_numScoreComponents != 1,
-          "SyntaxRHS must only have 1 score");
-  vector<float> ret(1, 1);
+  UTIL_THROW_IF2(m_numScoreComponents != 0, "No scores here");
+  vector<float> ret(0);
   return ret;
 }
 
