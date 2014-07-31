@@ -197,6 +197,7 @@ public:
 
   void OnlyTheseFactors(const FactorMask &factors);
 
+  size_t GetScope() const;
 };
 
 inline size_t hash_value(const Phrase& phrase)
