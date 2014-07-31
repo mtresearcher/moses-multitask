@@ -62,6 +62,11 @@ void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
 	for (size_t i = 0; i < transOptList.GetSize(); ++i) {
 		ChartTranslationOptions &transOpts = transOptList.Get(i);
 		const WordsRange &range = transOpts.GetSourceWordsRange();
+    if (range.GetStartPos() == 0) {
+      // glue rule. ignore
+      continue;
+    }
+
 		size_t width = range.GetNumWordsCovered();
 
 		//cerr << "ChartTranslationOptions " << i << "=" << transOpts.GetSize() << endl;
