@@ -109,7 +109,7 @@ void ScopeSpan::SetParameter(const std::string& key, const std::string& value)
 	  int scope = Scan<int>(scopeStr);
 	  UTIL_THROW_IF2(scope > 2, "Max scope = 2. Current scope = " << scope);
 
-	  vector<size_t> range = Tokenize<size_t>(value);
+	  vector<size_t> range = Tokenize<size_t>(value, ",");
 	  UTIL_THROW_IF2(range.size() != 2, "Incorrect value format:" << value);
 	  m_scopeRange[scope] = std::pair<size_t, size_t>(range[0], range[1]);
   } else {
