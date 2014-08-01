@@ -430,18 +430,50 @@ void Rule::Prevalidate(const Parameter &params)
 	  }
   }
 
-  if (params.maxScope != UNDEFINED) {
-	  int scope = CalcScope();
+  if (params.maxScope != UNDEFINED || params.minScope > 0) {
+	  int scope = GetScope();
 	  if (scope > params.maxScope) {
+		  // scope of subsequent rules will be the same or increase
+		  // therefore can NOT recurse
 		  m_isValid = false;
 		  m_canRecurse = false;
 		  return;
 	  }
+
+	  if (scope < params.minScope) {
+		  // scope of subsequent rules may increase
+		  // therefore can recurse
+		  m_isValid = false;
+	  }
   }
 }
 
-int Rule::CalcScope() const
+int Rule::GetScope() const
 {
+	size_t scope = 0;
+	bool previousIsAmbiguous = false;
+
+	if (m_source[0]->IsNonTerm()) {
+		scope++;
+		previousIsAmbiguous = true;
+	}
+
+	for (size_t i = 1; i < m_source.GetSize(); ++i) {
+		const RuleSymbol *symbol = m_source[i];
+		bool isAmbiguous = symbol->IsNonTerm();
+		if (isAmbiguous && previousIsAmbiguous) {
+			scope++;
+		}
+		previousIsAmbiguous = isAmbiguous;
+	}
+
+	if (previousIsAmbiguous) {
+		scope++;
+	}
+
+	return scope;
+
+	/*
   int scope = 0;
   if (m_source.GetSize() > 1) {
 	  const RuleSymbol &front = *m_source.Front();
@@ -455,6 +487,7 @@ int Rule::CalcScope() const
 	  }
   }
   return scope;
+  */
 }
 
 template<typename T>

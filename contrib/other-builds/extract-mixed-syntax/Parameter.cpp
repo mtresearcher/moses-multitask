@@ -31,6 +31,7 @@ Parameter::Parameter()
 ,maxSpanFreeNonTermSource(0)
 ,nieceTerminal(true)
 ,maxScope(UNDEFINED)
+,minScope(0)
 
 ,spanLength(false)
 ,nonTermContext(false)

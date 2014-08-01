@@ -25,7 +25,7 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help", "Print help messages")
     ("MaxSpan", po::value<int>()->default_value(params.maxSpan), "Max (source) span of a rule. ie. number of words in the source")
-    ("MinSpan", po::value<int>()->default_value(params.minSpan), "Min (source) span of a rule. ie. number of words in the source")
+    ("MinSpan", po::value<int>()->default_value(params.minSpan), "Min (source) span of a rule.")
     ("GlueGrammar", po::value<string>()->default_value(params.gluePath), "Output glue grammar to here")
     ("SentenceOffset", po::value<long>()->default_value(params.sentenceOffset), "Starting sentence id. Not used")
     ("GZOutput", "Compress extract files")
@@ -41,6 +41,7 @@ int main(int argc, char** argv)
     ("MaxSpanFreeNonTermSource", po::value<int>()->default_value(params.maxSpanFreeNonTermSource), "Max number of words covered by beginning/end NT. Default = 0 (no limit)")
     ("NoNieceTerminal", "Don't extract rule if 1 of the non-term covers the same word as 1 of the terminals")
     ("MaxScope", po::value<int>()->default_value(params.maxScope), "maximum scope (see Hopkins and Langmead (2010)). Default is HIGH")
+    ("MinScope", po::value<int>()->default_value(params.minScope), "min scope.")
 
     ("SpanLength", "Property - span length of RHS each non-term")
 
@@ -95,6 +96,7 @@ int main(int argc, char** argv)
   if (vm.count("MaxSpanFreeNonTermSource")) params.maxSpanFreeNonTermSource = vm["MaxSpanFreeNonTermSource"].as<int>();
   if (vm.count("NoNieceTerminal")) params.nieceTerminal = false;
   if (vm.count("MaxScope")) params.maxScope = vm["MaxScope"].as<int>();
+  if (vm.count("MinScope")) params.minScope = vm["MinScope"].as<int>();
 
   // properties
   if (vm.count("SpanLength")) params.spanLength = true;
