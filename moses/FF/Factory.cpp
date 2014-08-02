@@ -52,6 +52,7 @@
 #include "NonTermContext.h"
 #include "NonTermContextTarget.h"
 #include "ScopeSpan.h"
+#include "SkeletonChangeInput.h"
 
 #include "moses/FF/SkeletonStatelessFF.h"
 #include "moses/FF/SkeletonStatefulFF.h"
@@ -216,6 +217,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(NonTermContext);
   MOSES_FNAME(NonTermContextTarget);
   MOSES_FNAME(ScopeSpan);
+  MOSES_FNAME(SkeletonChangeInput);
 
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
