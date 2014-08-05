@@ -2998,8 +2998,9 @@ sub define_evaluation_decode {
 	$cmd .= " -n-best-file $system_output.best$nbest_size -n-best-size $nbest" if $nbest;
     }
     else {
-	$cmd = "$decoder $settings -v 0 -f $config < $input > $system_output";
+	$cmd = "$decoder $settings -v 0 -f $config ";
 	$cmd .= " -n-best-list $system_output.best$nbest_size $nbest" if $nbest;
+  $cmd .= " < $input > $system_output";
     }
 
     &create_step($step_id,$cmd);
