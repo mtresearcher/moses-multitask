@@ -932,7 +932,7 @@ filter
 	in: input TRAINING:sigtest-filter-phrase-translation-table TRAINING:sigtest-filter-reordering-table TRAINING:corpus-mml-prefilter=OR=TRAINING:corpus-mml-postfilter=OR=TRAINING:domains TRAINING:transliteration-table
 	out: filtered-dir
 	default-name: tuning/filtered
-	rerun-on-change: filter-settings ttable-binarizer
+	rerun-on-change: filter-settings ttable-binarizer TRAINING:config
 	ignore-if: TRAINING:binarize-all
 	error: already exists. Please delete
 filter-devtest
