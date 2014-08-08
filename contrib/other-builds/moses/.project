@@ -1750,6 +1750,8 @@
 			<name>PP/NonTermContextTargetProperty.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/PP/NonTermContextTargetProperty.h</locationURI>
+		</link>
+		<link>
 			<name>PP/OrientationPhraseProperty.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/moses/PP/OrientationPhraseProperty.cpp</locationURI>
