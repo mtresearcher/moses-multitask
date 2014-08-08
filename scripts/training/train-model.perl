@@ -1687,16 +1687,9 @@ sub score_phrase_phrase_extract {
     $cmd .= " --SparseCountBinFeature $SPARSE_COUNT_BIN" if $SPARSE_COUNT_BIN;
     $cmd .= " --GoodTuring $ttable_file.half.f2e.gz.coc" if $GOOD_TURING;
     $cmd .= " --KneserNey $ttable_file.half.f2e.gz.coc" if $KNESER_NEY;
-<<<<<<< HEAD
-
-    $cmd .= " ".$_CONSOLIDATE_OPTIONS if defined($_CONSOLIDATE_OPTIONS);
-
-    $cmd .= " | $GZIP_EXEC -c > $ttable_file.gz";
-=======
     $cmd .= " --SourceLabels $_GHKM_SOURCE_LABELS_FILE" if $_GHKM_SOURCE_LABELS && defined($_GHKM_SOURCE_LABELS_FILE);
-    
-    $cmd .= " | gzip -c > $ttable_file.gz";
->>>>>>> d75c4e1ae5891705b45701e496737ef024c36270
+    $cmd .= " ".$_CONSOLIDATE_OPTIONS if defined($_CONSOLIDATE_OPTIONS);
+    $cmd .= " | $GZIP_EXEC -c > $ttable_file.gz";
     
     safesystem($cmd) or die "ERROR: Consolidating the two phrase table halves failed";
     if (! $debug) { safesystem("rm -f $ttable_file.half.*") or die("ERROR"); }
