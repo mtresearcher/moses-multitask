@@ -51,7 +51,7 @@ void RuleBackoff::EvaluateWhenApplied(const ChartHypothesis &hypo,
                                         ScoreComponentCollection* accumulator) const
 {}
 
-void RuleBackoff::Evaluate(ChartTranslationOptionList &transOptList) const
+void RuleBackoff::EvaluateWithAllTransOpts(ChartTranslationOptionList &transOptList) const
 {
 	// transopts to be deleted
 	typedef set<ChartTranslationOptions*> Coll;

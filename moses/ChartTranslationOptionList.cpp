@@ -168,13 +168,13 @@ float ChartTranslationOptionList::GetBestScore(const ChartCellLabel *chartCell) 
 	return bestHypo.GetTotalScore();
 }
 
-void ChartTranslationOptionList::Evaluate(const InputType &input, const InputPath &inputPath)
+void ChartTranslationOptionList::EvaluateWithSourceContext(const InputType &input, const InputPath &inputPath)
 {
   // NEVER iterate over ALL of the collection. Just over the first m_size
   CollType::iterator iter;
   for (iter = m_collection.begin(); iter != m_collection.begin() + m_size; ++iter) {
     ChartTranslationOptions &transOpts = **iter;
-    transOpts.Evaluate(input, inputPath);
+    transOpts.EvaluateWithSourceContext(input, inputPath);
   }
 
   DeleteEmpty();
@@ -184,7 +184,7 @@ void ChartTranslationOptionList::Evaluate(const InputType &input, const InputPat
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   for (size_t i = 0; i < ffs.size(); ++i) {
     const FeatureFunction &ff = *ffs[i];
-    ff.Evaluate(*this);
+    ff.EvaluateWithAllTransOpts(*this);
   }
 
   DeleteEmpty();

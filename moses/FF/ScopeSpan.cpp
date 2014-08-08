@@ -53,7 +53,7 @@ void ScopeSpan::EvaluateWhenApplied(const ChartHypothesis &hypo,
                                         ScoreComponentCollection* accumulator) const
 {}
 
-void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
+void ScopeSpan::EvaluateWithAllTransOpts(ChartTranslationOptionList &transOptList) const
 {
 	if (transOptList.GetSize() == 0) {
 		return;
