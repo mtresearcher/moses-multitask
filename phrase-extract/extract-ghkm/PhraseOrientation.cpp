@@ -19,9 +19,11 @@
 
 #include "PhraseOrientation.h"
 
+#include <sstream>
 #include <iostream>
 #include <sstream>
 #include <limits>
+#include <sstream>
 
 #include <boost/assign/list_of.hpp>
 

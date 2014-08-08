@@ -28,6 +28,7 @@
 #include "tables-core.h"
 #include "InputFileStream.h"
 #include "OutputFileStream.h"
+#include "PropertiesConsolidator.h"
 
 using namespace std;
 
@@ -37,6 +38,7 @@ bool phraseCountFlag = false;
 bool lowCountFlag = false;
 bool goodTuringFlag = false;
 bool kneserNeyFlag = false;
+bool sourceLabelsFlag = false;
 bool logProbFlag = false;
 bool countsProperty = false;
 inline float maybeLogProb( float a )
@@ -44,7 +46,7 @@ inline float maybeLogProb( float a )
   return logProbFlag ? log(a) : a;
 }
 
-void processFiles( char*, char*, char*, char* );
+void processFiles( char*, char*, char*, char*, char* );
 void loadCountOfCounts( char* );
 void breakdownCoreAndSparse( string combined, string &core, string &sparse );
 bool getLine( istream &fileP, vector< string > &item );
@@ -58,13 +60,14 @@ int main(int argc, char* argv[])
        << "consolidating direct and indirect rule tables\n";
 
   if (argc < 4) {
-    cerr << "syntax: consolidate phrase-table.direct phrase-table.indirect phrase-table.consolidated [--Hierarchical] [--OnlyDirect] [--PhraseCount] \n";
+    cerr << "syntax: consolidate phrase-table.direct phrase-table.indirect phrase-table.consolidated [--Hierarchical] [--OnlyDirect] [--PhraseCount] [--GoodTuring counts-of-counts-file] [--KneserNey counts-of-counts-file] [--LowCountFeature] [--SourceLabels source-labels-file] \n";
     exit(1);
   }
   char* &fileNameDirect = argv[1];
   char* &fileNameIndirect = argv[2];
   char* &fileNameConsolidated = argv[3];
   char* fileNameCountOfCounts;
+  char* fileNameSourceLabelSet;
 
   for(int i=4; i<argc; i++) {
     if (strcmp(argv[i],"--Hierarchical") == 0) {
@@ -118,13 +121,21 @@ int main(int argc, char* argv[])
     } else if (strcmp(argv[i],"--Counts") == 0) {
     	countsProperty = true;
       cerr << "output counts as a property\n";
+    } else if (strcmp(argv[i],"--SourceLabels") == 0) {
+      sourceLabelsFlag = true;
+      if (i+1==argc) {
+        cerr << "ERROR: specify source label set file!\n";
+        exit(1);
+      }
+      fileNameSourceLabelSet = argv[++i];
+      cerr << "processing source labels property\n";
     } else {
       cerr << "ERROR: unknown option " << argv[i] << endl;
       exit(1);
     }
   }
 
-  processFiles( fileNameDirect, fileNameIndirect, fileNameConsolidated, fileNameCountOfCounts );
+  processFiles( fileNameDirect, fileNameIndirect, fileNameConsolidated, fileNameCountOfCounts, fileNameSourceLabelSet );
 }
 
 vector< float > countOfCounts;
@@ -173,7 +184,7 @@ void loadCountOfCounts( char* fileNameCountOfCounts )
   if (kneserNey_D3 > 2.9) kneserNey_D3 = 2.9;
 }
 
-void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameConsolidated, char* fileNameCountOfCounts )
+void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameConsolidated, char* fileNameCountOfCounts, char* fileNameSourceLabelSet )
 {
   if (goodTuringFlag || kneserNeyFlag)
     loadCountOfCounts( fileNameCountOfCounts );
@@ -200,6 +211,13 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
   if (!success) {
     cerr << "ERROR: could not open output file " << fileNameConsolidated << endl;
     exit(1);
+  }
+
+  // create properties consolidator 
+  // (in case any additional phrase property requires further processing)
+  MosesTraining::PropertiesConsolidator propertiesConsolidator = MosesTraining::PropertiesConsolidator();
+  if (sourceLabelsFlag) {
+    propertiesConsolidator.ActivateSourceLabelsProcessing(fileNameSourceLabelSet);
   }
 
   // loop through all extracted phrase translations
@@ -311,12 +329,13 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
     // counts, for debugging
     fileConsolidated << "||| " << countE << " " << countF << " " << countEF;
 
-    // count bin feature (as a sparse feature)
+    // sparse features
     fileConsolidated << " |||";
     if (directSparseScores.compare("") != 0)
       fileConsolidated << " " << directSparseScores;
     if (indirectSparseScores.compare("") != 0)
       fileConsolidated << " " << indirectSparseScores;
+    // count bin feature (as a sparse feature)
     if (sparseCountBinFeatureFlag) {
       bool foundBin = false;
       for(size_t i=0; i < countBin.size(); i++) {
@@ -336,13 +355,21 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
     }
 
     // arbitrary key-value pairs
-    fileConsolidated << " ||| ";
+    fileConsolidated << " |||";
     if (itemDirect.size() >= 6) {
+<<<<<<< HEAD
     	fileConsolidated << itemDirect[5];
     }
 
     if (countsProperty) {
     	fileConsolidated << " {{Counts " << countE << " " << countF << " " << countEF << "}}";
+=======
+      //if (sourceLabelsFlag) {
+        fileConsolidated << propertiesConsolidator.ProcessPropertiesString(itemDirect[5]);
+      //} else {
+      //  fileConsolidated << itemDirect[5];
+      //}
+>>>>>>> d75c4e1ae5891705b45701e496737ef024c36270
     }
 
     fileConsolidated << endl;
