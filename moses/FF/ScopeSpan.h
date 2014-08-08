@@ -5,6 +5,7 @@
 
 namespace Moses
 {
+class PhraseDictionary;
 
 class ScopeSpan : public StatelessFeatureFunction
 {
@@ -38,7 +39,7 @@ public:
 protected:
   float m_minCount;
   std::vector< std::pair<size_t, size_t> > m_scopeRange;
-
+  const PhraseDictionary *m_pt;
 };
 
 }
