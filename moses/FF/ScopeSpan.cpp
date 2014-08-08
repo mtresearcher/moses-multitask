@@ -5,6 +5,7 @@
 #include "moses/ChartTranslationOptionList.h"
 #include "moses/ChartTranslationOptions.h"
 #include "moses/PP/CountsPhraseProperty.h"
+#include "moses/TranslationModel/PhraseDictionary.h"
 
 using namespace std;
 
@@ -14,6 +15,7 @@ ScopeSpan::ScopeSpan(const std::string &line)
 :StatelessFeatureFunction(0, line)
 ,m_minCount(20)
 ,m_scopeRange(3, std::pair<size_t, size_t>(0,100000))
+,m_pt(NULL)
 {
   m_tuneable = false;
   ReadParameters();
@@ -53,6 +55,21 @@ void ScopeSpan::EvaluateWhenApplied(const ChartHypothesis &hypo,
 
 void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
 {
+	if (transOptList.GetSize() == 0) {
+		return;
+	}
+
+	// only prune for a particular pt
+	if (m_pt) {
+  	  ChartTranslationOptions &transOpts = transOptList.Get(0);
+		const ChartTranslationOption &transOpt = transOpts.Get(0);
+		const TargetPhrase &tp = transOpt.GetPhrase();
+		const PhraseDictionary *tpPt = tp.GetContainer();
+		if (tpPt != m_pt) {
+			return;
+		}
+	}
+
 	// transopts to be deleted
 	typedef set<ChartTranslationOptions*> Coll;
 	Coll transOptsToDelete;
@@ -62,10 +79,10 @@ void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
 	for (size_t i = 0; i < transOptList.GetSize(); ++i) {
 		ChartTranslationOptions &transOpts = transOptList.Get(i);
 		const WordsRange &range = transOpts.GetSourceWordsRange();
-    if (range.GetStartPos() == 0) {
-      // glue rule. ignore
-      continue;
-    }
+		if (range.GetStartPos() == 0) {
+		  // glue rule. ignore
+		  continue;
+		}
 
 		size_t width = range.GetNumWordsCovered();
 
@@ -81,7 +98,7 @@ void ScopeSpan::Evaluate(ChartTranslationOptionList &transOptList) const
 		UTIL_THROW_IF2(transOpts.GetSize() == 0, "transOpts can't be empty");
 
 		assert(transOpts.GetSize());
-		// get count
+		// get scope
 		const ChartTranslationOption &transOpt = transOpts.Get(0);
 		const TargetPhrase &tp = transOpt.GetPhrase();
 		const Phrase *sp = tp.GetRuleSource();
@@ -116,7 +133,13 @@ void ScopeSpan::SetParameter(const std::string& key, const std::string& value)
 	  vector<size_t> range = Tokenize<size_t>(value, ",");
 	  UTIL_THROW_IF2(range.size() != 2, "Incorrect value format:" << value);
 	  m_scopeRange[scope] = std::pair<size_t, size_t>(range[0], range[1]);
-  } else {
+  }
+  else if (key == "phrase-table") {
+	  FeatureFunction &ff = FindFeatureFunction(value);
+	  m_pt = dynamic_cast<const PhraseDictionary*>(&ff);
+	  UTIL_THROW_IF2(m_pt == NULL, "Not a phrase-table: " << value);
+  }
+  else {
 	  StatelessFeatureFunction::SetParameter(key, value);
   }
 }
