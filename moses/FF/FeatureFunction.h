@@ -130,7 +130,7 @@ public:
                         , ScoreComponentCollection &scoreBreakdown
                         , ScoreComponentCollection *estimatedFutureScore = NULL) const = 0;
 
-  virtual void Evaluate(ChartTranslationOptionList &transOptList) const
+  virtual void EvaluateWithAllTransOpts(ChartTranslationOptionList &transOptList) const
   {}
 
   virtual void SetParameter(const std::string& key, const std::string& value);

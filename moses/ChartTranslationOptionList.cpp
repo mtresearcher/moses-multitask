@@ -184,7 +184,7 @@ void ChartTranslationOptionList::Evaluate(const InputType &input, const InputPat
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   for (size_t i = 0; i < ffs.size(); ++i) {
     const FeatureFunction &ff = *ffs[i];
-    ff.Evaluate(*this);
+    ff.EvaluateWithAllTransOpts(*this);
   }
 
   DeleteEmpty();

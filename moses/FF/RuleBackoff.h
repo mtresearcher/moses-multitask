@@ -29,7 +29,7 @@ public:
                 ScoreComponentCollection* accumulator) const;
   void EvaluateWhenApplied(const ChartHypothesis &hypo,
                      ScoreComponentCollection* accumulator) const;
-  void Evaluate(ChartTranslationOptionList &transOptList) const;
+  void EvaluateWithAllTransOpts(ChartTranslationOptionList &transOptList) const;
 
   void SetParameter(const std::string& key, const std::string& value);
 
