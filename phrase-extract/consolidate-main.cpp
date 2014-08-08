@@ -357,19 +357,16 @@ void processFiles( char* fileNameDirect, char* fileNameIndirect, char* fileNameC
     // arbitrary key-value pairs
     fileConsolidated << " |||";
     if (itemDirect.size() >= 6) {
-<<<<<<< HEAD
     	fileConsolidated << itemDirect[5];
     }
 
     if (countsProperty) {
     	fileConsolidated << " {{Counts " << countE << " " << countF << " " << countEF << "}}";
-=======
       //if (sourceLabelsFlag) {
         fileConsolidated << propertiesConsolidator.ProcessPropertiesString(itemDirect[5]);
       //} else {
       //  fileConsolidated << itemDirect[5];
       //}
->>>>>>> d75c4e1ae5891705b45701e496737ef024c36270
     }
 
     fileConsolidated << endl;

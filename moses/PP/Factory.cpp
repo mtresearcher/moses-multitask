@@ -9,11 +9,8 @@
 #include "moses/PP/TreeStructurePhraseProperty.h"
 #include "moses/PP/SpanLengthPhraseProperty.h"
 #include "moses/PP/NonTermContextProperty.h"
-<<<<<<< HEAD
 #include "moses/PP/NonTermContextTargetProperty.h"
-=======
 #include "moses/PP/OrientationPhraseProperty.h"
->>>>>>> d75c4e1ae5891705b45701e496737ef024c36270
 
 namespace Moses
 {
