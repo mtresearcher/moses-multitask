@@ -13,8 +13,6 @@ namespace Moses
 {
 KeepOnlyReordering::KeepOnlyReordering(const std::string &line)
 :StatelessFeatureFunction(0, line)
-,m_minCount(20)
-,m_scopeRange(3, std::pair<size_t, size_t>(0,100000))
 ,m_pt(NULL)
 {
   m_tuneable = false;
@@ -74,42 +72,27 @@ void KeepOnlyReordering::EvaluateWithAllTransOpts(ChartTranslationOptionList &tr
 	typedef set<ChartTranslationOptions*> Coll;
 	Coll transOptsToDelete;
 
-	// collect counts
 	//cerr << "ChartTranslationOptionList:" << endl;
 	for (size_t i = 0; i < transOptList.GetSize(); ++i) {
 		ChartTranslationOptions &transOpts = transOptList.Get(i);
-		const WordsRange &range = transOpts.GetSourceWordsRange();
-		if (range.GetStartPos() == 0) {
-		  // glue rule. ignore
-		  continue;
-		}
-
-		size_t width = range.GetNumWordsCovered();
-
 		//cerr << "ChartTranslationOptions " << i << "=" << transOpts.GetSize() << endl;
-
-		/*
-		for (size_t j = 0; j < transOpts.GetSize(); ++j) {
-			const ChartTranslationOption &transOpt = transOpts.Get(j);
-			cerr << "   " << transOpt << endl;
-		}
-		*/
-
 		UTIL_THROW_IF2(transOpts.GetSize() == 0, "transOpts can't be empty");
 
-		assert(transOpts.GetSize());
-		// get scope
-		const ChartTranslationOption &transOpt = transOpts.Get(0);
-		const TargetPhrase &tp = transOpt.GetPhrase();
-		const Phrase *sp = tp.GetRuleSource();
-		assert(sp);
+		// got thru each rule
+		bool hasReordering = false;
+		for (size_t j = 0; j < transOpts.GetSize(); ++j) {
+			const ChartTranslationOption &transOpt = transOpts.Get(j);
+			const TargetPhrase &tp = transOpt.GetPhrase();
+			const Phrase *sp = tp.GetRuleSource();
+			assert(sp);
 
-		int scope = sp->GetScope();
-		UTIL_THROW_IF2(scope > 2, "Max scope = 2. Current scope = " << scope);
+			hasReordering = ContainsReordering(*sp, tp);
+			if (hasReordering) {
+				break;
+			}
+		}
 
-		const std::pair<size_t, size_t> &allowableRange = m_scopeRange[scope];
-
-		if (width < allowableRange.first || width > allowableRange.second) {
+		if (!hasReordering) {
 			transOptsToDelete.insert(&transOpts);
 		}
 	}
@@ -122,19 +105,24 @@ void KeepOnlyReordering::EvaluateWithAllTransOpts(ChartTranslationOptionList &tr
 	}
 }
 
+bool KeepOnlyReordering::ContainsReordering(const Phrase &sp, const TargetPhrase &tp) const
+{
+	const AlignmentInfo &ntAligns = tp.GetAlignNonTerm();
+	const AlignmentInfo &termAligns = tp.GetAlignNonTerm();
+
+	AlignmentInfo::const_iterator iterNT;
+	for (iterNT = ntAligns.begin(); iterNT != ntAligns.end(); ++iterNT ) {
+		const std::pair<size_t,size_t> &ntAlign = *iterNT;
+		if (ntAligns.Cross(ntAlign) || termAligns.Cross(ntAlign)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void KeepOnlyReordering::SetParameter(const std::string& key, const std::string& value)
 {
-  if (key.substr(0, 5) == "scope") {
-	  UTIL_THROW_IF2(key.size() < 5, "Incorrect key format:" << key);
-	  string scopeStr = key.substr(5, 1);
-	  int scope = Scan<int>(scopeStr);
-	  UTIL_THROW_IF2(scope > 2, "Max scope = 2. Current scope = " << scope);
-
-	  vector<size_t> range = Tokenize<size_t>(value, ",");
-	  UTIL_THROW_IF2(range.size() != 2, "Incorrect value format:" << value);
-	  m_scopeRange[scope] = std::pair<size_t, size_t>(range[0], range[1]);
-  }
-  else if (key == "phrase-table") {
+  if (key == "phrase-table") {
 	  FeatureFunction &ff = FindFeatureFunction(value);
 	  m_pt = dynamic_cast<const PhraseDictionary*>(&ff);
 	  UTIL_THROW_IF2(m_pt == NULL, "Not a phrase-table: " << value);

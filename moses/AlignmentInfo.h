@@ -79,6 +79,8 @@ public:
   std::vector< const std::pair<size_t,size_t>* > GetSortedAlignments(int order) const;
   	  // 0 = no sort, 1 = source, 2 = target
 
+  bool Cross(const std::pair<size_t,size_t> &align) const;
+
   std::vector<size_t> GetSourceIndex2PosMap() const;
 
   bool operator==(const AlignmentInfo& rhs) const {
