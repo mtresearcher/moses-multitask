@@ -49,16 +49,11 @@
 #include "NieceTerminal.h"
 #include "SpanLength.h"
 #include "SyntaxRHS.h"
-#include "RuleBackoff.h"
-#include "NonTermContext.h"
-#include "NonTermContextTarget.h"
-#include "ScopeSpan.h"
-#include "KeepOnlyReordering.h"
-#include "SkeletonChangeInput.h"
 
 #include "moses/FF/SkeletonStatelessFF.h"
 #include "moses/FF/SkeletonStatefulFF.h"
 #include "moses/LM/SkeletonLM.h"
+#include "SkeletonChangeInput.h"
 #include "moses/TranslationModel/SkeletonPT.h"
 
 #ifdef HAVE_CMPH
@@ -216,16 +211,11 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SparseHieroReorderingFeature);
   MOSES_FNAME(SpanLength);
   MOSES_FNAME(SyntaxRHS);
-  MOSES_FNAME(RuleBackoff);
-  MOSES_FNAME(NonTermContext);
-  MOSES_FNAME(NonTermContextTarget);
-  MOSES_FNAME(ScopeSpan);
-  MOSES_FNAME(KeepOnlyReordering);
-  MOSES_FNAME(SkeletonChangeInput);
 
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
   MOSES_FNAME(SkeletonLM);
+  MOSES_FNAME(SkeletonChangeInput);
   MOSES_FNAME(SkeletonPT);
 
 #ifdef HAVE_CMPH
