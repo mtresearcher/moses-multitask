@@ -50,6 +50,7 @@
 #include "SpanLength.h"
 #include "SyntaxRHS.h"
 #include "KeepOnlyReordering.h"
+#include "ScopeSpan.h"
 
 #include "moses/FF/SkeletonStatelessFF.h"
 #include "moses/FF/SkeletonStatefulFF.h"
@@ -213,6 +214,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SpanLength);
   MOSES_FNAME(SyntaxRHS);
   MOSES_FNAME(KeepOnlyReordering);
+  MOSES_FNAME(ScopeSpan);
 
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
