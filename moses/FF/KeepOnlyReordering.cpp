@@ -14,6 +14,7 @@ namespace Moses
 KeepOnlyReordering::KeepOnlyReordering(const std::string &line)
 :StatelessFeatureFunction(0, line)
 ,m_pt(NULL)
+,m_keepAll(true)
 {
   m_tuneable = false;
   ReadParameters();
@@ -126,6 +127,9 @@ void KeepOnlyReordering::SetParameter(const std::string& key, const std::string&
 	  FeatureFunction &ff = FindFeatureFunction(value);
 	  m_pt = dynamic_cast<const PhraseDictionary*>(&ff);
 	  UTIL_THROW_IF2(m_pt == NULL, "Not a phrase-table: " << value);
+  }
+  else if (key == "keep-all") {
+	  m_keepAll = Scan<bool>(value);
   }
   else {
 	  StatelessFeatureFunction::SetParameter(key, value);

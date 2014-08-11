@@ -38,6 +38,7 @@ public:
 
 protected:
   const PhraseDictionary *m_pt;
+  bool m_keepAll;
 
   bool ContainsReordering(const Phrase &sp, const TargetPhrase &tp) const;
 
