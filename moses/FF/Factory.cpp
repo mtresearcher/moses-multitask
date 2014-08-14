@@ -52,6 +52,7 @@
 #include "RuleBackoff.h"
 #include "NonTermContext.h"
 #include "NonTermContextTarget.h"
+#include "KeepOnlyReordering.h"
 #include "ScopeSpan.h"
 
 #include "moses/FF/SkeletonStatelessFF.h"
@@ -218,6 +219,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(RuleBackoff);
   MOSES_FNAME(NonTermContext);
   MOSES_FNAME(NonTermContextTarget);
+  MOSES_FNAME(KeepOnlyReordering);
   MOSES_FNAME(ScopeSpan);
 
   MOSES_FNAME(SkeletonStatelessFF);

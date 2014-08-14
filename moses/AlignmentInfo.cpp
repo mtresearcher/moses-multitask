@@ -136,6 +136,20 @@ std::vector<size_t> AlignmentInfo::GetSourceIndex2PosMap() const
   return ret;
 }
 
+bool AlignmentInfo::Cross(const std::pair<size_t,size_t> &align) const
+{
+	AlignmentInfo::const_iterator iter;
+	for (iter = begin(); iter != end(); ++iter) {
+		const std::pair<size_t,size_t> &currAlign = *iter;
+		if ( (align.first > currAlign.first && align.second < currAlign.second)
+		  && (align.first < currAlign.first && align.second > currAlign.second))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 std::ostream& operator<<(std::ostream &out, const AlignmentInfo &alignmentInfo)
 {
   AlignmentInfo::const_iterator iter;
