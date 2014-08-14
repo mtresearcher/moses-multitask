@@ -274,8 +274,8 @@ namespace Moses
     while(getline(in2,line)) text2.push_back(line);
     while(getline(ina,line)) symal.push_back(line);
 
-    boost::scoped_ptr<lock_guard<mutex> > guard;
-    if (locking) guard.reset(new lock_guard<mutex>(this->lock));
+    boost::scoped_ptr<boost::lock_guard<boost::mutex> > guard;
+    if (locking) guard.reset(new boost::lock_guard<boost::mutex>(this->lock));
     btdyn = btdyn->add(text1,text2,symal);
     assert(btdyn);
     // cerr << "Loaded " << btdyn->T1->size() << " sentence pairs" << endl;
@@ -345,7 +345,7 @@ namespace Moses
   Mmsapt::
   Load()
   {
-    lock_guard<mutex> guard(this->lock);
+    boost::lock_guard<boost::mutex> guard(this->lock);
 
     // can load only once
     // UTIL_THROW_IF2(shards.size(),"Mmsapt is already loaded at " << HERE);
@@ -945,6 +945,7 @@ namespace Moses
     // assert(0);
   }
 
+#if defined(timespec)
   bool operator<(timespec const& a, timespec const& b)
   {
     if (a.tv_sec != b.tv_sec) return a.tv_sec < b.tv_sec;
@@ -955,6 +956,19 @@ namespace Moses
   {
     if (a.tv_sec != b.tv_sec) return a.tv_sec > b.tv_sec;
     return (a.tv_nsec >= b.tv_nsec);
+  }
+#endif 
+
+  bool operator<(timeval const& a, timeval const& b)
+  {
+    if (a.tv_sec != b.tv_sec) return a.tv_sec < b.tv_sec;
+    return (a.tv_usec < b.tv_usec);
+  }
+
+  bool operator>=(timeval const& a, timeval const& b)
+  {
+    if (a.tv_sec != b.tv_sec) return a.tv_sec > b.tv_sec;
+    return (a.tv_usec >= b.tv_usec);
   }
 
   void 
@@ -986,12 +1000,10 @@ namespace Moses
   decache(TargetPhraseCollectionWrapper* ptr) const
   {
     if (ptr->refCount || ptr->idx >= 0) return;
-    
-    timespec t; clock_gettime(CLOCK_MONOTONIC,&t);
-    timespec r; clock_getres(CLOCK_MONOTONIC,&r);
-
     // if (t.tv_nsec < v[0]->tstamp.tv_nsec)
 #if 0
+    timespec t; clock_gettime(CLOCK_MONOTONIC,&t);
+    timespec r; clock_getres(CLOCK_MONOTONIC,&r);
     float delta = t.tv_sec - ptr->tstamp.tv_sec;
     cerr << "deleting old cache entry after "
 	 << delta << " seconds."
@@ -1016,8 +1028,11 @@ namespace Moses
     if (!ptr) return NULL;
     ++ptr->refCount;
     ++m_tpc_ctr;
+#if defined(timespec)
     clock_gettime(CLOCK_MONOTONIC, &ptr->tstamp);
-    
+#else
+    gettimeofday(&ptr->tstamp, NULL);
+#endif
     // update history
     if (m_history.capacity() > 1)
       {
