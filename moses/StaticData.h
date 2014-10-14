@@ -52,6 +52,7 @@ class DecodeGraph;
 class DecodeStep;
 
 class DynamicCacheBasedLanguageModel;
+class TriggerModel;
 class PhraseDictionaryDynamicCacheBased;
 
 typedef std::pair<std::string, float> UnknownLHSEntry;
@@ -145,6 +146,7 @@ protected:
   XmlInputType m_xmlInputType; //! method for handling sentence XML input
   std::pair<std::string,std::string> m_xmlBrackets; //! strings to use as XML tags' opening and closing brackets. Default are "<" and ">"
 
+  bool m_useTriggerModel;
   bool m_mbr; //! use MBR decoder
   bool m_useLatticeMBR; //! use MBR decoder
   bool m_mira; // do mira training
@@ -279,7 +281,9 @@ public:
   const std::vector<FactorType> &GetOutputFactorOrder() const {
     return m_outputFactorOrder;
   }
-
+  inline bool IfUseTriggerModel() const {
+  	return m_useTriggerModel;
+  }
   inline bool GetSourceStartPosMattersForRecombination() const {
     return m_sourceStartPosMattersForRecombination;
   }
@@ -449,6 +453,11 @@ public:
 
   void SetAllWeights(const ScoreComponentCollection& weights) {
     m_allWeights = weights;
+  }
+
+  void SetTriggerModel() {
+  	m_useTriggerModel=true;
+  	return;
   }
 
   //Weight for a single-valued feature
