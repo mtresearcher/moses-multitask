@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "StaticData.h"
 #include "moses/FF/DynamicCacheBasedLanguageModel.h"
 #include "moses/TranslationModel/PhraseDictionaryDynamicCacheBased.h"
+#include "moses/FF/TriggerModel.h"
 #include "ChartTranslationOptions.h"
 #include "Util.h"
 #include "XmlOption.h"
@@ -180,6 +181,13 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
       TRACE_ERR(msg << endl);
       throw runtime_error(msg);
     }
+  }
+
+  // set source sentence for STM
+  if(staticData.IfUseTriggerModel()){
+  	TriggerModel *ftm = NULL;
+  	ftm = &TriggerModel::InstanceNonConst();
+  	ftm->SetSentence(line);
   }
 
   // Phrase::CreateFromString(Input, factorOrder, line, factorDelimiter, NULL);
