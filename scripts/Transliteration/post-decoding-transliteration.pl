@@ -139,7 +139,7 @@ sub run_transliteration
 	`$MOSES_SRC/scripts/ems/support/substitute-filtered-tables-and-weights.perl $TRANSLIT_MODEL/evaluation/$eval_file.filtered/moses.ini $TRANSLIT_MODEL/model/moses.ini $TRANSLIT_MODEL/tuning/moses.tuned.ini $TRANSLIT_MODEL/evaluation/$eval_file.filtered.ini`;
 
   my $drop_stderr = $VERBOSE ? "" : " 2>/dev/null";
-	`$DECODER -search-algorithm 1 -cube-pruning-pop-limit 5000 -s 5000 -threads 16 -drop-unknown -distortion-limit 0 -n-best-list $TRANSLIT_MODEL/evaluation/$eval_file.op.nBest 1000 distinct -f $TRANSLIT_MODEL/evaluation/$eval_file.filtered.ini < $TRANSLIT_MODEL/evaluation/$eval_file > $TRANSLIT_MODEL/evaluation/$eval_file.op $drop_stderr`;
+	`$MOSES_SRC/bin/moses -search-algorithm 1 -cube-pruning-pop-limit 5000 -s 5000 -threads 16 -drop-unknown -distortion-limit 0 -n-best-list $TRANSLIT_MODEL/evaluation/$eval_file.op.nBest 1000 distinct -f $TRANSLIT_MODEL/evaluation/$eval_file.filtered.ini < $TRANSLIT_MODEL/evaluation/$eval_file > $TRANSLIT_MODEL/evaluation/$eval_file.op $drop_stderr`;
 
 }
 
