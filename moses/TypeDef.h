@@ -160,6 +160,17 @@ enum FormatType {
   ,HieroFormat
 };
 
+enum OnlineAlgorithm {
+	FOnlyPerceptron = 0
+	, FPercepWMira = 1
+	, Mira = 2
+};
+
+enum UpdateInteractionMatrixType {
+	vonNeumann = 0
+	, logDet = 1
+};
+
 // typedef
 typedef size_t FactorType;
 

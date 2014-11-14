@@ -62,6 +62,31 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
 
   //get covered words - if continual-partial-translation is switched on, parse input
   const StaticData &staticData = StaticData::Instance();
+
+  if(staticData.GetOnlineLearningModel()!=NULL){
+	  StaticData::InstanceNonConst().SetSourceOnlineLearning(line);
+  }
+  if(staticData.GetOnlineLearningModel()!=NULL && !staticData.MultiTaskingOn())
+  {
+	  std::vector<string> strs;
+	  int splits=split_marker_perl(line, "_#_", strs);
+	  OnlineLearner* ol=StaticData::InstanceNonConst().GetOnlineLearningModel();
+	  if(splits>1){
+		  ol->SetOnlineLearningTrue();
+		  if(ol!=NULL){
+			  if(!ol->SetPostEditedSentence(strs[1])) return 0;
+		  }
+		  else{
+			  VERBOSE(1, "online learning module not activated!!");
+			  return 0;
+		  }
+	  }
+	  else{
+		  ol->SetOnlineLearningFalse();
+	  }
+	  line=strs[0];
+  }
+
   m_frontSpanCoveredLength = 0;
   m_sourceCompleted.resize(0);
   if (staticData.ContinuePartialTranslation()) {
