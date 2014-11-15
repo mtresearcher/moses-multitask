@@ -45,6 +45,7 @@ struct XmlOption;
  */
 class Sentence : public Phrase, public InputType
 {
+	friend class OnlineLearningFeature;
 
 protected:
 

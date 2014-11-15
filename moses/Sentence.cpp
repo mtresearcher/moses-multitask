@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Util.h"
 #include "XmlOption.h"
 #include "FactorCollection.h"
+#include "moses/FF/OnlineLearningFeature.h"
 
 using namespace std;
 
@@ -61,28 +62,22 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
     return 0;
 
   //get covered words - if continual-partial-translation is switched on, parse input
-  const StaticData &staticData = StaticData::Instance();
-
-  if(staticData.GetOnlineLearningModel()!=NULL){
-	  StaticData::InstanceNonConst().SetSourceOnlineLearning(line);
-  }
-  if(staticData.GetOnlineLearningModel()!=NULL && !staticData.MultiTaskingOn())
+  const StaticData staticData = StaticData::Instance();
+  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  if(ol!=NULL)
   {
 	  std::vector<string> strs;
-	  int splits=split_marker_perl(line, "_#_", strs);
-	  OnlineLearner* ol=StaticData::InstanceNonConst().GetOnlineLearningModel();
-	  if(splits>1){
-		  ol->SetOnlineLearningTrue();
-		  if(ol!=NULL){
-			  if(!ol->SetPostEditedSentence(strs[1])) return 0;
-		  }
+	  strs=Tokenize(line, "_#_");
+	  if(strs.size()>=2){
+		  OnlineLearningFeature::InstanceNonConst().ActivateOnlineLearning();
+		  if(!OnlineLearningFeature::InstanceNonConst().SetPostEditedSentence(strs[1])) return 0;
 		  else{
 			  VERBOSE(1, "online learning module not activated!!");
 			  return 0;
 		  }
 	  }
 	  else{
-		  ol->SetOnlineLearningFalse();
+		  OnlineLearningFeature::InstanceNonConst().DeactivateOnlineLearning();
 	  }
 	  line=strs[0];
   }

@@ -60,6 +60,7 @@ typedef std::vector<UnknownLHSEntry>  UnknownLHSList;
  */
 class StaticData
 {
+  friend class OnlineLearningFeature;
   friend class HyperParameterAsWeight;
 
 private:
@@ -78,7 +79,6 @@ protected:
   m_earlyDiscardingThreshold,
   m_translationOptionThreshold,
   m_wordDeletionWeight;
-
 
   // PhraseTrans, Generation & LanguageModelScore has multiple weights.
   int				m_maxDistortion;
