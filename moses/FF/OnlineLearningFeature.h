@@ -87,7 +87,7 @@ public:
 	void RunOnlineMultiTaskLearning(Manager& manager, uint8_t task);
 	void RemoveJunk();
 
-	inline size_t GetNumScoreComponents() const { return 0; };
+//	inline size_t GetNumScoreComponents() const { return 1; };
 
 	inline std::string GetScoreProducerWeightShortName(unsigned) const { return "ol"; };
 

@@ -68,14 +68,13 @@ namespace Moses {
 	OnlineLearningFeature *OnlineLearningFeature::s_instance = NULL;
 
 	OnlineLearningFeature::OnlineLearningFeature(const std::string &line) : StatelessFeatureFunction(0, line) {
-		m_PPindex = 0;
 		s_instance=this;
-		if(implementation!=0){
+		m_learn=false;
+		ReadParameters();
+		if(implementation!=FOnlyPerceptron){
 			optimiser = new Optimizer::MiraOptimiser(slack, scale_margin, scale_margin_precision, scale_update,
 					scale_update_precision, m_normaliseMargin, m_sigmoidParam);
 		}
-		ReadParameters();
-		cerr << "Initialization Online Learning Model\n";
 	}
 
 	void OnlineLearningFeature::SetParameter(const std::string& key, const std::string& value)
@@ -103,25 +102,28 @@ namespace Moses {
 			scale_margin = Scan<float>(value);
 		} else if (key == "w_algorithm") {
 			m_algorithm = Scan<std::string>(value);
+			// set algorithm
+			if(m_algorithm.compare("perceptron")==0){
+				implementation=FOnlyPerceptron;
+				cerr<<"Online Algorithm : Perceptron\n";
+			}
+			else if(m_algorithm.compare("alsoMira")==0){
+				implementation=FPercepWMira;
+				cerr<<"Online Algorithm : Perceptron + Mira\n";
+			}
+			else if(m_algorithm.compare("onlyMira")==0){
+				implementation=Mira;
+				cerr<<"Online Algorithm : Mira\n";
+			}
 		} else {
 			StatelessFeatureFunction::SetParameter(key, value);
-		}
-		// set algorithm
-		if(m_algorithm.compare("perceptron")){
-			implementation=FOnlyPerceptron;
-		}
-		else if(m_algorithm.compare("alsoMira")){
-			implementation=FPercepWMira;
-		}
-		else if(m_algorithm.compare("onlyMira")){
-			implementation=Mira;
 		}
 	}
 
 	void OnlineLearningFeature::Load() {
-		VERBOSE(2,"TriggerModel::Load()" << std::endl);
+		VERBOSE(2,"OnlineLearningFeature::Load()" << std::endl);
 		ReadFeatures(m_filename);
-		PrintUserTime("Loaded Trigger Model...");
+		PrintUserTime("Loaded Online Learning Feature ");
 	}
 
 
@@ -216,6 +218,7 @@ namespace Moses {
     }
 
     bool OnlineLearningFeature::SetSourceSentence(std::string s) {
+    	cerr<<"Setting Source Sentence\n";
     	m_source = s;
     	return true;
     }
@@ -227,11 +230,9 @@ namespace Moses {
     	if(file.is_open())
     	{
     		pp_feature::iterator itr1=m_feature.begin();
-    		while(itr1!=m_feature.end())
-    		{
+    		while(itr1!=m_feature.end()){
     			boost::unordered_map<std::string, float>::iterator itr2=(*itr1).second.begin();
-    			while(itr2!=(*itr1).second.end())
-    			{
+    			while(itr2!=(*itr1).second.end()){
     				file << itr1->first <<"|||"<<itr2->first<<"|||"<<itr2->second<<std::endl;
     				itr2++;
     			}
@@ -272,9 +273,13 @@ namespace Moses {
     			m_feature[sp][tp] = val;
     		} else {
     			m_feature[sp][tp] = flr*margin;
+    			std::string featureName(sp+"|||"+tp);
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, 1.0);
     		}
     	} else {
     		m_feature[sp][tp] = flr*margin;
+    		std::string featureName(sp+"|||"+tp);
+    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, 1.0);
     	}
     }
 
@@ -286,9 +291,13 @@ namespace Moses {
     			m_feature[sp][tp] = val;
     		} else {
     			m_feature[sp][tp] = 0;
+    			std::string featureName(sp+"|||"+tp);
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, 1.0);
     		}
     	} else {
     		m_feature[sp][tp] = 0;
+    		std::string featureName(sp+"|||"+tp);
+    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, 1.0);
     	}
     }
 
@@ -374,7 +383,9 @@ namespace Moses {
     	}
     	if (m_normaliseScore)
     		score = (2 / (1 + exp(-score))) - 1; // normalising score!
-    		out->PlusEquals(this, score);
+//    	cerr<<"OL : "<<s<<" ||| "<<t<<" : "<<score<<"\n";
+    	StringPiece featureName(s+"|||"+t);
+    	out->PlusEquals(this, featureName, score);
     }
 
     void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
@@ -415,7 +426,7 @@ namespace Moses {
             stringstream oracle;
             for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
                 const Hypothesis &edge = *edges[currEdge];
-                UTIL_THROW_IF2(outputFactorOrder.size() > 0, "output factor size cannot be 0\n");
+//                UTIL_THROW_IF2(outputFactorOrder.size() > 0, "output factor size cannot be 0\n");
                 size_t size = edge.GetCurrTargetPhrase().GetSize();
                 for (size_t pos = 0; pos < size; pos++) {
                     const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
@@ -511,10 +522,13 @@ namespace Moses {
             BleuScores.push_back(BleuScore);
             losses.push_back(loss);
             oracleModelScores.push_back(maxScore);
-            cerr << "Updating the Weights\n";
+            cerr << "Updating the Weights...\n";
             size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
                     BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
-            StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+            if(update_status > 0)
+            	StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+            cerr<<"Total number of features are : "<<weightUpdate.Size()<<endl;
+
         }
         return;
     }

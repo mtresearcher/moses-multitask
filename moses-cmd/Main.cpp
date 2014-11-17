@@ -46,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/FF/StatefulFeatureFunction.h"
 #include "moses/FF/StatelessFeatureFunction.h"
 #include "moses/TranslationTask.h"
+#include "moses/FF/OnlineLearningFeature.h"
 
 #ifdef HAVE_PROTOBUF
 #include "hypergraph.pb.h"
@@ -170,21 +171,35 @@ int main(int argc, char** argv)
       }
 
       // execute task
-#ifdef WITH_THREADS
-      pool.Submit(task);
-#else
+//#ifdef WITH_THREADS
+//      pool.Submit(task);
+//#else
       task->Run();
       delete task;
-#endif
+//#endif
 
       source = NULL; //make sure it doesn't get deleted
-      ++lineCount;
+      const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+      if(ol != NULL){
+    	vector<string> vecstr=TokenizeMultiCharSeparator(OnlineLearningFeature::Instance().GetSourceSentence(), "_#_");
+    	// if the sentence is supposed to be translated then lineCount ++ else nothing
+    	if(vecstr.size()==1 && !OnlineLearningFeature::Instance().OnlineLearningActivated()){
+    	  ++lineCount;
+    	}
+    	// if the sentence is supposed to be translated then lineCount ++ else nothing
+    	else if(vecstr.size()==2 && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+    	  ++lineCount;
+    	}
+      }
+      else{
+    	  ++lineCount;
+      }
     }
 
     // we are done, finishing up
-#ifdef WITH_THREADS
-    pool.Stop(true); //flush remaining jobs
-#endif
+//#ifdef WITH_THREADS
+//    pool.Stop(true); //flush remaining jobs
+//#endif
 
     delete ioWrapper;
     FeatureFunction::Destroy();

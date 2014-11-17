@@ -62,26 +62,30 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
     return 0;
 
   //get covered words - if continual-partial-translation is switched on, parse input
-  const StaticData staticData = StaticData::Instance();
-  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  const StaticData &staticData = StaticData::Instance();
+  OnlineLearningFeature *ol = &OnlineLearningFeature::InstanceNonConst();
   if(ol!=NULL)
   {
+	  cerr<<"In Sentence:: "<<line<<endl;
 	  std::vector<string> strs;
 	  strs=Tokenize(line, "_#_");
 	  if(strs.size()>=2){
-		  OnlineLearningFeature::InstanceNonConst().ActivateOnlineLearning();
-		  if(!OnlineLearningFeature::InstanceNonConst().SetPostEditedSentence(strs[1])) return 0;
-		  else{
-			  VERBOSE(1, "online learning module not activated!!");
-			  return 0;
-		  }
+		  ol->ActivateOnlineLearning();
+		  cerr<<"Activating Online Learning\n";
+		  if(!ol->SetPostEditedSentence(strs[1])) return 0;
+		  cerr<<"Setting Post Edited Sentence\n";
 	  }
 	  else{
-		  OnlineLearningFeature::InstanceNonConst().DeactivateOnlineLearning();
+		  ol->DeactivateOnlineLearning();
+		  cerr<<"Deactivating Online Learning\n";
 	  }
 	  line=strs[0];
+	  ol->SetSourceSentence(line);
+	  cerr<<"Setting source line : "<<line<<endl;
   }
-
+  else {
+	  cerr<<"Online Learning is not activated\n";
+  }
   m_frontSpanCoveredLength = 0;
   m_sourceCompleted.resize(0);
   if (staticData.ContinuePartialTranslation()) {

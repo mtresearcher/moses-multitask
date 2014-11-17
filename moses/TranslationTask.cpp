@@ -9,6 +9,7 @@
 #include "moses/OutputCollector.h"
 #include "moses/Incremental.h"
 #include "mbr.h"
+#include "moses/FF/OnlineLearningFeature.h"
 
 #include "moses/Syntax/S2T/Parsers/RecursiveCYKPlusParser/RecursiveCYKPlusParser.h"
 #include "moses/Syntax/S2T/Parsers/Scope3Parser/Parser.h"
@@ -84,6 +85,11 @@ void TranslationTask::RunPb()
   Manager manager(*m_source,staticData.GetSearchAlgorithm());
   VERBOSE(1, "Line " << m_source->GetTranslationId() << ": Initialize search took " << initTime << " seconds total" << endl);
   manager.ProcessSentence();
+  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+	OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(manager);
+	OnlineLearningFeature::InstanceNonConst().RemoveJunk();
+  }
 
   // we are done with search, let's look what we got
   Timer additionalReportingTime;
@@ -159,7 +165,8 @@ void TranslationTask::RunPb()
 
     // MAP decoding: best hypothesis
     const Hypothesis* bestHypo = NULL;
-    if (!staticData.UseMBR()) {
+
+    if (!staticData.UseMBR() && ol != NULL && !OnlineLearningFeature::Instance().OnlineLearningActivated()) {
       bestHypo = manager.GetBestHypothesis();
       if (bestHypo) {
         if (StaticData::Instance().GetOutputHypoScore()) {
@@ -260,7 +267,9 @@ void TranslationTask::RunPb()
     }
 
     // report best translation to output collector
-    m_ioWrapper.GetSingleBestOutputCollector()->Write(m_source->GetTranslationId(),out.str(),debug.str());
+    if((ol != NULL && !OnlineLearningFeature::Instance().OnlineLearningActivated())
+    		|| ol == NULL)
+    	m_ioWrapper.GetSingleBestOutputCollector()->Write(m_source->GetTranslationId(),out.str(),debug.str());
 
     decisionRuleTime.stop();
     VERBOSE(1, "Line " << m_source->GetTranslationId() << ": Decision rule took " << decisionRuleTime << " seconds total" << endl);
