@@ -1002,7 +1002,7 @@ bool StaticData::CheckWeights() const
 }
 
 void StaticData::SetSparseWeight(const FeatureFunction *ol, std::string featureName, float weight){
-	m_allWeights.Assign(ol, featureName, weight);
+	m_allWeights.Assign(featureName, weight);
 }
 
 void StaticData::LoadSparseWeightsFromConfig() {

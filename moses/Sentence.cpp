@@ -68,7 +68,16 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
   {
 	  cerr<<"In Sentence:: "<<line<<endl;
 	  std::vector<string> strs;
-	  strs=Tokenize(line, "_#_");
+	  std::string marker="_#_";
+	  size_t found = line.find(marker), prev=0;
+	  while (found != string::npos)
+	  {
+		  strs.push_back(line.substr(prev, found - prev));
+		  prev = found + marker.length();
+		  found = line.find(marker, found + marker.length());
+	  }
+	  strs.push_back(line.substr(prev));
+
 	  if(strs.size()>=2){
 		  ol->ActivateOnlineLearning();
 		  cerr<<"Activating Online Learning\n";
