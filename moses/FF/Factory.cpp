@@ -42,7 +42,6 @@
 #include "moses/FF/SourceGHKMTreeInputMatchFeature.h"
 #include "moses/FF/HyperParameterAsWeight.h"
 #include "moses/FF/SetSourcePhrase.h"
-#include "moses/FF/OnlineLearningFeature.h"
 #include "CountNonTerms.h"
 #include "ReferenceComparison.h"
 #include "RuleScope.h"
@@ -51,6 +50,7 @@
 #include "SpanLength.h"
 #include "SyntaxRHS.h"
 #include "moses/FF/PhraseOrientationFeature.h"
+#include "moses/FF/OnlineLearningFeature.h"
 
 #include "moses/FF/SkeletonStatelessFF.h"
 #include "moses/FF/SkeletonStatefulFF.h"
