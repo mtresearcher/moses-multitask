@@ -211,9 +211,6 @@ protected:
   void LoadChartDecodingParameters();
   void LoadNonTerminals();
 
-  //! helper fn to set bool param from ini file/command line
-  void SetBooleanParameter(bool *paramter, std::string parameterName, bool defaultValue);
-
   //! load decoding steps
   bool LoadDecodeGraphs();
 
@@ -263,10 +260,6 @@ public:
   //! Main function to load everything. Also initialize the Parameter object
   bool LoadData(Parameter *parameter);
   void ClearData();
-
-  const PARAM_VEC &GetParam(const std::string &paramName) const {
-    return m_parameter->GetParam(paramName);
-  }
 
   const Parameter &GetParameter() const {
     return *m_parameter;
@@ -387,10 +380,6 @@ public:
 
   bool UseMinlexrInMemory() const {
     return m_minlexrMemory;
-  }
-
-  const std::vector<std::string> &GetDescription() const {
-    return m_parameter->GetParam("description");
   }
 
   // for mert

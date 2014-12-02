@@ -225,6 +225,7 @@ phrase-extract//extract-ghkm
 phrase-extract//pcfg-extract 
 phrase-extract//pcfg-score 
 phrase-extract//extract-mixed-syntax 
+phrase-extract//score-stsg
 biconcor 
 mira//mira 
 contrib/server//mosesserver 
@@ -249,6 +250,7 @@ if [ path.exists $(TOP)/dist ] && $(prefix) != dist {
   echo ;
 }
 
+local temp = [ _shell "./s.sh" ] ;
 local temp = [ _shell "mkdir bin" ] ;
 local temp = [ _shell "rm bin/moses_chart" ] ;
 local temp = [ _shell "cd bin && ln -s moses moses_chart" ] ;
