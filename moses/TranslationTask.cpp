@@ -200,7 +200,8 @@ void TranslationTask::RunPb()
           m_ioWrapper.OutputAlignment(out, bestHypo);
         }
 
-        m_ioWrapper.OutputAlignment(m_ioWrapper.GetAlignmentInfoCollector(), m_source->GetTranslationId(), bestHypo);
+        manager.OutputAlignment(m_ioWrapper.GetAlignmentInfoCollector());
+
         IFVERBOSE(1) {
           debug << "BEST TRANSLATION: " << *bestHypo << endl;
         }
@@ -290,23 +291,10 @@ void TranslationTask::RunPb()
   manager.OutputLatticeSamples(m_ioWrapper.GetLatticeSamplesCollector());
 
   // detailed translation reporting
-  if (m_ioWrapper.GetDetailedTranslationCollector()) {
-    ostringstream out;
-    FixPrecision(out,PRECISION);
-    TranslationAnalysis::PrintTranslationAnalysis(out, manager.GetBestHypothesis());
-    m_ioWrapper.GetDetailedTranslationCollector()->Write(m_source->GetTranslationId(),out.str());
-  }
+  manager.OutputDetailedTranslationReport(m_ioWrapper.GetDetailedTranslationCollector());
 
   //list of unknown words
-  if (m_ioWrapper.GetUnknownsCollector()) {
-    const vector<const Phrase*>& unknowns = manager.getSntTranslationOptions()->GetUnknownSources();
-    ostringstream out;
-    for (size_t i = 0; i < unknowns.size(); ++i) {
-      out << *(unknowns[i]);
-    }
-    out << endl;
-    m_ioWrapper.GetUnknownsCollector()->Write(m_source->GetTranslationId(), out.str());
-  }
+  manager.OutputUnknowns(m_ioWrapper.GetUnknownsCollector());
 
   // report additional statistics
   manager.CalcDecoderStatistics();
@@ -346,14 +334,10 @@ void TranslationTask::RunChart()
 	  const std::vector<search::Applied> &nbest = manager.ProcessSentence();
 	  if (!nbest.empty()) {
 		m_ioWrapper.OutputBestHypo(nbest[0], translationId);
-		if (staticData.IsDetailedTranslationReportingEnabled()) {
-		  const Sentence &sentence = dynamic_cast<const Sentence &>(*m_source);
-		  m_ioWrapper.OutputDetailedTranslationReport(&nbest[0], sentence, translationId);
-		}
-		if (staticData.IsDetailedTreeFragmentsTranslationReportingEnabled()) {
-		  const Sentence &sentence = dynamic_cast<const Sentence &>(*m_source);
-		  m_ioWrapper.OutputDetailedTreeFragmentsTranslationReport(&nbest[0], sentence, translationId);
-		}
+
+		manager.OutputDetailedTranslationReport(m_ioWrapper.GetDetailedTranslationCollector());
+	    manager.OutputDetailedTreeFragmentsTranslationReport(m_ioWrapper.GetDetailTreeFragmentsOutputCollector());
+
 	  } else {
 		m_ioWrapper.OutputBestNone(translationId);
 	  }
@@ -381,22 +365,10 @@ void TranslationTask::RunChart()
 	  PrintUserTime("Best Hypothesis Generation Time:");
 	}
 
-	if (!staticData.GetAlignmentOutputFile().empty()) {
-	  m_ioWrapper.OutputAlignment(translationId, bestHypo);
-	}
-
-	if (staticData.IsDetailedTranslationReportingEnabled()) {
-	  const Sentence &sentence = dynamic_cast<const Sentence &>(*m_source);
-	  m_ioWrapper.OutputDetailedTranslationReport(bestHypo, sentence, translationId);
-	}
-	if (staticData.IsDetailedTreeFragmentsTranslationReportingEnabled()) {
-	  const Sentence &sentence = dynamic_cast<const Sentence &>(*m_source);
-	  m_ioWrapper.OutputDetailedTreeFragmentsTranslationReport(bestHypo, sentence, translationId);
-	}
-	if (!staticData.GetOutputUnknownsFile().empty()) {
-	  m_ioWrapper.OutputUnknowns(manager.GetParser().GetUnknownSources(),
-								 translationId);
-	}
+    manager.OutputAlignment(m_ioWrapper.GetAlignmentInfoCollector());
+    manager.OutputDetailedTranslationReport(m_ioWrapper.GetDetailedTranslationCollector());
+    manager.OutputDetailedTreeFragmentsTranslationReport(m_ioWrapper.GetDetailTreeFragmentsOutputCollector());
+	manager.OutputUnknowns(m_ioWrapper.GetUnknownsCollector());
 
 	//DIMw
 	if (staticData.IsDetailedAllTranslationReportingEnabled()) {
