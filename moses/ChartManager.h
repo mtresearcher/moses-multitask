@@ -25,7 +25,6 @@
 #include <boost/unordered_map.hpp>
 #include "ChartCell.h"
 #include "ChartCellCollection.h"
-#include "InputType.h"
 #include "WordsRange.h"
 #include "SentenceStats.h"
 #include "ChartTranslationOptionList.h"
@@ -47,7 +46,6 @@ class ChartSearchGraphWriter;
 class ChartManager : public BaseManager
 {
 private:
-  InputType const& m_source; /**< source sentence to be translated */
   ChartCellCollection m_hypoStackColl;
   std::auto_ptr<SentenceStats> m_sentenceStats;
   clock_t m_start; /**< starting time, used for logging */
@@ -96,11 +94,16 @@ private:
 		  const ChartHypothesis *hypo,
 		  const Sentence &sentence,
 		  long translationId) const;
+  void OutputDetailedAllTranslationReport(
+		  OutputCollector *collector,
+		  const std::vector<boost::shared_ptr<Moses::ChartKBestExtractor::Derivation> > &nBestList,
+		  const Sentence &sentence,
+		  long translationId) const;
 
 public:
   ChartManager(InputType const& source);
   ~ChartManager();
-  void ProcessSentence();
+  void Decode();
   void AddXmlChartOptions();
   const ChartHypothesis *GetBestHypothesis() const;
   void CalcNBest(size_t n, std::vector<boost::shared_ptr<ChartKBestExtractor::Derivation> > &nBestList, bool onlyDistinct=false) const;
@@ -110,12 +113,6 @@ public:
 
   /** Output in (modified) Kenneth hypergraph format */
   void OutputSearchGraphAsHypergraph(std::ostream &outputSearchGraphStream) const;
-
-
-  //! the input sentence being decoded
-  const InputType& GetSource() const {
-    return m_source;
-  }
 
   //! debug data collected when decoding sentence
   SentenceStats& GetSentenceStats() const {
@@ -153,6 +150,12 @@ public:
   void OutputDetailedTranslationReport(OutputCollector *collector) const;
   void OutputUnknowns(OutputCollector *collector) const;
   void OutputDetailedTreeFragmentsTranslationReport(OutputCollector *collector) const;
+  void OutputWordGraph(OutputCollector *collector) const
+  {}
+  void OutputSearchGraph(OutputCollector *collector) const;
+  void OutputSearchGraphSLF() const
+  {}
+  void OutputSearchGraphHypergraph() const;
 
 };
 

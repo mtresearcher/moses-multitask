@@ -44,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/LM/Base.h"
 #include "moses/TranslationModel/PhraseDictionary.h"
 #include "moses/TranslationAnalysis.h"
+#include "moses/HypergraphOutput.h"
 
 #ifdef HAVE_PROTOBUF
 #include "hypergraph.pb.h"
@@ -57,11 +58,11 @@ using namespace std;
 namespace Moses
 {
 Manager::Manager(InputType const& source, SearchAlgorithm searchAlgorithm)
-  :m_transOptColl(source.CreateTranslationOptionCollection())
+  :BaseManager(source)
+  ,m_transOptColl(source.CreateTranslationOptionCollection())
   ,m_search(Search::CreateSearch(*this, source, searchAlgorithm, *m_transOptColl))
   ,interrupted_flag(0)
   ,m_hypoId(0)
-  ,m_source(source)
 {
   StaticData::Instance().InitializeForInput(m_source);
 }
@@ -79,7 +80,7 @@ Manager::~Manager()
  * Main decoder loop that translates a sentence by expanding
  * hypotheses stack by stack, until the end of the sentence.
  */
-void Manager::ProcessSentence()
+void Manager::Decode()
 {
   // initialize statistics
   ResetSentenceStats(m_source);
@@ -472,7 +473,7 @@ void Manager::CalcDecoderStatistics() const
   }
 }
 
-void OutputWordGraph(std::ostream &outputWordGraphStream, const Hypothesis *hypo, size_t &linkId)
+void Manager::OutputWordGraph(std::ostream &outputWordGraphStream, const Hypothesis *hypo, size_t &linkId) const
 {
 
   const Hypothesis *prevHypo = hypo->GetPrevHypo();
@@ -1745,4 +1746,78 @@ void Manager::OutputUnknowns(OutputCollector *collector) const
 
 }
 
+void Manager::OutputWordGraph(OutputCollector *collector) const
+{
+  if (collector) {
+    long translationId = m_source.GetTranslationId();
+	ostringstream out;
+	FixPrecision(out,PRECISION);
+	GetWordGraph(translationId, out);
+	collector->Write(translationId, out.str());
+  }
 }
+
+void Manager::OutputSearchGraph(OutputCollector *collector) const
+{
+  if (collector) {
+	long translationId = m_source.GetTranslationId();
+	ostringstream out;
+	FixPrecision(out,PRECISION);
+	OutputSearchGraph(translationId, out);
+	collector->Write(translationId, out.str());
+
+#ifdef HAVE_PROTOBUF
+    const StaticData &staticData = StaticData::Instance();
+	if (staticData.GetOutputSearchGraphPB()) {
+	  ostringstream sfn;
+	  sfn << staticData.GetParam("output-search-graph-pb")[0] << '/' << translationId << ".pb" << ends;
+	  string fn = sfn.str();
+	  VERBOSE(2, "Writing search graph to " << fn << endl);
+	  fstream output(fn.c_str(), ios::trunc | ios::binary | ios::out);
+	  SerializeSearchGraphPB(translationId, output);
+	}
+#endif
+  }
+
+}
+
+void Manager::OutputSearchGraphSLF() const
+{
+  const StaticData &staticData = StaticData::Instance();
+  long translationId = m_source.GetTranslationId();
+
+  // Output search graph in HTK standard lattice format (SLF)
+  bool slf = staticData.GetOutputSearchGraphSLF();
+  if (slf) {
+	stringstream fileName;
+
+	string dir;
+	staticData.GetParameter().SetParameter<string>(dir, "output-search-graph-slf", "");
+
+	fileName << dir << "/" << translationId << ".slf";
+	ofstream *file = new ofstream;
+	file->open(fileName.str().c_str());
+	if (file->is_open() && file->good()) {
+	  ostringstream out;
+	  FixPrecision(out,PRECISION);
+	  OutputSearchGraphAsSLF(translationId, out);
+	  *file << out.str();
+	  file -> flush();
+	} else {
+	  TRACE_ERR("Cannot output HTK standard lattice for line " << translationId << " because the output file is not open or not ready for writing" << endl);
+	}
+	delete file;
+  }
+
+}
+
+void Manager::OutputSearchGraphHypergraph() const
+{
+  const StaticData &staticData = StaticData::Instance();
+  if (staticData.GetOutputSearchGraphHypergraph()) {
+	  HypergraphOutput<Manager> hypergraphOutput(PRECISION);
+	  hypergraphOutput.Write(*this);
+  }
+}
+
+} // namespace

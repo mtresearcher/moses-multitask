@@ -21,22 +21,10 @@ using namespace std;
 namespace Moses
 {
 
-TranslationTask::TranslationTask(InputType* source, Moses::IOWrapper &ioWrapper,
-                bool outputSearchGraphSLF,
-                boost::shared_ptr<HypergraphOutput<Manager> > hypergraphOutput)
+TranslationTask::TranslationTask(InputType* source, Moses::IOWrapper &ioWrapper, int pbOrChart)
 : m_source(source)
 , m_ioWrapper(ioWrapper)
-, m_outputSearchGraphSLF(outputSearchGraphSLF)
-, m_hypergraphOutput(hypergraphOutput)
-, m_pbOrChart(1)
-{}
-
-TranslationTask::TranslationTask(InputType *source, IOWrapper &ioWrapper,
-boost::shared_ptr<HypergraphOutput<ChartManager> > hypergraphOutputChart)
-: m_source(source)
-, m_ioWrapper(ioWrapper)
-, m_hypergraphOutputChart(hypergraphOutputChart)
-, m_pbOrChart(2)
+, m_pbOrChart(pbOrChart)
 {}
 
 TranslationTask::~TranslationTask() {
@@ -84,7 +72,7 @@ void TranslationTask::RunPb()
   initTime.start();
   Manager manager(*m_source,staticData.GetSearchAlgorithm());
   VERBOSE(1, "Line " << m_source->GetTranslationId() << ": Initialize search took " << initTime << " seconds total" << endl);
-  manager.ProcessSentence();
+  manager.Decode();
   const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
   if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
 	OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(manager);
@@ -96,58 +84,15 @@ void TranslationTask::RunPb()
   additionalReportingTime.start();
 
   // output word graph
-  if (m_ioWrapper.GetWordGraphCollector()) {
-    ostringstream out;
-    FixPrecision(out,PRECISION);
-    manager.GetWordGraph(m_source->GetTranslationId(), out);
-    m_ioWrapper.GetWordGraphCollector()->Write(m_source->GetTranslationId(), out.str());
-  }
+  manager.OutputWordGraph(m_ioWrapper.GetWordGraphCollector());
 
   // output search graph
-  if (m_ioWrapper.GetSearchGraphOutputCollector()) {
-    ostringstream out;
-    FixPrecision(out,PRECISION);
-    manager.OutputSearchGraph(m_source->GetTranslationId(), out);
-    m_ioWrapper.GetSearchGraphOutputCollector()->Write(m_source->GetTranslationId(), out.str());
+  manager.OutputSearchGraph(m_ioWrapper.GetSearchGraphOutputCollector());
 
-#ifdef HAVE_PROTOBUF
-    if (staticData.GetOutputSearchGraphPB()) {
-      ostringstream sfn;
-      sfn << staticData.GetParam("output-search-graph-pb")[0] << '/' << m_source->GetTranslationId() << ".pb" << ends;
-      string fn = sfn.str();
-      VERBOSE(2, "Writing search graph to " << fn << endl);
-      fstream output(fn.c_str(), ios::trunc | ios::binary | ios::out);
-      manager.SerializeSearchGraphPB(m_source->GetTranslationId(), output);
-    }
-#endif
-  }
-
-  // Output search graph in HTK standard lattice format (SLF)
-  if (m_outputSearchGraphSLF) {
-    stringstream fileName;
-
-    string dir;
-    staticData.GetParameter().SetParameter<string>(dir, "output-search-graph-slf", "");
-
-    fileName << dir << "/" << m_source->GetTranslationId() << ".slf";
-    ofstream *file = new ofstream;
-    file->open(fileName.str().c_str());
-    if (file->is_open() && file->good()) {
-      ostringstream out;
-      FixPrecision(out,PRECISION);
-      manager.OutputSearchGraphAsSLF(m_source->GetTranslationId(), out);
-      *file << out.str();
-      file -> flush();
-    } else {
-      TRACE_ERR("Cannot output HTK standard lattice for line " << m_source->GetTranslationId() << " because the output file is not open or not ready for writing" << endl);
-    }
-    delete file;
-  }
+  manager.OutputSearchGraphSLF();
 
   // Output search graph in hypergraph format for Kenneth Heafield's lazy hypergraph decoder
-  if (m_hypergraphOutput.get()) {
-    m_hypergraphOutput->Write(manager);
-  }
+  manager.OutputSearchGraphHypergraph();
 
   additionalReportingTime.stop();
 
@@ -331,7 +276,8 @@ void TranslationTask::RunChart()
 
 	if (staticData.GetSearchAlgorithm() == ChartIncremental) {
 	  Incremental::Manager manager(*m_source);
-	  const std::vector<search::Applied> &nbest = manager.ProcessSentence();
+	  manager.Decode();
+	  const std::vector<search::Applied> &nbest = manager.GetNBest();
 	  if (!nbest.empty()) {
 		m_ioWrapper.OutputBestHypo(nbest[0], translationId);
 
@@ -348,15 +294,12 @@ void TranslationTask::RunChart()
 	}
 
 	ChartManager manager(*m_source);
-	manager.ProcessSentence();
+	manager.Decode();
 
 	UTIL_THROW_IF2(staticData.UseMBR(), "Cannot use MBR");
 
 	// Output search graph in hypergraph format for Kenneth Heafield's lazy hypergraph decoder
-	if (m_hypergraphOutputChart.get()) {
-	  m_hypergraphOutputChart->Write(manager);
-	}
-
+	manager.OutputSearchGraphHypergraph();
 
 	// 1-best
 	const ChartHypothesis *bestHypo = manager.GetBestHypothesis();
@@ -370,25 +313,10 @@ void TranslationTask::RunChart()
     manager.OutputDetailedTreeFragmentsTranslationReport(m_ioWrapper.GetDetailTreeFragmentsOutputCollector());
 	manager.OutputUnknowns(m_ioWrapper.GetUnknownsCollector());
 
-	//DIMw
-	if (staticData.IsDetailedAllTranslationReportingEnabled()) {
-	  const Sentence &sentence = dynamic_cast<const Sentence &>(*m_source);
-	  size_t nBestSize = staticData.GetNBestSize();
-	  std::vector<boost::shared_ptr<ChartKBestExtractor::Derivation> > nBestList;
-	  manager.CalcNBest(nBestSize, nBestList, staticData.GetDistinctNBest());
-	  m_ioWrapper.OutputDetailedAllTranslationReport(nBestList, manager, sentence, translationId);
-	}
-
 	// n-best
 	manager.OutputNBest(m_ioWrapper.GetNBestOutputCollector());
 
-	if (staticData.GetOutputSearchGraph()) {
-	  std::ostringstream out;
-	  manager.OutputSearchGraphMoses( out);
-	  OutputCollector *oc = m_ioWrapper.GetSearchGraphOutputCollector();
-	  UTIL_THROW_IF2(oc == NULL, "File for search graph output not specified");
-	  oc->Write(translationId, out.str());
-	}
+	manager.OutputSearchGraph(m_ioWrapper.GetSearchGraphOutputCollector());
 
 	IFVERBOSE(2) {
 	  PrintUserTime("Sentence Decoding Time:");

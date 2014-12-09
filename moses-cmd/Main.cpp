@@ -36,7 +36,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "moses/IOWrapper.h"
 #include "moses/Hypothesis.h"
-#include "moses/HypergraphOutput.h"
 #include "moses/Manager.h"
 #include "moses/StaticData.h"
 #include "moses/TypeDef.h"
@@ -140,18 +139,6 @@ int main(int argc, char** argv)
       TRACE_ERR("\n");
     }
 
-    boost::shared_ptr<HypergraphOutput<Manager> > hypergraphOutput; 
-    boost::shared_ptr<HypergraphOutput<ChartManager> > hypergraphOutputChart;
-
-    if (staticData.GetOutputSearchGraphHypergraph()) {
-    	if (staticData.IsChart()) {
-    		hypergraphOutputChart.reset(new HypergraphOutput<ChartManager>(PRECISION));
-    	}
-    	else {
-    		hypergraphOutput.reset(new HypergraphOutput<Manager>(PRECISION));
-    	}
-    }
-
 #ifdef WITH_THREADS
     ThreadPool pool(staticData.ThreadCount());
 #endif
@@ -171,13 +158,11 @@ int main(int argc, char** argv)
       TranslationTask* task;
       if (staticData.IsChart()) {
     	  // scfg
-          task = new TranslationTask(source, *ioWrapper, hypergraphOutputChart);
+          task = new TranslationTask(source, *ioWrapper, 2);
       }
       else {
     	  // pb
-		  task = new TranslationTask(source, *ioWrapper,
-								staticData.GetOutputSearchGraphSLF(),
-								hypergraphOutput);
+		  task = new TranslationTask(source, *ioWrapper, 1);
       }
 
       // execute task

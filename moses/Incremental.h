@@ -30,7 +30,9 @@ public:
 
   template <class Model> void LMCallback(const Model &model, const std::vector<lm::WordIndex> &words);
 
-  const std::vector<search::Applied> &ProcessSentence();
+  void Decode();
+
+  const std::vector<search::Applied> &GetNBest() const;
 
   // Call to get the same value as ProcessSentence returned.
   const std::vector<search::Applied> &Completed() const {
@@ -46,13 +48,19 @@ public:
   void OutputAlignment(OutputCollector *collector) const
   {}
   void OutputDetailedTreeFragmentsTranslationReport(OutputCollector *collector) const;
-
+  void OutputWordGraph(OutputCollector *collector) const
+  {}
+  void OutputSearchGraph(OutputCollector *collector) const
+  {}
+  void OutputSearchGraphSLF() const
+  {}
+  void OutputSearchGraphHypergraph() const
+  {}
 
 
 private:
   template <class Model, class Best> search::History PopulateBest(const Model &model, const std::vector<lm::WordIndex> &words, Best &out);
 
-  const InputType &source_;
   ChartCellCollectionBase cells_;
   ChartParser parser_;
 

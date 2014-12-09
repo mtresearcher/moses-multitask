@@ -52,6 +52,14 @@ class Manager : public BaseManager
   void OutputUnknowns(OutputCollector *collector) const;
   void OutputDetailedTreeFragmentsTranslationReport(OutputCollector *collector) const
   {}
+  void OutputWordGraph(OutputCollector *collector) const
+  {}
+  void OutputSearchGraph(OutputCollector *collector) const
+  {}
+  void OutputSearchGraphSLF() const
+  {}
+  void OutputSearchGraphHypergraph() const
+  {}
 
  private:
   void FindOovs(const PChart &, std::set<Word> &, std::size_t);
@@ -64,7 +72,6 @@ class Manager : public BaseManager
 
   void PrunePChart(const SChart::Cell &, PChart::Cell &);
 
-  const InputType &m_source;
   PChart m_pchart;
   SChart m_schart;
   std::set<Word> m_oovs;

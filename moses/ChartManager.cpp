@@ -33,6 +33,7 @@
 #include "moses/FF/WordPenaltyProducer.h"
 #include "moses/OutputCollector.h"
 #include "moses/ChartKBestExtractor.h"
+#include "moses/HypergraphOutput.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ extern bool g_mosesDebug;
  * \param system which particular set of models to use.
  */
 ChartManager::ChartManager(InputType const& source)
-  :m_source(source)
+  :BaseManager(source)
   ,m_hypoStackColl(source, *this)
   ,m_start(clock())
   ,m_hypothesisId(0)
@@ -64,7 +65,7 @@ ChartManager::~ChartManager()
 }
 
 //! decode the sentence. This contains the main laps. Basically, the CKY++ algorithm
-void ChartManager::ProcessSentence()
+void ChartManager::Decode()
 {
   VERBOSE(1,"Translating: " << m_source << endl);
 
@@ -597,6 +598,18 @@ void ChartManager::OutputDetailedTranslationReport(
 
   OutputTranslationOptions(out, applicationContext, hypo, sentence, translationId);
   collector->Write(translationId, out.str());
+
+	//DIMw
+	const StaticData &staticData = StaticData::Instance();
+
+	if (staticData.IsDetailedAllTranslationReportingEnabled()) {
+	  const Sentence &sentence = dynamic_cast<const Sentence &>(m_source);
+	  size_t nBestSize = staticData.GetNBestSize();
+	  std::vector<boost::shared_ptr<ChartKBestExtractor::Derivation> > nBestList;
+	  CalcNBest(nBestSize, nBestList, staticData.GetDistinctNBest());
+	  OutputDetailedAllTranslationReport(collector, nBestList, sentence, translationId);
+	}
+
 }
 
 void ChartManager::OutputTranslationOptions(std::ostream &out,
@@ -743,5 +756,55 @@ void ChartManager::OutputTreeFragmentsTranslationOptions(std::ostream &out,
   }
 }
 
+void ChartManager::OutputSearchGraph(OutputCollector *collector) const
+{
+	if (collector) {
+	  long translationId = m_source.GetTranslationId();
+	  std::ostringstream out;
+	  OutputSearchGraphMoses( out);
+	  collector->Write(translationId, out.str());
+	}
+}
+
+//DIMw
+void ChartManager::OutputDetailedAllTranslationReport(
+		OutputCollector *collector,
+		const std::vector<boost::shared_ptr<Moses::ChartKBestExtractor::Derivation> > &nBestList,
+		const Sentence &sentence,
+		long translationId) const
+{
+  std::ostringstream out;
+  ApplicationContext applicationContext;
+
+  const ChartCellCollection& cells = GetChartCellCollection();
+  size_t size = GetSource().GetSize();
+  for (size_t width = 1; width <= size; ++width) {
+    for (size_t startPos = 0; startPos <= size-width; ++startPos) {
+      size_t endPos = startPos + width - 1;
+      WordsRange range(startPos, endPos);
+      const ChartCell& cell = cells.Get(range);
+      const HypoList* hyps = cell.GetAllSortedHypotheses();
+      out << "Chart Cell [" << startPos << ".." << endPos << "]" << endl;
+      HypoList::const_iterator iter;
+      size_t c = 1;
+      for (iter = hyps->begin(); iter != hyps->end(); ++iter) {
+        out << "----------------Item " << c++ << " ---------------------"
+            << endl;
+        OutputTranslationOptions(out, applicationContext, *iter,
+                                 sentence, translationId);
+      }
+    }
+  }
+  collector->Write(translationId, out.str());
+}
+
+void ChartManager::OutputSearchGraphHypergraph() const
+{
+  const StaticData &staticData = StaticData::Instance();
+  if (staticData.GetOutputSearchGraphHypergraph()) {
+	  HypergraphOutput<ChartManager> hypergraphOutputChart(PRECISION);
+	  hypergraphOutputChart.Write(*this);
+  }
+}
 
 } // namespace Moses

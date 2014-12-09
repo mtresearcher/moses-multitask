@@ -111,7 +111,6 @@ private:
 
 protected:
   // data
-//	InputType const& m_source; /**< source sentence to be translated */
   TranslationOptionCollection *m_transOptColl; /**< pre-computed list of translation options for the phrases in this sentence */
   Search *m_search;
 
@@ -143,13 +142,14 @@ protected:
   void OutputAlignment(OutputCollector* collector, size_t lineNo , const std::vector<const Hypothesis *> &edges) const;
   void OutputAlignment(std::ostream &out, const std::vector<const Hypothesis *> &edges) const;
 
+  void OutputWordGraph(std::ostream &outputWordGraphStream, const Hypothesis *hypo, size_t &linkId) const;
+
 public:
-  InputType const& m_source; /**< source sentence to be translated */
   Manager(InputType const& source, SearchAlgorithm searchAlgorithm);
   ~Manager();
   const  TranslationOptionCollection* getSntTranslationOptions();
 
-  void ProcessSentence();
+  void Decode();
   const Hypothesis *GetBestHypothesis() const;
   const Hypothesis *GetActualBestHypothesis() const;
   void CalcNBest(size_t count, TrellisPathList &ret,bool onlyDistinct=0) const;
@@ -194,6 +194,10 @@ public:
   void OutputUnknowns(OutputCollector *collector) const;
   void OutputDetailedTreeFragmentsTranslationReport(OutputCollector *collector) const
   {}
+  void OutputWordGraph(OutputCollector *collector) const;
+  void OutputSearchGraph(OutputCollector *collector) const;
+  void OutputSearchGraphSLF() const;
+  void OutputSearchGraphHypergraph() const;
 
 };
 
