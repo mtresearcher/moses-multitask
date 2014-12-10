@@ -20,6 +20,7 @@
 #include "moses/FF/OnlineLearning/Optimiser.h"
 #include "boost/unordered_map.hpp"
 #include "boost/unordered_set.hpp"
+
 #ifndef ONLINELEARNINGFEATURE_H_
 #define ONLINELEARNINGFEATURE_H_
 
@@ -112,9 +113,15 @@ public:
 		, Mira = 3
 	};
 
+	enum UpdateStep {
+		vonNeumann = 0
+		, logDet = 1
+	};
+
 private:
 	static OnlineLearningFeature *s_instance;
 	Algorithm implementation;
+	UpdateStep m_updateType;
 	boost::unordered_set<std::string> m_vocab;
 	pp_feature m_feature;
 	pp_list m_featureIdx;
@@ -123,6 +130,7 @@ private:
 	float m_decayValue;
 	size_t m_nbestSize;
 	std::string m_source, m_postedited;
+	std::string m_sctype;
 	bool m_normaliseScore, m_sigmoidParam, m_normaliseMargin, m_learn, m_triggerTargetWords, m_l1, m_l2, m_updateFeatures;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
 	MiraOptimiser* optimiser;
@@ -138,7 +146,10 @@ private:
 	float calcMargin(Hypothesis* oracle, Hypothesis* bestHyp);
 	void PrintHypo(const Hypothesis* hypo, ostream& HypothesisStringStream);
 	bool has_only_spaces(const std::string& str);
+
 	float GetBleu(std::string hypothesis, std::string reference);
+	float GetTer(std::string hypothesis, std::string reference);
+
 	void compareNGrams(map<string, int>& hyp, map<string, int>& ref, map<int, float>& countNgrams, map<int, float>& TotalNgrams);
 	int getNGrams(std::string str, map<string, int>& ngrams);
 	int split_marker_perl(string str, string marker, vector<string> &array);
@@ -148,9 +159,9 @@ private:
 
 	void DumpFeatures(string);
 	void ReadFeatures(string);
-
 	void InsertTargetWords();
 
+	void updateIntMatrix();
 
 };
 }

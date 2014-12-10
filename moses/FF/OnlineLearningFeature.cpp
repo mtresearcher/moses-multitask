@@ -6,62 +6,67 @@
 #include "OnlineLearningFeature.h"
 #include "moses/Util.h"
 #include "util/exception.hh"
-//#include <boost/numeric/ublas/matrix.hpp>
-//#include <boost/numeric/ublas/vector.hpp>
-//#include <boost/numeric/ublas/io.hpp>
-//#include <boost/numeric/ublas/vector_proxy.hpp>
-//#include <boost/numeric/ublas/matrix.hpp>
-//#include <boost/numeric/ublas/triangular.hpp>
-//#include <boost/numeric/ublas/lu.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/numeric/ublas/vector_proxy.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/triangular.hpp>
+#include <boost/numeric/ublas/lu.hpp>
+
+#include <mert/TER/tercalc.h>
+#include <mert/TER/terAlignment.h>
 
 using namespace Optimizer;
 using namespace std;
 
-//namespace MatrixOps {
-////    ------------------- Kronecker Product code ---------------------------- //
-//
-//	bool KroneckerProduct (const boost::numeric::ublas::matrix<double>& A, const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
-//		int rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
-//		for(int i=0; i<C.size1(); i++){
-//			for(int j=0; j<C.size2(); j++){
-//				rowB=i%B.size1();
-//				colB=j%B.size2();
-//				if(pcolB!=0 && colB == 0) colA++;
-//				if(prowB!=0 && rowB==0) rowA++;
-//				prowB=rowB;
-//				pcolB=colB;
-//				if(colA >= A.size2()){colA=0; colB=0;pcolB=1;}
-//				C(i, j) = A(rowA, colA) * B(rowB, colB) ;
-//			}
-//		}
-//		return true;
-//	}
-//	//    ------------------------------- ends here ---------------------------- //
-//    //    ------------------- matrix inversion code ---------------------------- //
-//    template<class T>
-//    bool InvertMatrix (const boost::numeric::ublas::matrix<T>& input, boost::numeric::ublas::matrix<T>& inverse) {
-//    	typedef boost::numeric::ublas::permutation_matrix<std::size_t> pmatrix;
-//
-//    	// create a working copy of the input
-//    	boost::numeric::ublas::matrix<T> A(input);
-//
-//    	// create a permutation matrix for the LU-factorization
-//    	pmatrix pm(A.size1());
-//
-//    	// perform LU-factorization
-//    	int res = boost::numeric::ublas::lu_factorize(A, pm);
-//    	if (res != 0)
-//    		return false;
-//
-//    	// create identity matrix of "inverse"
-//    	inverse.assign(boost::numeric::ublas::identity_matrix<T> (A.size1()));
-//
-//    	// backsubstitute to get the inverse
-//    	boost::numeric::ublas::lu_substitute(A, pm, inverse);
-//
-//    	return true;
-//    }
-//}
+using namespace TERCpp;
+
+namespace MatrixOps {
+//    ------------------- Kronecker Product code ---------------------------- //
+
+	bool KroneckerProduct (const boost::numeric::ublas::matrix<double>& A, const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
+		int rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
+		for(int i=0; i<C.size1(); i++){
+			for(int j=0; j<C.size2(); j++){
+				rowB=i%B.size1();
+				colB=j%B.size2();
+				if(pcolB!=0 && colB == 0) colA++;
+				if(prowB!=0 && rowB==0) rowA++;
+				prowB=rowB;
+				pcolB=colB;
+				if(colA >= A.size2()){colA=0; colB=0;pcolB=1;}
+				C(i, j) = A(rowA, colA) * B(rowB, colB) ;
+			}
+		}
+		return true;
+	}
+	//    ------------------------------- ends here ---------------------------- //
+    //    ------------------- matrix inversion code ---------------------------- //
+    template<class T>
+    bool InvertMatrix (const boost::numeric::ublas::matrix<T>& input, boost::numeric::ublas::matrix<T>& inverse) {
+    	typedef boost::numeric::ublas::permutation_matrix<std::size_t> pmatrix;
+
+    	// create a working copy of the input
+    	boost::numeric::ublas::matrix<T> A(input);
+
+    	// create a permutation matrix for the LU-factorization
+    	pmatrix pm(A.size1());
+
+    	// perform LU-factorization
+    	int res = boost::numeric::ublas::lu_factorize(A, pm);
+    	if (res != 0)
+    		return false;
+
+    	// create identity matrix of "inverse"
+    	inverse.assign(boost::numeric::ublas::identity_matrix<T> (A.size1()));
+
+    	// backsubstitute to get the inverse
+    	boost::numeric::ublas::lu_substitute(A, pm, inverse);
+
+    	return true;
+    }
+}
 
 namespace Moses {
 
@@ -82,6 +87,7 @@ namespace Moses {
 		m_updateFeatures=false;
 		m_nbestSize=200;
 		m_decayValue=1;
+		m_sctype="Bleu";
 		slack=0.001;
 		m_triggerTargetWords = false;
 		ReadParameters();
@@ -129,6 +135,8 @@ namespace Moses {
 			m_nbestSize = Scan<size_t>(value);
 		} else if (key == "decay_value") {
 			m_decayValue = Scan<float>(value);
+		} else if (key == "sctype") {
+			m_sctype = Scan<std::string>(value); 
 		} else if (key == "w_algorithm") {
 			m_algorithm = Scan<std::string>(value);
 			// set algorithm
@@ -235,6 +243,22 @@ namespace Moses {
         if (length_translation < length_reference)
             bp = exp(1 - ratio);
         return ((bp * exp((log(BLEU[1]) + log(BLEU[2]) + log(BLEU[3]) + log(BLEU[4])) / 4))*100);
+    }
+
+    float OnlineLearningFeature::GetTer(std::string hypothesis, std::string reference) {
+    	vector<string> hypStr,refStr;
+    	split_marker_perl(hypothesis, " ", hypStr);
+    	split_marker_perl(reference, " ", refStr);
+
+    	TERCpp::terCalc * evaluation=new TERCpp::terCalc();
+    	evaluation->setDebugMode ( false );
+    	TERCpp::terAlignment result = evaluation->TER(hypStr, refStr);
+    	delete evaluation;
+	double ter = result.scoreAv();
+	result.numEdits = 0.0 ;
+	result.numWords = 0.0 ;
+	result.averageWords = 0.0;
+    	return ter;
     }
 
     bool OnlineLearningFeature::has_only_spaces(const std::string& str) {
@@ -479,10 +503,17 @@ namespace Moses {
         stringstream bestHypothesis;
         PP_BEST.clear();
         PrintHypo(hypo, bestHypothesis);
-        float bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+	float bestbleu;
+	if(m_sctype.compare("Bleu")==0)
+	    bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+	else if(m_sctype.compare("Ter")==0)
+            bestbleu = 1-GetTer(bestHypothesis.str(), m_postedited);
         float bestScore = hypo->GetScore();
         cerr << "Post Edit       : " << m_postedited << endl;
-        cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+	if(m_sctype.compare("Bleu")==0)
+	    cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+	else if(m_sctype.compare("Ter")==0)
+	    cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
         TrellisPathList nBestList;
         manager.CalcNBest(m_nbestSize, nBestList, true);
 
@@ -520,15 +551,22 @@ namespace Moses {
                 }
             }
             oracleScore = path.GetTotalScore();
-            float oraclebleu = GetBleu(oracle.str(), m_postedited);
+            float oraclebleu; 
+	    if(m_sctype.compare("Bleu")==0)
+		oraclebleu = GetBleu(oracle.str(), m_postedited);
+	    else if(m_sctype.compare("Ter")==0)
+		oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
             if (implementation == FPercepWMira || implementation == Mira) {
                 HypothesisList.push_back(oracle.str());
                 BleuScore.push_back(oraclebleu);
                 featureValue.push_back(path.GetScoreBreakdown());
                 modelScore.push_back(oracleScore);
             }
-            if (oraclebleu > maxBleu+2) {
-                cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
+            if (oraclebleu > maxBleu) {
+		if(m_sctype.compare("Ter")==0)
+		    cerr << "NBEST : " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
+		else if(m_sctype.compare("Bleu")==0)
+		    cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
                 maxBleu = oraclebleu;
                 maxScore = oracleScore;
                 bestOracle = oracle.str();
@@ -541,7 +579,7 @@ namespace Moses {
                 oraclefeatureScore.push_back(path.GetScoreBreakdown());
             }
             // ------------------------trial--------------------------------//
-            if (implementation == FPercepWMira || implementation == FOnlyPerceptron) {
+            if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
                 if (oraclebleu > bestbleu) {
                     pp_list::const_iterator it1;
                     for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
@@ -569,7 +607,7 @@ namespace Moses {
             }
             // ------------------------trial--------------------------------//
         }
-        if (implementation == FPercepWMira || implementation == FOnlyPerceptron) {
+        if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
         	pp_list::const_iterator it1;
         	for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
         		boost::unordered_map<std::string, int>::const_iterator itr1;
@@ -609,6 +647,7 @@ namespace Moses {
             if(update_status == 0){
             	cerr<<"setting weights\n";
             	StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+            	cerr<<"Total features : "<<weightUpdate.Size()<<endl;
             }
             else{
             	cerr<<"No Update\n";
@@ -619,7 +658,202 @@ namespace Moses {
         }
         if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
         	updateFeatureValues();
+        cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
         return;
     }
+
+    void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
+/*    	if(implementation == SparseFeatures) return;
+    	const StaticData& staticData = StaticData::Instance();
+    	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
+    	//Decay();
+    	const Hypothesis* hypo = manager.GetBestHypothesis();
+    	stringstream bestHypothesis;
+    	PP_BEST.clear();
+    	PrintHypo(hypo, bestHypothesis);
+    	float bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+    	float bestScore = hypo->GetScore();
+    	cerr << "Post Edit       : " << m_postedited << endl;
+    	cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+    	TrellisPathList nBestList;
+    	manager.CalcNBest(m_nbestSize, nBestList, true);
+
+    	std::string bestOracle;
+    	std::vector<string> HypothesisList;
+    	std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
+    	std::vector<std::vector<float> > losses, BleuScores, modelScores;
+    	std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
+    	std::vector<std::vector<ScoreComponentCollection> > featureValues;
+    	std::map<int, map<string, map<string, int> > > OracleList;
+    	TrellisPathList::const_iterator iter;
+    	pp_list BestOracle, Visited;
+    	float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
+    	int whichoracle = -1;
+    	for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
+    		whichoracle++;
+    		if(whichoracle==0) continue;
+    		const TrellisPath &path = **iter;
+    		PP_ORACLE.clear();
+    		const std::vector<const Hypothesis *> &edges = path.GetEdges();
+    		stringstream oracle;
+    		for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+    			const Hypothesis &edge = *edges[currEdge];
+    			size_t size = edge.GetCurrTargetPhrase().GetSize();
+    			for (size_t pos = 0; pos < size; pos++) {
+    				const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
+    				oracle << *factor;
+    				oracle << " ";
+    			}
+    			std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+    			std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+    			if (!has_only_spaces(sourceP) && !has_only_spaces(targetP)) {
+    				PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
+    				OracleList[whichoracle][sourceP][targetP] = 1; // list of all phrase pairs given the nbest_i
+    			}
+    		}
+    		oracleScore = path.GetTotalScore();
+    		float oraclebleu = GetBleu(oracle.str(), m_postedited);
+    		if (implementation == FPercepWMira || implementation == Mira) {
+    			HypothesisList.push_back(oracle.str());
+    			BleuScore.push_back(oraclebleu);
+    			featureValue.push_back(path.GetScoreBreakdown());
+    			modelScore.push_back(oracleScore);
+    		}
+    		if (oraclebleu > maxBleu+2) {
+    			cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
+    			maxBleu = oraclebleu;
+    			maxScore = oracleScore;
+    			bestOracle = oracle.str();
+    			pp_list::const_iterator it1;
+
+    			oracleBleuScores.clear();
+    			oraclefeatureScore.clear();
+    			BestOracle = PP_ORACLE;
+    			oracleBleuScores.push_back(oraclebleu);
+    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
+    		}
+    		// ------------------------trial--------------------------------//
+    		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    			if (oraclebleu > bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
+    							ShootUp(it1->first, itr1->first, abs(oracleScore - bestScore));
+    							Visited[it1->first][itr1->first] = 1;
+    						}
+    					}
+    				}
+    			}
+    			if (oraclebleu < bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
+    							ShootDown(it1->first, itr1->first, abs(oracleScore - bestScore));
+    							Visited[it1->first][itr1->first] = 1;
+    						}
+    					}
+    				}
+    			}
+    		}
+    		// ------------------------trial--------------------------------//
+    	}
+    	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    		pp_list::const_iterator it1;
+    		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (BestOracle[it1->first][itr1->first] != 1) {
+    					ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    		for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (PP_BEST[it1->first][itr1->first] != 1) {
+    					ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    	}
+    	cerr << "Read all the oracles in the list!\n";
+
+    	//	Update the weights
+    	if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
+    		for (int i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+    		{
+    			float bleuscore = BleuScore[i];
+    			loss.push_back(maxBleu - bleuscore);
+    		}
+    		modelScores.push_back(modelScore);
+    		featureValues.push_back(featureValue);
+    		BleuScores.push_back(BleuScore);
+    		losses.push_back(loss);
+    		oracleModelScores.push_back(maxScore);
+    		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
+    		cerr << "Updating the Weights...\n";
+    		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
+    				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+    		if(update_status == 0){
+    			cerr<<"setting weights\n";
+    			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+    			cerr<<"Total features : "<<weightUpdate.Size()<<endl;
+    		}
+    		else{
+    			cerr<<"No Update\n";
+    		}
+    	}
+    	else if(implementation == FPercepWMira || implementation == Mira){
+    		cerr<<"Didn't find any good oracle translations, continuing the process.\n";
+    	}
+    	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+    		updateFeatureValues();
+    	cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
+    	return;*/
+    }
+
+    void OnlineLearningFeature::updateIntMatrix(){
+
+//    	boost::numeric::ublas::matrix<double> W = StaticData::InstanceNonConst().GetMultiTaskLearner()->GetWeightsMatrix();
+//    	std::cerr << "\n\nWeight Matrix = ";
+//    	std::cerr << W << endl;
+//    	boost::numeric::ublas::matrix<double> updated = StaticData::InstanceNonConst().GetMultiTaskLearner()->GetInteractionMatrix();
+//
+//    	if(m_updateType == vonNeumann){
+//    		// log (A^{-1}_t) = log (A^{-1}_{t-1}) - \frac{\eta} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
+//    		float eta = StaticData::Instance().GetMultiTaskLearner()->GetLearningRateIntMatrix();
+//    		boost::numeric::ublas::matrix<double> sub = prod(trans(W), W) + trans(prod(trans(W), W)) ;
+//    		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::log);
+//    		updated -= eta * sub;
+//    		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::exp);
+//    		StaticData::InstanceNonConst().GetMultiTaskLearner()->SetInteractionMatrix(updated);
+//    		std::cerr << "Updated = ";
+//    		std::cerr << updated << endl;
+//    	}
+//
+//    	if(m_updateType == logDet){
+//    		// A^{-1}_t = A^{-1}_{t-1} + \frac{\eta}{2} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
+//    		float eta = StaticData::Instance().GetMultiTaskLearner()->GetLearningRateIntMatrix();
+//    		boost::numeric::ublas::matrix<double> adding = prod(trans(W), W) + trans(prod(trans(W), W)) ;
+//    		updated += eta * adding;
+//    		StaticData::InstanceNonConst().GetMultiTaskLearner()->SetInteractionMatrix(updated);
+//    		std::cerr << "Updated = ";
+//    		std::cerr << updated << endl;
+//
+//    	}
+//    	// update kd x kd matrix because it is used in weight update not the interaction matrix
+//    	int size = StaticData::Instance().GetAllWeights().Size();
+//    	int tasks= StaticData::InstanceNonConst().GetMultiTaskLearner()->GetNumberOfTasks();
+//    	boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
+//    	boost::numeric::ublas::identity_matrix<double> m (size);
+//    	MatrixOps::KroneckerProduct(updated, m, kdkdmatrix);
+//    	StaticData::InstanceNonConst().GetMultiTaskLearner()->SetKdKdMatrix(kdkdmatrix);
+
+    }
+
 
 }
