@@ -20,6 +20,7 @@
 #include "moses/FF/OnlineLearning/Optimiser.h"
 #include "boost/unordered_map.hpp"
 #include "boost/unordered_set.hpp"
+#include "mert/TER/terAlignment.h"
 
 #ifndef ONLINELEARNINGFEATURE_H_
 #define ONLINELEARNINGFEATURE_H_
@@ -56,22 +57,6 @@ public:
 //	inline size_t GetNumScoreComponents() const { return 1; };
 
 	inline std::string GetScoreProducerWeightShortName(unsigned) const { return "ol"; };
-
-	// new functions - implement these .. include chart decoding too this time
-/*	void Evaluate(const Phrase &source, const TargetPhrase &targetPhrase,
-			ScoreComponentCollection &scoreBreakdown
-			, ScoreComponentCollection &estimatedFutureScore) const {};
-	void Evaluate(const InputType &input, const InputPath &inputPath, const TargetPhrase &targetPhrase,
-			ScoreComponentCollection &scoreBreakdown,
-			ScoreComponentCollection *estimatedFutureScore = NULL) const{};
-	void Evaluate(const InputType &input, const InputPath &inputPath, const TargetPhrase &targetPhrase,
-			const StackVec *stackVec , ScoreComponentCollection &scoreBreakdown,
-			ScoreComponentCollection *estimatedFutureScore = NULL) const{};
-	void Evaluate(const Hypothesis& hypo, ScoreComponentCollection* accumulator) const {};
-	void EvaluateChart(const ChartHypothesis &hypo,	ScoreComponentCollection* accumulator) const {};
-	void Evaluate(const InputType &input, const InputPath &inputPath,
-			ScoreComponentCollection &scoreBreakdown) const{};
-*/
 
 	virtual void EvaluateInIsolation(const Moses::Phrase&, const Moses::TargetPhrase&,
 			Moses::ScoreComponentCollection&, Moses::ScoreComponentCollection&) const ;
@@ -118,20 +103,30 @@ public:
 		, logDet = 1
 	};
 
+	enum Language {
+		french = 0
+		, spanish = 1
+		, italian = 2
+		, english = 3
+	};
+
 private:
 	static OnlineLearningFeature *s_instance;
 	Algorithm implementation;
 	UpdateStep m_updateType;
-	boost::unordered_set<std::string> m_vocab;
+	boost::unordered_set<std::string> m_vocab, m_stopwords;
+	boost::unordered_map<std::string, std::string> curr_wordpair;
 	pp_feature m_feature;
 	pp_list m_featureIdx;
-	pp_list PP_ORACLE, PP_BEST;
+	pp_list PP_ORACLE, PP_BEST, PP_NEW;
 	learningrate flr, wlr;
 	float m_decayValue;
 	size_t m_nbestSize;
 	std::string m_source, m_postedited;
 	std::string m_sctype;
-	bool m_normaliseScore, m_sigmoidParam, m_normaliseMargin, m_learn, m_triggerTargetWords, m_l1, m_l2, m_updateFeatures;
+	Language m_language;
+	bool m_normaliseScore, m_sigmoidParam, m_normaliseMargin, m_learn,
+		m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
 	MiraOptimiser* optimiser;
 	std::string m_filename;
@@ -163,6 +158,7 @@ private:
 
 	void updateIntMatrix();
 
+	void GetPE2HypAlignments(const TERCpp::terAlignment&);
 };
 }
 #endif /* ONLINELEARNINGFEATURE_H_ */

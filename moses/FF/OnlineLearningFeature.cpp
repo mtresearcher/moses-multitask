@@ -22,13 +22,89 @@ using namespace std;
 
 using namespace TERCpp;
 
-namespace MatrixOps {
-//    ------------------- Kronecker Product code ---------------------------- //
+const char *m_stopwords_ITA[] = {"a","adesso",
+		"ai","al","alla","allo","allora","altre","altri","altro","anche",
+		"ancora","avere","aveva","avevano","ben","buono","che","chi","cinque",
+		"comprare","con","consecutivi","consecutivo","cosa","cui","da",
+		"del","della","dello","dentro","deve","devo","di","doppio","due",
+		"e","ecco","fare","fine","fino","fra","gente","giu","ha","hai",
+		"hanno","ho","il","indietro	","invece","io","la","lavoro","le",
+		"lei","lo","loro","lui","lungo","ma","me","meglio","molta","molti",
+		"molto","nei","nella","no","noi","nome","nostro","nove","nuovi",
+		"nuovo","o","oltre","ora","otto","peggio","pero","persone","piu",
+		"poco","primo","promesso","qua","quarto","quasi","quattro","quello",
+		"questo","qui","quindi","quinto","rispetto","sara","secondo","sei",
+		"sembra","sembrava","senza","sette","sia","siamo","siete","solo",
+		"sono","sopra","soprattutto","sotto","stati","stato","stesso","su",
+		"subito","sul","sulla","tanto","te","tempo","terzo","tra","tre","triplo",
+		"ultimo","un","una","uno","va","vai","voi","volte","vostro"};
 
-	bool KroneckerProduct (const boost::numeric::ublas::matrix<double>& A, const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
-		int rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
-		for(int i=0; i<C.size1(); i++){
-			for(int j=0; j<C.size2(); j++){
+const char *m_stopwords_ESP[] = { "un","una","unas",
+	"unos","uno","sobre","todo","también","tras","otro","algún","alguno",
+	"alguna","algunos","algunas","ser","es","soy","eres","somos","sois",
+	"estoy","esta","estamos","estais","estan","como","en","para","atras",
+	"porque","por","qué","estado","estaba","ante","antes","siendo","ambos",
+	"pero","por","poder","puede","puedo","podemos","podeis","pueden","fui",
+	"fue","fuimos","fueron","hacer","hago","hace","hacemos","haceis","hacen",
+	"cada","fin","incluso","primero	","desde","conseguir","consigo","consigue",
+	"consigues","conseguimos","consiguen","ir","voy","va","vamos","vais",
+	"van","vaya","gueno","ha","tener","tengo","tiene","tenemos","teneis",
+	"tienen","el","la","lo","las","los","su","aqui","mio","tuyo","ellos",
+	"ellas","nos","nosotros","vosotros","vosotras","si","dentro","solo",
+	"solamente","saber","sabes","sabe","sabemos","sabeis","saben","ultimo",
+	"largo","bastante","haces","muchos","aquellos","aquellas","sus","entonces",
+	"tiempo","verdad","verdadero","verdadera","cierto","ciertos","cierta",
+	"ciertas","intentar","intento","intenta","intentas","intentamos","intentais",
+	"intentan","dos","bajo","arriba","encima","usar","uso","usas","usa",
+	"usamos","usais","usan","emplear","empleo","empleas","emplean","ampleamos",
+	"empleais","valor","muy","era","eras","eramos","eran","modo","bien",
+	"cual","cuando","donde","mientras","quien","con","entre","sin","trabajo",
+	"trabajar","trabajas","trabaja","trabajamos","trabajais","trabajan",
+	"podria","podrias","podriamos","podrian","podriais","yo","aquel"};
+
+const char *m_stopwords_FRA[] = { "alors","au","aucuns",
+	"aussi","autre","avant","avec","avoir","bon","car","ce","cela","ces","ceux",
+	"chaque","ci","comme","comment","dans","des","du","dedans","dehors","depuis",
+	"deux","devrait","doit","donc","dos","droite","début","elle","elles",
+	"en","encore","essai","est","et","eu","fait","faites","fois","font",
+	"force","haut","hors","ici","il","ils","je","juste","la","le","les",
+	"leur","là","ma","maintenant","mais","mes","mine","moins","mon","mot",
+	"même","ni","nommés","notre","nous","nouveaux","ou","où","par","parce",
+	"parole","pas","personnes","peut","peu","pièce","plupart","pour","pourquoi",
+	"quand","que","quel","quelle","quelles","quels","qui","sa","sans","ses",
+	"seulement","si","sien","son","sont","sous","soyez","sujet","sur","ta",
+	"tandis","tellement","tels","tes","ton","tous","tout","trop","très",
+	"tu","valeur","voie","voient","vont","votre","vous","vu","ça","étaient",
+	"état","étions","été","être"};
+
+const char *m_stopwords_EN[] = { "a","about","above",
+	"after","again","against","all","am","an","and","any","are","aren't",
+	"as","at","be","because","been","before","being","below","between",
+	"both","but","by","can't","cannot","could","couldn't","did","didn't",
+	"do","does","doesn't","doing","don't","down","during","each","few",
+	"for","from","further","had","hadn't","has","hasn't","have","haven't",
+	"having","he","he'd","he'll","he's","her","here","here's","hers","herself",
+	"him","himself","his","how","how's","i","i'd","i'll","i'm","i've","if",
+	"in","into","is","isn't","it","it's","its","itself","let's","me","more",
+	"most","mustn't","my","myself","no","nor","not","of","off","on","once",
+	"only","or","other","ought","our","ours","ourselves","out","over","own",
+	"same","shan't","she","she'd","she'll","she's","should","shouldn't","so",
+	"some","such","than","that","that's","the","their","theirs","them",
+	"themselves","then","there","there's","these","they","they'd","they'll",
+	"they're","they've","this","those","through","to","too","under","until",
+	"up","very","was","wasn't","we","we'd","we'll","we're","we've","were",
+	"weren't","what","what's","when","when's","where","where's","which",
+	"while","who","who's","whom","why","why's","with","won't","would",
+	"wouldn't","you","you'd","you'll","you're","you've","your","yours",
+	"yourself","yourselves"};
+
+namespace MatrixOps {
+	//    ------------------- Kronecker Product code ---------------------------- //
+	bool KroneckerProduct (const boost::numeric::ublas::matrix<double>& A,
+			const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
+		size_t rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
+		for(size_t i=0; i<C.size1(); i++){
+			for(size_t j=0; j<C.size2(); j++){
 				rowB=i%B.size1();
 				colB=j%B.size2();
 				if(pcolB!=0 && colB == 0) colA++;
@@ -41,7 +117,6 @@ namespace MatrixOps {
 		}
 		return true;
 	}
-	//    ------------------------------- ends here ---------------------------- //
     //    ------------------- matrix inversion code ---------------------------- //
     template<class T>
     bool InvertMatrix (const boost::numeric::ublas::matrix<T>& input, boost::numeric::ublas::matrix<T>& inverse) {
@@ -54,7 +129,7 @@ namespace MatrixOps {
     	pmatrix pm(A.size1());
 
     	// perform LU-factorization
-    	int res = boost::numeric::ublas::lu_factorize(A, pm);
+    	size_t res = boost::numeric::ublas::lu_factorize(A, pm);
     	if (res != 0)
     		return false;
 
@@ -85,6 +160,7 @@ namespace Moses {
 		m_normaliseScore=false;
 		m_sigmoidParam=false;
 		m_updateFeatures=false;
+		m_forceAlign=true;
 		m_nbestSize=200;
 		m_decayValue=1;
 		m_sctype="Bleu";
@@ -123,6 +199,8 @@ namespace Moses {
 			m_triggerTargetWords = true;
 		} else if (key == "slack") {
 			slack = Scan<float>(value);
+		} else if (key == "forceAlign") {
+			m_forceAlign = Scan<bool>(value);
 		} else if (key == "scale_update_precision") {
 			scale_update_precision = Scan<bool>(value);
 		} else if (key == "scale_update") {
@@ -137,6 +215,34 @@ namespace Moses {
 			m_decayValue = Scan<float>(value);
 		} else if (key == "sctype") {
 			m_sctype = Scan<std::string>(value); 
+		} else if (key == "language") {
+			std::string lang = Scan<std::string>(value);
+			if(lang.compare("french")==0){
+				m_language = static_cast<Language>(0);
+				cerr<<"Language : French\n";
+				std::vector<std::string> temp(m_stopwords_FRA, m_stopwords_FRA + sizeof(m_stopwords_FRA)/sizeof(m_stopwords_FRA[0]));
+				for(size_t i=0; i<temp.size(); i++) m_stopwords.insert(temp[i]);
+			} else if(lang.compare("spanish")==0){
+				m_language = static_cast<Language>(1);
+				cerr<<"Language : Spanish\n";
+				std::vector<std::string> temp(m_stopwords_ESP, m_stopwords_ESP + sizeof(m_stopwords_ESP)/sizeof(m_stopwords_ESP[0]));
+				for(size_t i=0; i<temp.size(); i++) m_stopwords.insert(temp[i]);
+			} else if(lang.compare("italian")==0){
+				m_language = static_cast<Language>(2);
+				cerr<<"Language : Italian\n";
+				std::vector<std::string> temp(m_stopwords_ITA, m_stopwords_ITA + sizeof(m_stopwords_ITA)/sizeof(m_stopwords_ITA[0]));
+				for(size_t i=0; i<temp.size(); i++) m_stopwords.insert(temp[i]);
+			} else if(lang.compare("english")==0){
+				m_language = static_cast<Language>(3);
+				cerr<<"Language : English\n";
+				std::vector<std::string> temp(m_stopwords_EN, m_stopwords_EN + sizeof(m_stopwords_EN)/sizeof(m_stopwords_EN[0]));
+				for(size_t i=0; i<temp.size(); i++) m_stopwords.insert(temp[i]);
+			} else {
+				m_language = static_cast<Language>(3);
+				cerr<<"Falling back to Default Language : English\n";
+				std::vector<std::string> temp(m_stopwords_EN, m_stopwords_EN + sizeof(m_stopwords_EN)/sizeof(m_stopwords_EN[0]));
+				for(size_t i=0; i<temp.size(); i++) m_stopwords.insert(temp[i]);
+			}
 		} else if (key == "w_algorithm") {
 			m_algorithm = Scan<std::string>(value);
 			// set algorithm
@@ -144,7 +250,7 @@ namespace Moses {
 				implementation=SparseFeatures;
 				cerr<<"Online Algorithm : SparseFeatures\n";
 			}
-			if(m_algorithm.compare("Perceptron")==0){
+			else if(m_algorithm.compare("Perceptron")==0){
 				implementation=FOnlyPerceptron;
 				cerr<<"Online Algorithm : Perceptron\n";
 			}
@@ -242,7 +348,34 @@ namespace Moses {
         double ratio = ((length_reference * 1.0) / (length_translation * 1.0));
         if (length_translation < length_reference)
             bp = exp(1 - ratio);
-        return ((bp * exp((log(BLEU[1]) + log(BLEU[2]) + log(BLEU[3]) + log(BLEU[4])) / 4))*100);
+        return (bp * exp((log(BLEU[1]) + log(BLEU[2]) + log(BLEU[3]) + log(BLEU[4])) / 4.0));
+    }
+
+    void OnlineLearningFeature::GetPE2HypAlignments(const TERCpp::terAlignment& alignment){
+    	std::vector<std::string> hyp_afterShift = alignment.aftershift;
+    	std::vector<std::string> ref = alignment.ref;
+    	std::vector<char> align = alignment.alignment;
+    	curr_wordpair.clear();
+    	size_t hyp_p=0, ref_p=0;
+    	for (size_t i=0; i<align.size(); i++){
+    		switch(align[i]){
+    			case 'S': case 'A':
+    				curr_wordpair[ref[ref_p]]=hyp_afterShift[hyp_p];
+    				hyp_p++;
+    				ref_p++;
+    				break;
+    			case 'D':
+    				curr_wordpair[ref[ref_p]]="NULL";
+    				ref_p++;
+    				break;
+    			case 'I':
+    				curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
+    				hyp_p++;
+    				break;
+    			default:
+    				break;
+    		}
+    	}
     }
 
     float OnlineLearningFeature::GetTer(std::string hypothesis, std::string reference) {
@@ -254,10 +387,12 @@ namespace Moses {
     	evaluation->setDebugMode ( false );
     	TERCpp::terAlignment result = evaluation->TER(hypStr, refStr);
     	delete evaluation;
-	double ter = result.scoreAv();
-	result.numEdits = 0.0 ;
-	result.numWords = 0.0 ;
-	result.averageWords = 0.0;
+    	double ter = result.scoreAv();
+//    	cerr<<result.toString()<<endl;
+    	GetPE2HypAlignments(result);
+    	result.numEdits = 0.0 ;
+    	result.numWords = 0.0 ;
+    	result.averageWords = 0.0;
     	return ter;
     }
 
@@ -284,10 +419,10 @@ namespace Moses {
     void OnlineLearningFeature::InsertTargetWords(){
     	std::vector<std::string> twords = Tokenize(m_postedited);
     	for(size_t i=0;i<twords.size(); i++){
-    		if(m_vocab.find(twords[i])==m_vocab.end() && twords[i].size()>=4) {
+    		if(m_vocab.find(twords[i])==m_vocab.end() && m_stopwords.find(twords[i])==m_stopwords.end()) {
     			m_vocab.insert(twords[i]);
+    			StaticData::InstanceNonConst().SetSparseWeight(this, twords[i], w_initTargetWords);
     		}
-    		StaticData::InstanceNonConst().SetSparseWeight(this, twords[i], w_initTargetWords);
     	}
     }
 
@@ -347,7 +482,6 @@ namespace Moses {
     			val += flr * margin;
     			m_feature[sp][tp] = val;
     			std::string featureName(sp+"|||"+tp);
-//    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
     		} else {
     			m_feature[sp][tp] = flr*margin;
     			std::string featureName(sp+"|||"+tp);
@@ -367,7 +501,6 @@ namespace Moses {
     			val -= flr * margin;
     			m_feature[sp][tp] = val;
     			std::string featureName(sp+"|||"+tp);
-//    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
     		} else {
     			m_feature[sp][tp] = -1 * flr *margin;
     			std::string featureName(sp+"|||"+tp);
@@ -383,7 +516,6 @@ namespace Moses {
     float OnlineLearningFeature::calcMargin(Hypothesis* oracle, Hypothesis* bestHyp) {
         return (oracle->GetScore() - bestHyp->GetScore());
     }
-    // clears history
 
     void OnlineLearningFeature::RemoveJunk() {
         m_postedited.clear();
@@ -429,6 +561,13 @@ namespace Moses {
             std::string sourceP = hypo->GetSourcePhraseStringRep();
             std::string targetP = hypo->GetTargetPhraseStringRep();
             PP_BEST[sourceP][targetP] = 1;
+            const std::set<std::pair<size_t,size_t> > collection =
+                        		hypo->GetCurrTargetPhrase().GetAlignTerm().GetAlignments();
+            std::set<std::pair<size_t,size_t> >::const_iterator iter=collection.begin();
+            while(iter!=collection.end()){
+            	hypo->GetCurrTargetPhrase().GetFactor(iter->second, 0)->GetString().as_string();
+            	iter++;
+            }
         }
     }
 
@@ -459,8 +598,6 @@ namespace Moses {
     		std::string tword = tp.GetWord(pos)[0]->GetString().as_string();
     		t += tword;
     		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
-    			out.SparsePlusEquals(tword, 2);
-    		} else if (m_triggerTargetWords){
     			out.SparsePlusEquals(tword, 1);
     		}
     	}
@@ -483,14 +620,10 @@ namespace Moses {
     		}
     	}
     	if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
-    		score = float(score / float(1.0 + float(abs(score))));
+    		score /= float(1.0 + float(abs(score)));
 //    		score = (2 / (1 + exp(-score))) - 1; // normalising score!
 
     	std::string featureN = s+"|||"+t;
-//    	const float weightF = StaticData::Instance().GetAllWeights().GetScoreForProducer(this, featureN);
-//    	if(score!=0 && weightF!=0)
-//    		cerr<<"OL : "<<s<<" ||| "<<t<<" : "<<score<<" : "<<weightF<<endl;
-//    	StringPiece featureName(s+"|||"+t);
     	out.SparsePlusEquals(featureN, score);
     }
 
@@ -500,20 +633,24 @@ namespace Moses {
         const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
         //Decay();
         const Hypothesis* hypo = manager.GetBestHypothesis();
+        float bestScore = hypo->GetScore();
         stringstream bestHypothesis;
         PP_BEST.clear();
         PrintHypo(hypo, bestHypothesis);
-	float bestbleu;
-	if(m_sctype.compare("Bleu")==0)
-	    bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
-	else if(m_sctype.compare("Ter")==0)
-            bestbleu = 1-GetTer(bestHypothesis.str(), m_postedited);
-        float bestScore = hypo->GetScore();
-        cerr << "Post Edit       : " << m_postedited << endl;
-	if(m_sctype.compare("Bleu")==0)
-	    cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
-	else if(m_sctype.compare("Ter")==0)
-	    cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
+        float bestbleu;
+        double ter = GetTer(bestHypothesis.str(), m_postedited);
+        if(m_sctype.compare("Bleu")==0){
+        	bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+        }
+        else if(m_sctype.compare("Ter")==0)
+        	bestbleu = 1-ter;
+
+        cerr << "Post Edit	: " << m_postedited << endl;
+        if(m_sctype.compare("Bleu")==0)
+        	cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+        else if(m_sctype.compare("Ter")==0)
+        	cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
+
         TrellisPathList nBestList;
         manager.CalcNBest(m_nbestSize, nBestList, true);
 
@@ -523,15 +660,17 @@ namespace Moses {
         std::vector<std::vector<float> > losses, BleuScores, modelScores;
         std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
         std::vector<std::vector<ScoreComponentCollection> > featureValues;
-        std::map<int, map<string, map<string, int> > > OracleList;
         TrellisPathList::const_iterator iter;
         pp_list BestOracle, Visited;
+        pp_feature Hope, Fear, NewHope, NewFear;
         float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
-        int whichoracle = -1;
+        size_t whichoracle = -1;
         for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
+        	pp_list tempHopeFear;
             whichoracle++;
             if(whichoracle==0) continue;
             const TrellisPath &path = **iter;
+            oracleScore = path.GetTotalScore();
             PP_ORACLE.clear();
             const std::vector<const Hypothesis *> &edges = path.GetEdges();
             stringstream oracle;
@@ -547,15 +686,27 @@ namespace Moses {
                 std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
                 if (!has_only_spaces(sourceP) && !has_only_spaces(targetP)) {
                     PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
-                    OracleList[whichoracle][sourceP][targetP] = 1; // list of all phrase pairs given the nbest_i
+                }
+                if(m_forceAlign){
+                	std::set<std::pair<size_t,size_t> > alignments=edge.GetCurrTargetPhrase().GetAlignTerm().GetAlignments();
+                	for(std::set<std::pair<size_t,size_t> >::const_iterator Iter=alignments.begin(); Iter!=alignments.end(); Iter++){
+                		string mtword=edge.GetCurrTargetPhrase().GetFactor(Iter->second,outputFactorOrder[0])->GetString().as_string();
+                		string peword=curr_wordpair.at(mtword);
+                		string srword=edge.GetCurrTargetPhrase().GetRuleSource()->GetFactor(Iter->first, outputFactorOrder[0])->GetString().as_string();
+                		if(peword.compare(mtword)!=0){	// ensure that only new pairs are inserted
+                			string newtargetphrase = targetP.replace(targetP.find(mtword), mtword.length(), peword); // replace the translation with pe word
+                			tempHopeFear[srword][peword]=1; // new word2word alignments
+                			tempHopeFear[sourceP][newtargetphrase]=1; // new phrase2phrase alignments
+                		}
+                	}
                 }
             }
-            oracleScore = path.GetTotalScore();
+
             float oraclebleu; 
-	    if(m_sctype.compare("Bleu")==0)
-		oraclebleu = GetBleu(oracle.str(), m_postedited);
-	    else if(m_sctype.compare("Ter")==0)
-		oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
+            if(m_sctype.compare("Bleu")==0)
+            	oraclebleu = GetBleu(oracle.str(), m_postedited);
+            else if(m_sctype.compare("Ter")==0)
+            	oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
             if (implementation == FPercepWMira || implementation == Mira) {
                 HypothesisList.push_back(oracle.str());
                 BleuScore.push_back(oraclebleu);
@@ -563,21 +714,20 @@ namespace Moses {
                 modelScore.push_back(oracleScore);
             }
             if (oraclebleu > maxBleu) {
-		if(m_sctype.compare("Ter")==0)
-		    cerr << "NBEST : " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
-		else if(m_sctype.compare("Bleu")==0)
-		    cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
-                maxBleu = oraclebleu;
-                maxScore = oracleScore;
+            	if(m_sctype.compare("Ter")==0)
+            		cerr << "NBEST		: " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
+            	else if(m_sctype.compare("Bleu")==0)
+            		cerr << "NBEST		: " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
+            	maxBleu = oraclebleu;
+            	maxScore = oracleScore;
                 bestOracle = oracle.str();
-                pp_list::const_iterator it1;
-
                 oracleBleuScores.clear();
                 oraclefeatureScore.clear();
                 BestOracle = PP_ORACLE;
                 oracleBleuScores.push_back(oraclebleu);
                 oraclefeatureScore.push_back(path.GetScoreBreakdown());
             }
+
             // ------------------------trial--------------------------------//
             if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
                 if (oraclebleu > bestbleu) {
@@ -585,11 +735,19 @@ namespace Moses {
                     for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
                         boost::unordered_map<std::string, int>::const_iterator itr1;
                         for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                            if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
-                                ShootUp(it1->first, itr1->first, abs(oracleScore - bestScore));
-                                Visited[it1->first][itr1->first] = 1;
+                            if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+                            	Hope[it1->first][itr1->first]=oracleScore;
+//                                Visited[it1->first][itr1->first] = 1;
                             }
                         }
+                    }
+                    if(m_forceAlign){
+                    	for (it1 = tempHopeFear.begin(); it1 != tempHopeFear.end(); it1++) {
+                    		boost::unordered_map<std::string, int>::const_iterator itr1;
+                    		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+                    			NewHope[it1->first][itr1->first]=oracleScore;
+                    		}
+                    	}
                     }
                 }
                 if (oraclebleu < bestbleu) {
@@ -597,17 +755,27 @@ namespace Moses {
                     for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
                     	boost::unordered_map<std::string, int>::const_iterator itr1;
                         for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                            if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
-                                ShootDown(it1->first, itr1->first, abs(oracleScore - bestScore));
-                                Visited[it1->first][itr1->first] = 1;
+                            if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+                            	Fear[it1->first][itr1->first]=oracleScore;
+//                                Visited[it1->first][itr1->first] = 1;
                             }
                         }
+                    }
+                    if(m_forceAlign){
+                    	for (it1 = tempHopeFear.begin(); it1 != tempHopeFear.end(); it1++) {
+                    		boost::unordered_map<std::string, int>::const_iterator itr1;
+                    		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+                    			NewFear[it1->first][itr1->first]=oracleScore;
+                    		}
+                    	}
                     }
                 }
             }
             // ------------------------trial--------------------------------//
         }
+        Visited.clear();
         if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+        	// for the 1best in nbest list
         	pp_list::const_iterator it1;
         	for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
         		boost::unordered_map<std::string, int>::const_iterator itr1;
@@ -625,12 +793,40 @@ namespace Moses {
         			}
         		}
         	}
+        	// for the 2-N in nbest list
+        	pp_feature::const_iterator it2;
+        	for (it2 = Hope.begin(); it2 != Hope.end(); it2++) {
+        		boost::unordered_map<std::string, float>::const_iterator itr2;
+        		for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+        			ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+        		}
+        	}
+        	for (it2 = Fear.begin(); it2 != Fear.end(); it2++) {
+        		boost::unordered_map<std::string, float>::const_iterator itr2;
+        		for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+        			ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
+        		}
+        	}
+        	if(m_forceAlign){
+        		for (it2 = NewHope.begin(); it2 != NewHope.end(); it2++) {
+        			boost::unordered_map<std::string, float>::const_iterator itr2;
+        			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+        				ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+        			}
+        		}
+        		for (it2 = NewFear.begin(); it2 != NewFear.end(); it2++) {
+        			boost::unordered_map<std::string, float>::const_iterator itr2;
+        			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+        				ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
+        			}
+        		}
+        	}
         }
         cerr << "Read all the oracles in the list!\n";
 
-        //	Update the weights
+        //	Update the weights as I found a better oracle translation
         if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
-            for (int i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+            for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
             {
                 float bleuscore = BleuScore[i];
                 loss.push_back(maxBleu - bleuscore);
@@ -663,161 +859,10 @@ namespace Moses {
     }
 
     void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
-/*    	if(implementation == SparseFeatures) return;
-    	const StaticData& staticData = StaticData::Instance();
-    	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-    	//Decay();
-    	const Hypothesis* hypo = manager.GetBestHypothesis();
-    	stringstream bestHypothesis;
-    	PP_BEST.clear();
-    	PrintHypo(hypo, bestHypothesis);
-    	float bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
-    	float bestScore = hypo->GetScore();
-    	cerr << "Post Edit       : " << m_postedited << endl;
-    	cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
-    	TrellisPathList nBestList;
-    	manager.CalcNBest(m_nbestSize, nBestList, true);
 
-    	std::string bestOracle;
-    	std::vector<string> HypothesisList;
-    	std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
-    	std::vector<std::vector<float> > losses, BleuScores, modelScores;
-    	std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
-    	std::vector<std::vector<ScoreComponentCollection> > featureValues;
-    	std::map<int, map<string, map<string, int> > > OracleList;
-    	TrellisPathList::const_iterator iter;
-    	pp_list BestOracle, Visited;
-    	float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
-    	int whichoracle = -1;
-    	for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
-    		whichoracle++;
-    		if(whichoracle==0) continue;
-    		const TrellisPath &path = **iter;
-    		PP_ORACLE.clear();
-    		const std::vector<const Hypothesis *> &edges = path.GetEdges();
-    		stringstream oracle;
-    		for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
-    			const Hypothesis &edge = *edges[currEdge];
-    			size_t size = edge.GetCurrTargetPhrase().GetSize();
-    			for (size_t pos = 0; pos < size; pos++) {
-    				const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
-    				oracle << *factor;
-    				oracle << " ";
-    			}
-    			std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
-    			std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
-    			if (!has_only_spaces(sourceP) && !has_only_spaces(targetP)) {
-    				PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
-    				OracleList[whichoracle][sourceP][targetP] = 1; // list of all phrase pairs given the nbest_i
-    			}
-    		}
-    		oracleScore = path.GetTotalScore();
-    		float oraclebleu = GetBleu(oracle.str(), m_postedited);
-    		if (implementation == FPercepWMira || implementation == Mira) {
-    			HypothesisList.push_back(oracle.str());
-    			BleuScore.push_back(oraclebleu);
-    			featureValue.push_back(path.GetScoreBreakdown());
-    			modelScore.push_back(oracleScore);
-    		}
-    		if (oraclebleu > maxBleu+2) {
-    			cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
-    			maxBleu = oraclebleu;
-    			maxScore = oracleScore;
-    			bestOracle = oracle.str();
-    			pp_list::const_iterator it1;
-
-    			oracleBleuScores.clear();
-    			oraclefeatureScore.clear();
-    			BestOracle = PP_ORACLE;
-    			oracleBleuScores.push_back(oraclebleu);
-    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
-    		}
-    		// ------------------------trial--------------------------------//
-    		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
-    			if (oraclebleu > bestbleu) {
-    				pp_list::const_iterator it1;
-    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
-    					boost::unordered_map<std::string, int>::const_iterator itr1;
-    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
-    							ShootUp(it1->first, itr1->first, abs(oracleScore - bestScore));
-    							Visited[it1->first][itr1->first] = 1;
-    						}
-    					}
-    				}
-    			}
-    			if (oraclebleu < bestbleu) {
-    				pp_list::const_iterator it1;
-    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
-    					boost::unordered_map<std::string, int>::const_iterator itr1;
-    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
-    							ShootDown(it1->first, itr1->first, abs(oracleScore - bestScore));
-    							Visited[it1->first][itr1->first] = 1;
-    						}
-    					}
-    				}
-    			}
-    		}
-    		// ------------------------trial--------------------------------//
-    	}
-    	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
-    		pp_list::const_iterator it1;
-    		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
-    			boost::unordered_map<std::string, int>::const_iterator itr1;
-    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    				if (BestOracle[it1->first][itr1->first] != 1) {
-    					ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
-    				}
-    			}
-    		}
-    		for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
-    			boost::unordered_map<std::string, int>::const_iterator itr1;
-    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    				if (PP_BEST[it1->first][itr1->first] != 1) {
-    					ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
-    				}
-    			}
-    		}
-    	}
-    	cerr << "Read all the oracles in the list!\n";
-
-    	//	Update the weights
-    	if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
-    		for (int i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
-    		{
-    			float bleuscore = BleuScore[i];
-    			loss.push_back(maxBleu - bleuscore);
-    		}
-    		modelScores.push_back(modelScore);
-    		featureValues.push_back(featureValue);
-    		BleuScores.push_back(BleuScore);
-    		losses.push_back(loss);
-    		oracleModelScores.push_back(maxScore);
-    		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
-    		cerr << "Updating the Weights...\n";
-    		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
-    				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
-    		if(update_status == 0){
-    			cerr<<"setting weights\n";
-    			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-    			cerr<<"Total features : "<<weightUpdate.Size()<<endl;
-    		}
-    		else{
-    			cerr<<"No Update\n";
-    		}
-    	}
-    	else if(implementation == FPercepWMira || implementation == Mira){
-    		cerr<<"Didn't find any good oracle translations, continuing the process.\n";
-    	}
-    	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
-    		updateFeatureValues();
-    	cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
-    	return;*/
     }
 
     void OnlineLearningFeature::updateIntMatrix(){
-
 //    	boost::numeric::ublas::matrix<double> W = StaticData::InstanceNonConst().GetMultiTaskLearner()->GetWeightsMatrix();
 //    	std::cerr << "\n\nWeight Matrix = ";
 //    	std::cerr << W << endl;
