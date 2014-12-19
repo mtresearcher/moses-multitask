@@ -6,6 +6,7 @@
 #include "OnlineLearningFeature.h"
 #include "moses/Util.h"
 #include "util/exception.hh"
+#include <boost/algorithm/string/join.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -201,6 +202,12 @@ namespace Moses {
 			slack = Scan<float>(value);
 		} else if (key == "forceAlign") {
 			m_forceAlign = Scan<bool>(value);
+			if(m_forceAlign){
+				cerr<<"********************************************************************************\n";
+				cerr<<"*                   You are using force alignment option                       *\n";
+				cerr<<"*       Make sure your phrase table contain word alignment information         *\n";
+				cerr<<"********************************************************************************\n";
+			}
 		} else if (key == "scale_update_precision") {
 			scale_update_precision = Scan<bool>(value);
 		} else if (key == "scale_update") {
@@ -360,16 +367,17 @@ namespace Moses {
     	for (size_t i=0; i<align.size(); i++){
     		switch(align[i]){
     			case 'S': case 'A':
-    				curr_wordpair[ref[ref_p]]=hyp_afterShift[hyp_p];
+    				if(!has_only_spaces(hyp_afterShift[hyp_p]) && !has_only_spaces(ref[ref_p]))
+    					curr_wordpair[hyp_afterShift[hyp_p]]=ref[ref_p];
     				hyp_p++;
     				ref_p++;
     				break;
     			case 'D':
-    				curr_wordpair[ref[ref_p]]="NULL";
     				ref_p++;
     				break;
     			case 'I':
-    				curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
+    				if(!has_only_spaces(hyp_afterShift[hyp_p]))
+    					curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
     				hyp_p++;
     				break;
     			default:
@@ -382,7 +390,6 @@ namespace Moses {
     	vector<string> hypStr,refStr;
     	split_marker_perl(hypothesis, " ", hypStr);
     	split_marker_perl(reference, " ", refStr);
-
     	TERCpp::terCalc * evaluation=new TERCpp::terCalc();
     	evaluation->setDebugMode ( false );
     	TERCpp::terAlignment result = evaluation->TER(hypStr, refStr);
@@ -397,7 +404,7 @@ namespace Moses {
     }
 
     bool OnlineLearningFeature::has_only_spaces(const std::string& str) {
-        return (str.find_first_not_of(' ') == str.npos);
+        return (str.find_first_not_of(' ') == str.npos && str.find_first_not_of('\t') == str.npos);
     }
 
     bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
@@ -629,237 +636,416 @@ namespace Moses {
 
     void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
     	if(implementation == SparseFeatures) return;
-        const StaticData& staticData = StaticData::Instance();
-        const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-        //Decay();
-        const Hypothesis* hypo = manager.GetBestHypothesis();
-        float bestScore = hypo->GetScore();
-        stringstream bestHypothesis;
-        PP_BEST.clear();
-        PrintHypo(hypo, bestHypothesis);
-        float bestbleu;
-        double ter = GetTer(bestHypothesis.str(), m_postedited);
-        if(m_sctype.compare("Bleu")==0){
-        	bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
-        }
-        else if(m_sctype.compare("Ter")==0)
-        	bestbleu = 1-ter;
+    	const StaticData& staticData = StaticData::Instance();
+    	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
+    	//Decay();
+    	const Hypothesis* hypo = manager.GetBestHypothesis();
+    	float bestScore = hypo->GetScore();
+    	stringstream bestHypothesis;
+    	PP_BEST.clear();
+    	PrintHypo(hypo, bestHypothesis);
+    	float bestbleu;
+    	double ter = GetTer(bestHypothesis.str(), m_postedited);
+    	if(m_sctype.compare("Bleu")==0)
+    		bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+    	else if(m_sctype.compare("Ter")==0)
+    		bestbleu = 1-ter;
+    	cerr << "Post Edit	: " << m_postedited << endl;
+    	if(m_sctype.compare("Bleu")==0)
+    		cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+    	else if(m_sctype.compare("Ter")==0)
+    		cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
 
-        cerr << "Post Edit	: " << m_postedited << endl;
-        if(m_sctype.compare("Bleu")==0)
-        	cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
-        else if(m_sctype.compare("Ter")==0)
-        	cerr << "Best Hypothesis	: " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
+    	TrellisPathList nBestList;
+    	manager.CalcNBest(m_nbestSize, nBestList, true);
 
-        TrellisPathList nBestList;
-        manager.CalcNBest(m_nbestSize, nBestList, true);
+    	std::string bestOracle;
+    	std::vector<string> HypothesisList;
+    	std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
+    	std::vector<std::vector<float> > losses, BleuScores, modelScores;
+    	std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
+    	std::vector<std::vector<ScoreComponentCollection> > featureValues;
+    	TrellisPathList::const_iterator iter;
+    	pp_list BestOracle, Visited, tempHopeFear;
+    	pp_feature Hope, Fear, NewHope, NewFear;
+    	float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
+    	size_t whichoracle = -1;
+    	for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
+    		tempHopeFear.clear();
+    		whichoracle++;
+//    		if(whichoracle==0) continue;
+    		const TrellisPath &path = **iter;
+    		oracleScore = path.GetTotalScore();
+    		PP_ORACLE.clear();
+    		const std::vector<const Hypothesis *> &edges = path.GetEdges();
+    		stringstream oracle;
+    		for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+    			const Hypothesis &edge = *edges[currEdge];
+    			size_t size = edge.GetCurrTargetPhrase().GetSize();
+    			for (size_t pos = 0; pos < size; pos++) {
+    				const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
+    				oracle << *factor;
+    				oracle << " ";
+    			}
+    			std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+    			std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+    			if (!has_only_spaces(sourceP) && !has_only_spaces(targetP))
+    				PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
+    		}
 
-        std::string bestOracle;
-        std::vector<string> HypothesisList;
-        std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
-        std::vector<std::vector<float> > losses, BleuScores, modelScores;
-        std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
-        std::vector<std::vector<ScoreComponentCollection> > featureValues;
-        TrellisPathList::const_iterator iter;
-        pp_list BestOracle, Visited;
-        pp_feature Hope, Fear, NewHope, NewFear;
-        float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
-        size_t whichoracle = -1;
-        for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
-        	pp_list tempHopeFear;
-            whichoracle++;
-            if(whichoracle==0) continue;
-            const TrellisPath &path = **iter;
-            oracleScore = path.GetTotalScore();
-            PP_ORACLE.clear();
-            const std::vector<const Hypothesis *> &edges = path.GetEdges();
-            stringstream oracle;
-            for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
-                const Hypothesis &edge = *edges[currEdge];
-                size_t size = edge.GetCurrTargetPhrase().GetSize();
-                for (size_t pos = 0; pos < size; pos++) {
-                    const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
-                    oracle << *factor;
-                    oracle << " ";
-                }
-                std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
-                std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
-                if (!has_only_spaces(sourceP) && !has_only_spaces(targetP)) {
-                    PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
-                }
-                if(m_forceAlign){
-                	std::set<std::pair<size_t,size_t> > alignments=edge.GetCurrTargetPhrase().GetAlignTerm().GetAlignments();
-                	for(std::set<std::pair<size_t,size_t> >::const_iterator Iter=alignments.begin(); Iter!=alignments.end(); Iter++){
-                		string mtword=edge.GetCurrTargetPhrase().GetFactor(Iter->second,outputFactorOrder[0])->GetString().as_string();
-                		string peword=curr_wordpair.at(mtword);
-                		string srword=edge.GetCurrTargetPhrase().GetRuleSource()->GetFactor(Iter->first, outputFactorOrder[0])->GetString().as_string();
-                		if(peword.compare(mtword)!=0){	// ensure that only new pairs are inserted
-                			string newtargetphrase = targetP.replace(targetP.find(mtword), mtword.length(), peword); // replace the translation with pe word
-                			tempHopeFear[srword][peword]=1; // new word2word alignments
-                			tempHopeFear[sourceP][newtargetphrase]=1; // new phrase2phrase alignments
-                		}
-                	}
-                }
-            }
+    		float oraclebleu;
+    		if(m_sctype.compare("Bleu")==0)
+    			oraclebleu = GetBleu(oracle.str(), m_postedited);
+    		else if(m_sctype.compare("Ter")==0)
+    			oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
+    		if (implementation == FPercepWMira || implementation == Mira) {
+    			HypothesisList.push_back(oracle.str());
+    			BleuScore.push_back(oraclebleu);
+    			featureValue.push_back(path.GetScoreBreakdown());
+    			modelScore.push_back(oracleScore);
+    		}
+    		if (oraclebleu > maxBleu) {
+    			if(m_sctype.compare("Ter")==0)
+    				cerr << "NBEST		: " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
+    			else if(m_sctype.compare("Bleu")==0)
+    				cerr << "NBEST		: " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
+    			maxBleu = oraclebleu;
+    			maxScore = oracleScore;
+    			bestOracle = oracle.str();
+    			oracleBleuScores.clear();
+    			oraclefeatureScore.clear();
+    			BestOracle = PP_ORACLE;
+    			oracleBleuScores.push_back(oraclebleu);
+    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
+    		}
+    		if(m_forceAlign){
+    			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+    				const Hypothesis &edge = *edges[currEdge];
+    				size_t size = edge.GetCurrTargetPhrase().GetSize();
+    				std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+    				std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+    				std::set<std::pair<size_t,size_t> > alignments=edge.GetCurrTargetPhrase().GetAlignTerm().GetAlignments();
+    				std::vector<std::string> sourceVec, targetVec;
+    				split_marker_perl(sourceP, " ", sourceVec);
+    				split_marker_perl(targetP, " ", targetVec);
+    				for(std::set<std::pair<size_t,size_t> >::const_iterator Iter=alignments.begin(); Iter!=alignments.end(); Iter++){
+    					string mtword=targetVec[Iter->second];
+    					if(curr_wordpair.find(mtword)!=curr_wordpair.end()){
+    						string peword=curr_wordpair.at(mtword);
+    						string srword=sourceVec[Iter->first];
+    						// ensure that only new pairs are inserted
+    						if(peword.compare(mtword)!=0 && !has_only_spaces(peword) &&
+    								peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0){
+    							// new word2word alignments
+    							if(oraclebleu >= bestbleu)
+    								NewHope[srword][peword]=oracleScore;
+    							else
+    								NewFear[srword][peword]=oracleScore;
+    							// replace the mtword with peword in target phrase
+    							if(targetP.find(mtword) != std::string::npos){
+    								std::vector<std::string> sentVec;
+    								split_marker_perl(targetP, " ", sentVec);
+    								for(size_t i=0;i<sentVec.size(); i++){
+    									if(sentVec[i].compare(mtword)==0){
+    										sentVec[i]=peword;
+    										break;
+    									}
+    								}
+    								targetP = boost::algorithm::join(sentVec, " ");
+    							}
+    						}
+    					}
+    				}
+    				if(targetP.compare(edge.GetTargetPhraseStringRep())!=0 &&
+    						!has_only_spaces(targetP) && targetP.length()!=0){
+    					if(oraclebleu >= bestbleu)
+    						NewHope[sourceP][targetP]=oracleScore;
+    					else
+    						NewFear[sourceP][targetP]=oracleScore;
+    				}
+    			}
+    		}
 
-            float oraclebleu; 
-            if(m_sctype.compare("Bleu")==0)
-            	oraclebleu = GetBleu(oracle.str(), m_postedited);
-            else if(m_sctype.compare("Ter")==0)
-            	oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
-            if (implementation == FPercepWMira || implementation == Mira) {
-                HypothesisList.push_back(oracle.str());
-                BleuScore.push_back(oraclebleu);
-                featureValue.push_back(path.GetScoreBreakdown());
-                modelScore.push_back(oracleScore);
-            }
-            if (oraclebleu > maxBleu) {
-            	if(m_sctype.compare("Ter")==0)
-            		cerr << "NBEST		: " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
-            	else if(m_sctype.compare("Bleu")==0)
-            		cerr << "NBEST		: " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
-            	maxBleu = oraclebleu;
-            	maxScore = oracleScore;
-                bestOracle = oracle.str();
-                oracleBleuScores.clear();
-                oraclefeatureScore.clear();
-                BestOracle = PP_ORACLE;
-                oracleBleuScores.push_back(oraclebleu);
-                oraclefeatureScore.push_back(path.GetScoreBreakdown());
-            }
-
-            // ------------------------trial--------------------------------//
-            if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
-                if (oraclebleu > bestbleu) {
-                    pp_list::const_iterator it1;
-                    for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
-                        boost::unordered_map<std::string, int>::const_iterator itr1;
-                        for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                            if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
-                            	Hope[it1->first][itr1->first]=oracleScore;
+    		// ------------------------trial--------------------------------//
+    		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    			if (oraclebleu > bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+    							Hope[it1->first][itr1->first]=oracleScore;
 //                                Visited[it1->first][itr1->first] = 1;
-                            }
-                        }
-                    }
-                    if(m_forceAlign){
-                    	for (it1 = tempHopeFear.begin(); it1 != tempHopeFear.end(); it1++) {
-                    		boost::unordered_map<std::string, int>::const_iterator itr1;
-                    		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                    			NewHope[it1->first][itr1->first]=oracleScore;
-                    		}
-                    	}
-                    }
-                }
-                if (oraclebleu < bestbleu) {
-                    pp_list::const_iterator it1;
-                    for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
-                    	boost::unordered_map<std::string, int>::const_iterator itr1;
-                        for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                            if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
-                            	Fear[it1->first][itr1->first]=oracleScore;
+    						}
+    					}
+    				}
+    			}
+    			if (oraclebleu < bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+    							Fear[it1->first][itr1->first]=oracleScore;
 //                                Visited[it1->first][itr1->first] = 1;
-                            }
-                        }
-                    }
-                    if(m_forceAlign){
-                    	for (it1 = tempHopeFear.begin(); it1 != tempHopeFear.end(); it1++) {
-                    		boost::unordered_map<std::string, int>::const_iterator itr1;
-                    		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-                    			NewFear[it1->first][itr1->first]=oracleScore;
-                    		}
-                    	}
-                    }
-                }
-            }
-            // ------------------------trial--------------------------------//
-        }
-        Visited.clear();
-        if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
-        	// for the 1best in nbest list
-        	pp_list::const_iterator it1;
-        	for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
-        		boost::unordered_map<std::string, int>::const_iterator itr1;
-        		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-        			if (BestOracle[it1->first][itr1->first] != 1) {
-        				ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
-        			}
-        		}
-        	}
-        	for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
-        		boost::unordered_map<std::string, int>::const_iterator itr1;
-        		for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-        			if (PP_BEST[it1->first][itr1->first] != 1) {
-        				ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
-        			}
-        		}
-        	}
-        	// for the 2-N in nbest list
-        	pp_feature::const_iterator it2;
-        	for (it2 = Hope.begin(); it2 != Hope.end(); it2++) {
-        		boost::unordered_map<std::string, float>::const_iterator itr2;
-        		for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-        			ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
-        		}
-        	}
-        	for (it2 = Fear.begin(); it2 != Fear.end(); it2++) {
-        		boost::unordered_map<std::string, float>::const_iterator itr2;
-        		for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-        			ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
-        		}
-        	}
-        	if(m_forceAlign){
-        		for (it2 = NewHope.begin(); it2 != NewHope.end(); it2++) {
-        			boost::unordered_map<std::string, float>::const_iterator itr2;
-        			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-        				ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
-        			}
-        		}
-        		for (it2 = NewFear.begin(); it2 != NewFear.end(); it2++) {
-        			boost::unordered_map<std::string, float>::const_iterator itr2;
-        			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-        				ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
-        			}
-        		}
-        	}
-        }
-        cerr << "Read all the oracles in the list!\n";
+    						}
+    					}
+    				}
+    			}
+    		}
+    		// ------------------------trial--------------------------------//
+    	}
+    	Visited.clear();
+    	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    		// for the 1best in nbest list
+    		pp_list::const_iterator it1;
+    		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (BestOracle[it1->first][itr1->first] != 1) {
+    					ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    		for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (PP_BEST[it1->first][itr1->first] != 1) {
+    					ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    		// for the 2-N in nbest list
+    		pp_feature::const_iterator it2;
+    		for (it2 = Hope.begin(); it2 != Hope.end(); it2++) {
+    			boost::unordered_map<std::string, float>::const_iterator itr2;
+    			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+    				ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+    			}
+    		}
+    		for (it2 = Fear.begin(); it2 != Fear.end(); it2++) {
+    			boost::unordered_map<std::string, float>::const_iterator itr2;
+    			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+    				ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
+    			}
+    		}
+    		if(m_forceAlign){
+    			for (it2 = NewHope.begin(); it2 != NewHope.end(); it2++) {
+    				boost::unordered_map<std::string, float>::const_iterator itr2;
+    				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+    					ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+    				}
+    			}
+//    			for (it2 = NewFear.begin(); it2 != NewFear.end(); it2++) {
+//    				boost::unordered_map<std::string, float>::const_iterator itr2;
+//    				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+//    					ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
+//    				}
+//    			}
+    		}
+    	}
+    	cerr << "Read all the oracles in the list!\n";
 
-        //	Update the weights as I found a better oracle translation
-        if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
-            for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
-            {
-                float bleuscore = BleuScore[i];
-                loss.push_back(maxBleu - bleuscore);
-            }
-            modelScores.push_back(modelScore);
-            featureValues.push_back(featureValue);
-            BleuScores.push_back(BleuScore);
-            losses.push_back(loss);
-            oracleModelScores.push_back(maxScore);
-            ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
-            cerr << "Updating the Weights...\n";
-            size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
-                    BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
-            if(update_status == 0){
-            	cerr<<"setting weights\n";
-            	StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-            	cerr<<"Total features : "<<weightUpdate.Size()<<endl;
-            }
-            else{
-            	cerr<<"No Update\n";
-            }
-        }
-        else if(implementation == FPercepWMira || implementation == Mira){
-        	cerr<<"Didn't find any good oracle translations, continuing the process.\n";
-        }
-        if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
-        	updateFeatureValues();
-        cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
-        return;
+    	//	Update the weights as I found a better oracle translation
+    	if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
+    		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+    		{
+    			float bleuscore = BleuScore[i];
+    			loss.push_back(maxBleu - bleuscore);
+    		}
+    		modelScores.push_back(modelScore);
+    		featureValues.push_back(featureValue);
+    		BleuScores.push_back(BleuScore);
+    		losses.push_back(loss);
+    		oracleModelScores.push_back(maxScore);
+    		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
+    		cerr << "Updating the Weights...\n";
+    		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
+    				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+    		if(update_status == 0){
+    			cerr<<"setting weights\n";
+    			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+    			cerr<<"Total features : "<<weightUpdate.Size()<<endl;
+    		}
+    		else{
+    			cerr<<"No Update\n";
+    		}
+    	}
+    	else if(implementation == FPercepWMira || implementation == Mira){
+    		cerr<<"Didn't find any good oracle translations, continuing the process.\n";
+    	}
+    	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+    		updateFeatureValues();
+    	cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
+    	return;
     }
 
     void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
+    	if(implementation == SparseFeatures) return;
+    	const StaticData& staticData = StaticData::Instance();
+    	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
+    	//Decay();
+    	const Hypothesis* hypo = manager.GetBestHypothesis();
+    	stringstream bestHypothesis;
+    	PP_BEST.clear();
+    	PrintHypo(hypo, bestHypothesis);
+    	float bestbleu;
+    	if(m_sctype.compare("Bleu")==0)
+    		bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+    	else if(m_sctype.compare("Ter")==0)
+    		bestbleu = 1-GetTer(bestHypothesis.str(), m_postedited);
+    	float bestScore = hypo->GetScore();
+    	cerr << "Post Edit       : " << m_postedited << endl;
+    	if(m_sctype.compare("Bleu")==0)
+    		cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sBLEU : " << bestbleu << endl;
+    	else if(m_sctype.compare("Ter")==0)
+    		cerr << "Best Hypothesis : " << bestHypothesis.str() << "\t|||\t sTER : " << bestbleu << endl;
+    	TrellisPathList nBestList;
+    	manager.CalcNBest(m_nbestSize, nBestList, true);
 
+    	std::string bestOracle;
+    	std::vector<string> HypothesisList;
+    	std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
+    	std::vector<std::vector<float> > losses, BleuScores, modelScores;
+    	std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
+    	std::vector<std::vector<ScoreComponentCollection> > featureValues;
+    	std::map<int, map<string, map<string, int> > > OracleList;
+    	TrellisPathList::const_iterator iter;
+    	pp_list BestOracle, Visited;
+    	float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
+    	int whichoracle = -1;
+    	for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
+    		whichoracle++;
+    		if(whichoracle==0) continue;
+    		const TrellisPath &path = **iter;
+    		PP_ORACLE.clear();
+    		const std::vector<const Hypothesis *> &edges = path.GetEdges();
+    		stringstream oracle;
+    		for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+    			const Hypothesis &edge = *edges[currEdge];
+    			size_t size = edge.GetCurrTargetPhrase().GetSize();
+    			for (size_t pos = 0; pos < size; pos++) {
+    				const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
+    				oracle << *factor;
+    				oracle << " ";
+    			}
+    			std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+    			std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+    			if (!has_only_spaces(sourceP) && !has_only_spaces(targetP)) {
+    				PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
+    				OracleList[whichoracle][sourceP][targetP] = 1; // list of all phrase pairs given the nbest_i
+    			}
+    		}
+    		oracleScore = path.GetTotalScore();
+    		float oraclebleu;
+    		if(m_sctype.compare("Bleu")==0)
+    			oraclebleu = GetBleu(oracle.str(), m_postedited);
+    		else if(m_sctype.compare("Ter")==0)
+    			oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
+    		if (implementation == FPercepWMira || implementation == Mira) {
+    			HypothesisList.push_back(oracle.str());
+    			BleuScore.push_back(oraclebleu);
+    			featureValue.push_back(path.GetScoreBreakdown());
+    			modelScore.push_back(oracleScore);
+    		}
+    		if (oraclebleu > maxBleu) {
+    			if(m_sctype.compare("Ter")==0)
+    				cerr << "NBEST : " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl;
+    			else if(m_sctype.compare("Bleu")==0)
+    				cerr << "NBEST : " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl;
+    			maxBleu = oraclebleu;
+    			maxScore = oracleScore;
+    			bestOracle = oracle.str();
+    			pp_list::const_iterator it1;
+
+    			oracleBleuScores.clear();
+    			oraclefeatureScore.clear();
+    			BestOracle = PP_ORACLE;
+    			oracleBleuScores.push_back(oraclebleu);
+    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
+    		}
+    		// ------------------------trial--------------------------------//
+    		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    			if (oraclebleu > bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
+    							ShootUp(it1->first, itr1->first, abs(oracleScore - bestScore));
+    							Visited[it1->first][itr1->first] = 1;
+    						}
+    					}
+    				}
+    			}
+    			if (oraclebleu < bestbleu) {
+    				pp_list::const_iterator it1;
+    				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+    					boost::unordered_map<std::string, int>::const_iterator itr1;
+    					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    						if (PP_BEST[it1->first][itr1->first] != 1 && Visited[it1->first][itr1->first] != 1) {
+    							ShootDown(it1->first, itr1->first, abs(oracleScore - bestScore));
+    							Visited[it1->first][itr1->first] = 1;
+    						}
+    					}
+    				}
+    			}
+    		}
+    		// ------------------------trial--------------------------------//
+    	}
+    	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+    		pp_list::const_iterator it1;
+    		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (BestOracle[it1->first][itr1->first] != 1) {
+    					ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    		for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
+    			boost::unordered_map<std::string, int>::const_iterator itr1;
+    			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+    				if (PP_BEST[it1->first][itr1->first] != 1) {
+    					ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
+    				}
+    			}
+    		}
+    	}
+    	cerr << "Read all the oracles in the list!\n";
+
+    	//	Update the weights
+    	if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
+    		for (int i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+    		{
+    			float bleuscore = BleuScore[i];
+    			loss.push_back(maxBleu - bleuscore);
+    		}
+    		modelScores.push_back(modelScore);
+    		featureValues.push_back(featureValue);
+    		BleuScores.push_back(BleuScore);
+    		losses.push_back(loss);
+    		oracleModelScores.push_back(maxScore);
+    		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
+    		cerr << "Updating the Weights...\n";
+    		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
+    				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+    		if(update_status == 0){
+    			cerr<<"setting weights\n";
+    			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+    			cerr<<"Total features : "<<weightUpdate.Size()<<endl;
+    		}
+    		else{
+    			cerr<<"No Update\n";
+    		}
+    	}
+    	else if(implementation == FPercepWMira || implementation == Mira){
+    		cerr<<"Didn't find any good oracle translations, continuing the process.\n";
+    	}
+    	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+    		updateFeatureValues();
+    	cerr<<"Vocabulary Size : "<<m_vocab.size()<<endl;
+    	return;
     }
 
     void OnlineLearningFeature::updateIntMatrix(){
