@@ -67,6 +67,7 @@ private:
 
 public:
   TargetPhrase(const PhraseDictionary *pt = NULL);
+  TargetPhrase(std::string out_string, const PhraseDictionary *pt = NULL);
   TargetPhrase(const TargetPhrase &copy);
   explicit TargetPhrase(const Phrase &targetPhrase, const PhraseDictionary *pt);
   ~TargetPhrase();
@@ -107,6 +108,15 @@ public:
     return m_scoreBreakdown;
   }
 
+  /*
+    //TODO: Probably shouldn't copy this, but otherwise ownership is unclear
+    void SetSourcePhrase(const Phrase&  p) {
+      m_sourcePhrase=p;
+    }
+    const Phrase& GetSourcePhrase() const {
+      return m_sourcePhrase;
+    }
+  */
   void SetTargetLHS(const Word *lhs) {
     m_lhsTarget = lhs;
   }

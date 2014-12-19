@@ -48,6 +48,11 @@ public:
                 , ScoreComponentCollection *estimatedFutureScore = NULL) const
   {}
 
+
+  /*
+    virtual void Evaluate(const InputType &source
+                          , ScoreComponentCollection &scoreBreakdown) const;
+  */
 };
 
 }

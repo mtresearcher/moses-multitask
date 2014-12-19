@@ -115,13 +115,12 @@ enum DistortionOrientationOptions {
 };
 }
 
-
 enum InputTypeEnum {
   SentenceInput						= 0
-  ,ConfusionNetworkInput	= 1
-  ,WordLatticeInput				= 2
-  ,TreeInputType					= 3
-  ,WordLatticeInput2			= 4
+                            ,ConfusionNetworkInput	= 1
+                                ,WordLatticeInput				= 2
+                                    ,TreeInputType					= 3
+                                        ,WordLatticeInput2			= 4
 
 };
 
@@ -135,7 +134,7 @@ enum XmlInputType {
 
 enum DictionaryFind {
   Best		= 0
-  ,All		= 1
+            ,All		= 1
 };
 
 enum SearchAlgorithm {
@@ -149,13 +148,13 @@ enum SearchAlgorithm {
 
 enum SourceLabelOverlap {
   SourceLabelOverlapAdd = 0
-  ,SourceLabelOverlapReplace = 1
-  ,SourceLabelOverlapDiscard = 2
+                          ,SourceLabelOverlapReplace = 1
+                              ,SourceLabelOverlapDiscard = 2
 };
 
 enum WordAlignmentSort {
   NoSort = 0
-  ,TargetOrder = 1
+           ,TargetOrder = 1
 };
 
 enum FormatType {

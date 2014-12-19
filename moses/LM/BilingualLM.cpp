@@ -242,28 +242,23 @@ FFState* BilingualLM::EvaluateWhenApplied(
 
 void BilingualLM::getAllTargetIdsChart(const ChartHypothesis& cur_hypo, size_t featureID, std::vector<int>& wordIds) const {
   const TargetPhrase targetPhrase = cur_hypo.GetCurrTargetPhrase();
-  int next_nonterminal_index = 0;
 
   for (int i = 0; i < targetPhrase.GetSize(); i++){
     if (targetPhrase.GetWord(i).IsNonTerminal()){ //Nonterminal get from prev state
-      const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(next_nonterminal_index);
+      const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(targetPhrase.GetAlignNonTerm().GetNonTermIndexMap()[i]);
       const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
       const std::vector<int> prevWordIDs = prev_state->GetWordIdsVector();
       for (std::vector<int>::const_iterator it = prevWordIDs.begin(); it!= prevWordIDs.end(); it++){
         wordIds.push_back(*it);
       }
-      next_nonterminal_index++;
     } else {
       wordIds.push_back(getNeuralLMId(targetPhrase.GetWord(i), false));
     }
   }
 } 
 
-void BilingualLM::getAllAlignments(const ChartHypothesis& cur_hypo, size_t featureID, std::vector<int>& word_alignemnts) const {
+void BilingualLM::getAllAlignments(const ChartHypothesis& cur_hypo, size_t featureID, std::vector<int>& word_alignments) const {
   const TargetPhrase targetPhrase = cur_hypo.GetCurrTargetPhrase();
-  int next_nonterminal_index = 0;
-  int nonterm_length = 0; //Account for the size of nonterminals when calculating the alignment.
-  int source_phrase_start_pos = cur_hypo.GetCurrSourceRange().GetStartPos();
   int source_word_mid_idx; //The word alignment
 
   //Get source sent
@@ -271,53 +266,72 @@ void BilingualLM::getAllAlignments(const ChartHypothesis& cur_hypo, size_t featu
   const Sentence& source_sent = static_cast<const Sentence&>(manager.GetSource());
   const AlignmentInfo& alignments = targetPhrase.GetAlignTerm();
 
+  // get absolute position in source sentence for each source word in rule
+  std::vector<int> absolute_source_position (cur_hypo.GetCurrSourceRange().GetNumWordsCovered(), 0); //we actually only need number of source symbols in rule; can we get this number cheaply?
+
+  absolute_source_position[0] = cur_hypo.GetCurrSourceRange().GetStartPos();
+  // get last absolute position of each source nonterminal symbol
+  for (int i = 0; i < targetPhrase.GetSize(); i++) {
+      if (targetPhrase.GetWord(i).IsNonTerminal()) {
+          const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(targetPhrase.GetAlignNonTerm().GetNonTermIndexMap()[i]);
+          absolute_source_position[targetPhrase.GetAlignNonTerm().GetNonTermIndexMap2()[i]] = prev_hypo->GetCurrSourceRange().GetEndPos();
+      }
+  }
+
+  // set absolute position of all source terminal symbols based on absolute position of previous symbol
+  for (int i = 0; i != absolute_source_position.size(); i++) {
+      if (i && absolute_source_position[i] == 0) {
+        absolute_source_position[i] = absolute_source_position[i-1] + 1;
+      }
+  }
+
   for (int i = 0; i < targetPhrase.GetSize(); i++){
     //Sometimes we have to traverse more than one target words because of
     //unaligned words. This is O(n^2) in worst case, but usually closer to O(n)
     if (targetPhrase.GetWord(i).IsNonTerminal()){
       //If we have a non terminal we can get the alignments from the previous state
-      const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(next_nonterminal_index);
+      const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(targetPhrase.GetAlignNonTerm().GetNonTermIndexMap()[i]);
       const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
       const std::vector<int> prevWordAls = prev_state->GetWordAlignmentVector();
-      nonterm_length += prevWordAls.size();
       for (std::vector<int>::const_iterator it = prevWordAls.begin(); it!= prevWordAls.end(); it++){
-        word_alignemnts.push_back(*it);
+        word_alignments.push_back(*it);
       }
-      next_nonterminal_index++;
     } else {
-      std::set<size_t> word_al; //Keep word alignments
       bool resolvedIndexis = false; //If we are aligning to an existing nonterm we don't need to calculate offsets
-      for (int j = 0; j < targetPhrase.GetSize(); j++){
-        //Try to get alignment from the current word and if it is unaligned,
-        //try from the first word to the right and then to the left
-        if ((i+j) < targetPhrase.GetSize()) {
-          if (targetPhrase.GetWord(i + j).IsNonTerminal()) {
-            const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(next_nonterminal_index);
-            const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
-            const std::vector<int>& word_alignments = prev_state->GetWordAlignmentVector();
-            source_word_mid_idx = word_alignments.front(); // The first word on the right of our word
-            resolvedIndexis = true;
-            break;
-          }
-          word_al = alignments.GetAlignmentsForTarget(i + j);
-          if (!word_al.empty()) {
-            break;
-          }
-        }
-
-        if ((i - j) >= 0) {
-          if (targetPhrase.GetWord(i - j).IsNonTerminal()) {
-            const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(next_nonterminal_index - 1); //We need to look at the nonterm on the left.
-            const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
-            const std::vector<int>& word_alignments = prev_state->GetWordAlignmentVector();
-            source_word_mid_idx = word_alignments.back(); // The first word on the left of our word
-            resolvedIndexis = true;
-            break;
+      std::set<size_t> word_al = alignments.GetAlignmentsForTarget(i);
+      if (word_al.empty()) {
+        for (int j = 1; j < targetPhrase.GetSize(); j++){
+          //Try to get alignment from the current word and if it is unaligned,
+          //try from the first word to the right and then to the left
+          if ((i+j) < targetPhrase.GetSize()) {
+            //TODO: this will always succeed, even if first word in previous hypo is unaligned. should it?
+            if (targetPhrase.GetWord(i + j).IsNonTerminal()) {
+              const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(targetPhrase.GetAlignNonTerm().GetNonTermIndexMap()[i+j]);
+              const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
+              source_word_mid_idx = prev_state->GetWordAlignmentVector().front(); // The first word on the right of our word
+              resolvedIndexis = true;
+              break;
+            }
+            word_al = alignments.GetAlignmentsForTarget(i + j);
+            if (!word_al.empty()) {
+              break;
+            }
           }
 
-          word_al = alignments.GetAlignmentsForTarget(i - j);
-          if (!word_al.empty()) {
-            break;
+          if ((i - j) >= 0) {
+            //TODO: this will always succeed, even if last word in previous hypo is unaligned. should it?
+            if (targetPhrase.GetWord(i - j).IsNonTerminal()) {
+              const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(targetPhrase.GetAlignNonTerm().GetNonTermIndexMap()[i-j]);
+              const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
+              source_word_mid_idx = prev_state->GetWordAlignmentVector().back(); // The first word on the left of our word
+              resolvedIndexis = true;
+              break;
+            }
+
+            word_al = alignments.GetAlignmentsForTarget(i - j);
+            if (!word_al.empty()) {
+              break;
+            }
           }
         }
       }
@@ -329,9 +343,9 @@ void BilingualLM::getAllAlignments(const ChartHypothesis& cur_hypo, size_t featu
         "A target phrase with no alignments detected! " << targetPhrase << "Check if there is something wrong with your phrase table.");
         size_t source_center_index = selectMiddleAlignment(word_al);
         // We have found the alignment. Now determine how much to shift by to get the actual source word index.
-        source_word_mid_idx = source_phrase_start_pos + (int)source_center_index + nonterm_length;
+        source_word_mid_idx = absolute_source_position[source_center_index];
       }
-      word_alignemnts.push_back(source_word_mid_idx);
+      word_alignments.push_back(source_word_mid_idx);
     }
   }
 
@@ -408,7 +422,7 @@ FFState* BilingualLM::EvaluateWhenApplied(
   std::vector<int> source_words;
   source_words.reserve(source_ngrams);
   std::vector<int> target_words;
-  target_words.reserve(target_ngrams);
+  target_words.reserve(target_ngrams+1);
 
   float value = 0; //NeuralLM score
   const TargetPhrase& currTargetPhrase = cur_hypo.GetCurrTargetPhrase();
@@ -419,12 +433,10 @@ FFState* BilingualLM::EvaluateWhenApplied(
   int future_size = currTargetPhrase.GetNumTerminals();
   for (int i =0; i<currTargetPhrase.GetNumNonTerminals(); i++){
     const ChartHypothesis * prev_hypo = cur_hypo.GetPrevHypo(i); //We need to look at the nonterm on the left.
-    const BilingualLMState * prev_state = static_cast<const BilingualLMState *>(prev_hypo->GetFFState(featureID));
-    const std::vector<int>& wordIds = prev_state->GetWordIdsVector();
-    future_size += wordIds.size();
+    future_size += prev_hypo->GetCurrTargetPhrase().GetSize();
   }
   neuralLMids.reserve(future_size);
-  neuralLMids.reserve(future_size);
+  alignments.reserve(future_size);
 
   getAllTargetIdsChart(cur_hypo, featureID, neuralLMids);
   getAllAlignments(cur_hypo, featureID, alignments);
@@ -459,7 +471,7 @@ FFState* BilingualLM::EvaluateWhenApplied(
 }
 
 void BilingualLM::SetParameter(const std::string& key, const std::string& value) {
-  if (key == "filepath") {
+  if (key == "path") {
     m_filePath = value;
   } else {
     StatefulFeatureFunction::SetParameter(key, value);

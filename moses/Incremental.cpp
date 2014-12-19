@@ -163,7 +163,7 @@ template <class Model> void Fill<Model>::AddPhraseOOV(TargetPhrase &phrase, std:
 {
   std::vector<lm::WordIndex> words;
   UTIL_THROW_IF2(phrase.GetSize() > 1,
-		  "OOV target phrase should be 0 or 1 word in length");
+                 "OOV target phrase should be 0 or 1 word in length");
   if (phrase.GetSize())
     words.push_back(Convert(phrase.GetWord(0)));
 
@@ -183,9 +183,9 @@ template <class Model> void Fill<Model>::AddPhraseOOV(TargetPhrase &phrase, std:
 // for pruning
 template <class Model> float Fill<Model>::GetBestScore(const ChartCellLabel *chartCell) const
 {
-    search::PartialVertex vertex = chartCell->GetStack().incr->RootAlternate();
-    UTIL_THROW_IF2(vertex.Empty(), "hypothesis with empty stack");
-    return vertex.Bound();
+  search::PartialVertex vertex = chartCell->GetStack().incr->RootAlternate();
+  UTIL_THROW_IF2(vertex.Empty(), "hypothesis with empty stack");
+  return vertex.Bound();
 }
 
 // TODO: factors (but chart doesn't seem to support factors anyway).

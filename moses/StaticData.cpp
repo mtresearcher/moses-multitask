@@ -22,10 +22,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <string>
 
+#include "moses/FF/Factory.h"
 #include "TypeDef.h"
 #include "moses/FF/WordPenaltyProducer.h"
 #include "moses/FF/UnknownWordPenaltyProducer.h"
 #include "moses/FF/InputFeature.h"
+#include "moses/FF/DynamicCacheBasedLanguageModel.h"
+#include "moses/TranslationModel/PhraseDictionaryDynamicCacheBased.h"
 
 #include "DecodeStepTranslation.h"
 #include "DecodeStepGeneration.h"
@@ -160,6 +163,10 @@ bool StaticData::LoadData(Parameter *parameter)
     m_alignmentOutputFile = Scan<std::string>(params->at(0));
     m_needAlignmentInfo = true;
   }
+
+  m_parameter->SetParameter( m_PrintID, "print-id", false );
+  m_parameter->SetParameter( m_PrintPassthroughInformation, "print-passthrough", false );
+  m_parameter->SetParameter( m_PrintPassthroughInformationInNBest, "print-passthrough-in-n-best", false );
 
   // n-best
   params = m_parameter->GetParam("n-best-list");
@@ -296,6 +303,9 @@ bool StaticData::LoadData(Parameter *parameter)
   //Disable discarding
   m_parameter->SetParameter(m_disableDiscarding, "disable-discarding", false);
 
+  //Print Translation Options
+  m_parameter->SetParameter(m_printTranslationOptions, "print-translation-option", false );
+
   //Print All Derivations
   m_parameter->SetParameter(m_printAllDerivations , "print-all-derivations", false );
 
@@ -362,8 +372,8 @@ bool StaticData::LoadData(Parameter *parameter)
   //lattice mbr
   m_parameter->SetParameter(m_useLatticeMBR, "lminimum-bayes-risk", false );
   if (m_useLatticeMBR && m_mbr) {
-    cerr << "Errror: Cannot use both n-best mbr and lattice mbr together" << endl;
-    return false;
+    cerr << "Error: Cannot use both n-best mbr and lattice mbr together" << endl;
+    exit(1);
   }
 
   //mira training
@@ -474,15 +484,14 @@ bool StaticData::LoadData(Parameter *parameter)
     string &feature = toks[0];
     std::map<std::string, std::string>::const_iterator iter = featureNameOverride.find(feature);
     if (iter == featureNameOverride.end()) {
-    	// feature name not override
-    	m_registry.Construct(feature, line);
-    }
-    else {
-    	// replace feature name with new name
-    	string newName = iter->second;
-    	feature = newName;
-    	string newLine = Join(" ", toks);
-    	m_registry.Construct(newName, newLine);
+      // feature name not override
+      m_registry.Construct(feature, line);
+    } else {
+      // replace feature name with new name
+      string newName = iter->second;
+      feature = newName;
+      string newLine = Join(" ", toks);
+      m_registry.Construct(newName, newLine);
     }
   }
 
@@ -567,7 +576,7 @@ void StaticData::LoadNonTerminals()
     while(getline(inStream, line)) {
       vector<string> tokens = Tokenize(line);
       UTIL_THROW_IF2(tokens.size() != 2,
-    		  "Incorrect unknown LHS format: " << line);
+                     "Incorrect unknown LHS format: " << line);
       UnknownLHSEntry entry(tokens[0], Scan<float>(tokens[1]));
       m_unknownLHS.push_back(entry);
       // const Factor *targetFactor = 
@@ -626,7 +635,7 @@ bool StaticData::LoadDecodeGraphs()
       decodeGraphInd = Scan<size_t>(token[0]);
       //the vectorList index can only increment by one
       UTIL_THROW_IF2(decodeGraphInd != prevDecodeGraphInd && decodeGraphInd != prevDecodeGraphInd + 1,
-    		  "Malformed mapping");
+                     "Malformed mapping");
       if (decodeGraphInd > prevDecodeGraphInd) {
         prev = NULL;
       }
@@ -732,9 +741,9 @@ void StaticData::ReLoadParameter()
       } else { //lexicalized reordering model takes the other
         Weights.erase(Weights.begin()); //remove the first element
       }
-      //			std::cerr << "this is the Distortion Score Producer -> " << (*iterSP)->GetScoreProducerDescription() << std::cerr;
-      //			std::cerr << "this is the Distortion Score Producer; it has " << (*iterSP)->GetNumScoreComponents() << " weights"<< std::cerr;
-      //  	std::cerr << Weights << std::endl;
+      std::cerr << "this is the Distortion Score Producer -> " << (*iterSP)->GetScoreProducerDescription() << std::cerr;
+      std::cerr << "this is the Distortion Score Producer; it has " << (*iterSP)->GetNumScoreComponents() << " weights"<< std::cerr;
+      std::cerr << Weights << std::endl;
     } else if (paramShortName == "tm") {
       continue;
     }
@@ -852,8 +861,7 @@ void StaticData::CleanUpAfterSentenceProcessing(const InputType& source) const
 
 void StaticData::LoadFeatureFunctions()
 {
-  const std::vector<FeatureFunction*> &ffs
-  = FeatureFunction::GetFeatureFunctions();
+  const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   std::vector<FeatureFunction*>::const_iterator iter;
   for (iter = ffs.begin(); iter != ffs.end(); ++iter) {
     FeatureFunction *ff = *iter;
@@ -907,8 +915,7 @@ bool StaticData::CheckWeights() const
       VERBOSE(1,fname << "\n");
       if (featureNames.find(fname) != featureNames.end()) {
         weightNames.erase(iter++);
-      }
-      else {
+      } else {
         ++iter;
       }
     }
@@ -930,7 +937,8 @@ void StaticData::SetSparseWeight(const FeatureFunction *ol, std::string featureN
 	m_allWeights.Assign(featureName, weight);
 }
 
-void StaticData::LoadSparseWeightsFromConfig() {
+void StaticData::LoadSparseWeightsFromConfig()
+{
   set<string> featureNames;
   const std::vector<FeatureFunction*> &ffs = FeatureFunction::GetFeatureFunctions();
   for (size_t i = 0; i < ffs.size(); ++i) {
@@ -945,7 +953,7 @@ void StaticData::LoadSparseWeightsFromConfig() {
     // this indicates that it is sparse feature
     if (featureNames.find(iter->first) == featureNames.end()) {
       UTIL_THROW_IF2(iter->second.size() != 1, "ERROR: only one weight per sparse feature allowed: " << iter->first);
-        m_allWeights.Assign(iter->first, iter->second[0]);
+      m_allWeights.Assign(iter->first, iter->second[0]);
     }
   }
 
@@ -988,7 +996,7 @@ bool StaticData::LoadAlternateWeightSettings()
       currentId = args[1];
       VERBOSE(1,"alternate weight setting " << currentId << endl);
       UTIL_THROW_IF2(m_weightSetting.find(currentId) != m_weightSetting.end(),
-    		  "Duplicate alternate weight id: " << currentId);
+                     "Duplicate alternate weight id: " << currentId);
       m_weightSetting[ currentId ] = new ScoreComponentCollection;
 
       // other specifications
@@ -1014,8 +1022,7 @@ bool StaticData::LoadAlternateWeightSettings()
           vector<string> featureFunctionName = Tokenize(args[1], ",");
           for(size_t k=0; k<featureFunctionName.size(); k++) {
             // check if a valid nane
-            map<string,FeatureFunction*>::iterator ffLookUp
-            = nameToFF.find(featureFunctionName[k]);
+            map<string,FeatureFunction*>::iterator ffLookUp = nameToFF.find(featureFunctionName[k]);
             if (ffLookUp == nameToFF.end()) {
               cerr << "ERROR: alternate weight setting " << currentId
                    << " specifies to ignore feature function " << featureFunctionName[k]
@@ -1034,7 +1041,7 @@ bool StaticData::LoadAlternateWeightSettings()
       UTIL_THROW_IF2(currentId.empty(), "No alternative weights specified");
       vector<string> tokens = Tokenize(weightSpecification[i]);
       UTIL_THROW_IF2(tokens.size() < 2
-    		  , "Incorrect format for alternate weights: " << weightSpecification[i]);
+                     , "Incorrect format for alternate weights: " << weightSpecification[i]);
 
       // get name and weight values
       string name = tokens[0];
@@ -1063,34 +1070,34 @@ bool StaticData::LoadAlternateWeightSettings()
 
 void StaticData::NoCache()
 {
-	bool noCache;
-	m_parameter->SetParameter(noCache, "no-cache", false );
+  bool noCache;
+  m_parameter->SetParameter(noCache, "no-cache", false );
 
-	if (noCache) {
-		const std::vector<PhraseDictionary*> &pts = PhraseDictionary::GetColl();
-		for (size_t i = 0; i < pts.size(); ++i) {
-			PhraseDictionary &pt = *pts[i];
-			pt.SetParameter("cache-size", "0");
-		}
-	}
+  if (noCache) {
+    const std::vector<PhraseDictionary*> &pts = PhraseDictionary::GetColl();
+    for (size_t i = 0; i < pts.size(); ++i) {
+      PhraseDictionary &pt = *pts[i];
+      pt.SetParameter("cache-size", "0");
+    }
+  }
 }
 
 std::map<std::string, std::string> StaticData::OverrideFeatureNames()
 {
-	std::map<std::string, std::string> ret;
+  std::map<std::string, std::string> ret;
 
-	const PARAM_VEC *params = m_parameter->GetParam("feature-name-overwrite");
-	if (params && params->size()) {
-		UTIL_THROW_IF2(params->size() != 1, "Only provide 1 line in the section [feature-name-overwrite]");
-		vector<string> toks = Tokenize(params->at(0));
-		UTIL_THROW_IF2(toks.size() % 2 != 0, "Format of -feature-name-overwrite must be [old-name new-name]*");
+  const PARAM_VEC *params = m_parameter->GetParam("feature-name-overwrite");
+  if (params && params->size()) {
+    UTIL_THROW_IF2(params->size() != 1, "Only provide 1 line in the section [feature-name-overwrite]");
+    vector<string> toks = Tokenize(params->at(0));
+    UTIL_THROW_IF2(toks.size() % 2 != 0, "Format of -feature-name-overwrite must be [old-name new-name]*");
 
-		for (size_t i = 0; i < toks.size(); i += 2) {
-			const string &oldName = toks[i];
-			const string &newName = toks[i+1];
-			ret[oldName] = newName;
-		}
-	}
+    for (size_t i = 0; i < toks.size(); i += 2) {
+      const string &oldName = toks[i];
+      const string &newName = toks[i+1];
+      ret[oldName] = newName;
+    }
+  }
 
   if (m_useS2TDecoder) {
     // Automatically override PhraseDictionary{Memory,Scope3}.  This will
@@ -1101,7 +1108,7 @@ std::map<std::string, std::string> StaticData::OverrideFeatureNames()
     ret["PhraseDictionaryScope3"] = "RuleTable";
   }
 
-	return ret;
+  return ret;
 }
 
 void StaticData::OverrideFeatures()
@@ -1153,24 +1160,24 @@ void StaticData::ResetWeights(const std::string &denseWeights, const std::string
   vector<float> weights;
   vector<string> toks = Tokenize(denseWeights);
   for (size_t i = 0; i < toks.size(); ++i) {
-	const string &tok = toks[i];
+    const string &tok = toks[i];
 
-	if (tok.substr(tok.size() - 1, 1) == "=") {
-	  // start of new feature
+    if (tok.substr(tok.size() - 1, 1) == "=") {
+      // start of new feature
 
-	  if (name != "") {
-		// save previous ff
-		const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(name);
-		m_allWeights.Assign(&ff, weights);
-		weights.clear();
-	  }
+      if (name != "") {
+        // save previous ff
+        const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(name);
+        m_allWeights.Assign(&ff, weights);
+        weights.clear();
+      }
 
-	  name = tok.substr(0, tok.size() - 1);
-	} else {
-	  // a weight for curr ff
-	  float weight = Scan<float>(toks[i]);
-	  weights.push_back(weight);
-	}
+      name = tok.substr(0, tok.size() - 1);
+    } else {
+      // a weight for curr ff
+      float weight = Scan<float>(toks[i]);
+      weights.push_back(weight);
+    }
   }
 
   const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(name);
@@ -1180,14 +1187,14 @@ void StaticData::ResetWeights(const std::string &denseWeights, const std::string
   InputFileStream sparseStrme(sparseFile);
   string line;
   while (getline(sparseStrme, line)) {
-	  vector<string> toks = Tokenize(line);
-	  UTIL_THROW_IF2(toks.size() != 2, "Incorrect sparse weight format. Should be FFName_spareseName weight");
+    vector<string> toks = Tokenize(line);
+    UTIL_THROW_IF2(toks.size() != 2, "Incorrect sparse weight format. Should be FFName_spareseName weight");
 
-	  vector<string> names = Tokenize(toks[0], "_");
-	  UTIL_THROW_IF2(names.size() != 2, "Incorrect sparse weight name. Should be FFName_spareseName");
+    vector<string> names = Tokenize(toks[0], "_");
+    UTIL_THROW_IF2(names.size() != 2, "Incorrect sparse weight name. Should be FFName_spareseName");
 
-      const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(names[0]);
-	  m_allWeights.Assign(&ff, names[1], Scan<float>(toks[1]));
+    const FeatureFunction &ff = FeatureFunction::FindFeatureFunction(names[0]);
+    m_allWeights.Assign(&ff, names[1], Scan<float>(toks[1]));
   }
 }
 

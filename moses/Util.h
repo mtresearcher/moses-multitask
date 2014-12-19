@@ -369,7 +369,7 @@ inline float CalcTranslationScore(const std::vector<float> &probVector,
                                   const std::vector<float> &weightT)
 {
   UTIL_THROW_IF2(weightT.size() != probVector.size(),
-		  "Weight and score vector sizes not the same");
+                 "Weight and score vector sizes not the same");
   float rv=0.0;
   for(float const *sb=&probVector[0],*se=sb+probVector.size(),*wb=&weightT[0];
       sb!=se; ++sb, ++wb)
@@ -435,6 +435,9 @@ bool FileExists(const std::string& filePath);
 void ResetUserTime();
 void PrintUserTime(const std::string &message);
 double GetUserTime();
+
+// dump SGML parser for <dlt> tags
+std::vector< std::map<std::string, std::string> > ProcessAndStripDLT(std::string &line);
 
 // dump SGML parser for <seg> tags
 std::map<std::string, std::string> ProcessAndStripSGML(std::string &line);

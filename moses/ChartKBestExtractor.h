@@ -71,8 +71,8 @@ public:
 
   struct Vertex {
     typedef std::priority_queue<boost::weak_ptr<Derivation>,
-                                std::vector<boost::weak_ptr<Derivation> >,
-                                DerivationOrderer> DerivationQueue;
+            std::vector<boost::weak_ptr<Derivation> >,
+            DerivationOrderer> DerivationQueue;
 
     Vertex(const ChartHypothesis &h) : hypothesis(h), visited(false) {}
 
@@ -94,7 +94,7 @@ public:
 
 private:
   typedef boost::unordered_map<const ChartHypothesis *,
-                               boost::shared_ptr<Vertex> > VertexMap;
+          boost::shared_ptr<Vertex> > VertexMap;
 
   struct DerivationHasher {
     std::size_t operator()(const boost::shared_ptr<Derivation> &d) const {
@@ -116,7 +116,7 @@ private:
   };
 
   typedef boost::unordered_set<boost::shared_ptr<Derivation>, DerivationHasher,
-                               DerivationEqualityPred> DerivationSet;
+          DerivationEqualityPred> DerivationSet;
 
   UnweightedHyperarc CreateEdge(const ChartHypothesis &);
   boost::shared_ptr<Vertex> FindOrCreateVertex(const ChartHypothesis &);

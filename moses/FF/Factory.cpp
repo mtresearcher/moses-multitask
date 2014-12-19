@@ -2,15 +2,17 @@
 #include "moses/StaticData.h"
 
 #include "moses/TranslationModel/PhraseDictionaryTreeAdaptor.h"
-#include "moses/TranslationModel/RuleTable/PhraseDictionaryOnDisk.h"
 #include "moses/TranslationModel/PhraseDictionaryMemory.h"
 #include "moses/TranslationModel/PhraseDictionaryMultiModel.h"
 #include "moses/TranslationModel/PhraseDictionaryMultiModelCounts.h"
-#include "moses/TranslationModel/RuleTable/PhraseDictionaryALSuffixArray.h"
 #include "moses/TranslationModel/PhraseDictionaryDynSuffixArray.h"
 #include "moses/TranslationModel/PhraseDictionaryScope3.h"
 #include "moses/TranslationModel/PhraseDictionaryTransliteration.h"
+#include "moses/TranslationModel/PhraseDictionaryDynamicCacheBased.h"
+
+#include "moses/TranslationModel/RuleTable/PhraseDictionaryOnDisk.h"
 #include "moses/TranslationModel/RuleTable/PhraseDictionaryFuzzyMatch.h"
+#include "moses/TranslationModel/RuleTable/PhraseDictionaryALSuffixArray.h"
 
 #include "moses/FF/LexicalReordering/LexicalReordering.h"
 
@@ -39,6 +41,7 @@
 #include "moses/FF/CoveredReferenceFeature.h"
 #include "moses/FF/TreeStructureFeature.h"
 #include "moses/FF/SoftMatchingFeature.h"
+#include "moses/FF/DynamicCacheBasedLanguageModel.h"
 #include "moses/FF/SourceGHKMTreeInputMatchFeature.h"
 #include "moses/FF/HyperParameterAsWeight.h"
 #include "moses/FF/SetSourcePhrase.h"
@@ -179,6 +182,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(PhraseDictionaryALSuffixArray);
   MOSES_FNAME(PhraseDictionaryDynSuffixArray);
   MOSES_FNAME(PhraseDictionaryTransliteration);
+  MOSES_FNAME(PhraseDictionaryDynamicCacheBased);
   MOSES_FNAME(PhraseDictionaryFuzzyMatch);
   MOSES_FNAME2("RuleTable", Syntax::RuleTableFF);
 
@@ -209,6 +213,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SoftSourceSyntacticConstraintsFeature);
   MOSES_FNAME(TreeStructureFeature);
   MOSES_FNAME(SoftMatchingFeature);
+  MOSES_FNAME(DynamicCacheBasedLanguageModel);
   MOSES_FNAME(HyperParameterAsWeight);
   MOSES_FNAME(SetSourcePhrase);
   MOSES_FNAME(CountNonTerms);

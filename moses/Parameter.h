@@ -74,6 +74,7 @@ protected:
   void ConvertWeightArgsLM();
   void ConvertWeightArgsDistortion();
   void ConvertWeightArgsGeneration(const std::string &oldWeightName, const std::string &newWeightName);
+  void ConvertWeightArgsPhrasePenalty();
   void ConvertWeightArgsWordPenalty();
   void ConvertPhrasePenalty();
   void CreateWeightsMap();
@@ -102,7 +103,7 @@ public:
 
   std::vector<float> GetWeights(const std::string &name);
   std::map<std::string, std::vector<float> > GetAllWeights() const {
-      return m_weights;
+    return m_weights;
   }
   std::set<std::string> GetWeightNames() const;
 

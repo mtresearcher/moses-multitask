@@ -34,8 +34,8 @@ namespace Moses
 
 // Extract the k-best list from the search graph.
 void ChartKBestExtractor::Extract(
-    const std::vector<const ChartHypothesis*> &topLevelHypos, std::size_t k,
-    KBestVec &kBestList)
+  const std::vector<const ChartHypothesis*> &topLevelHypos, std::size_t k,
+  KBestVec &kBestList)
 {
   kBestList.clear();
   if (topLevelHypos.empty()) {
@@ -47,7 +47,7 @@ void ChartKBestExtractor::Extract(
   std::vector<const ChartHypothesis*>::const_iterator p = topLevelHypos.begin();
   const ChartHypothesis &bestTopLevelHypo = **p;
   boost::scoped_ptr<ChartHypothesis> supremeHypo(
-      new ChartHypothesis(bestTopLevelHypo, *this));
+    new ChartHypothesis(bestTopLevelHypo, *this));
 
   // Do the same for each alternative top-level hypothesis, but add the new
   // ChartHypothesis objects as arcs from supremeHypo, as if they had been
@@ -70,8 +70,8 @@ void ChartKBestExtractor::Extract(
   // each derivation.
   kBestList.reserve(targetVertex->kBestList.size());
   for (std::vector<boost::weak_ptr<Derivation> >::const_iterator
-        q = targetVertex->kBestList.begin();
-        q != targetVertex->kBestList.end(); ++q) {
+       q = targetVertex->kBestList.begin();
+       q != targetVertex->kBestList.end(); ++q) {
     const boost::shared_ptr<Derivation> d(*q);
     assert(d);
     assert(d->subderivations.size() == 1);
@@ -155,7 +155,7 @@ TreePointer ChartKBestExtractor::GetOutputTree(const Derivation &d)
 
 // Create an unweighted hyperarc corresponding to the given ChartHypothesis.
 ChartKBestExtractor::UnweightedHyperarc ChartKBestExtractor::CreateEdge(
-    const ChartHypothesis &h)
+  const ChartHypothesis &h)
 {
   UnweightedHyperarc edge;
   edge.head = FindOrCreateVertex(h);
@@ -191,7 +191,7 @@ ChartKBestExtractor::FindOrCreateVertex(const ChartHypothesis &h)
   }
   boost::shared_ptr<Derivation> bestDerivation(new Derivation(bestEdge));
 #ifndef NDEBUG
-  std::pair<DerivationSet::iterator, bool> q = 
+  std::pair<DerivationSet::iterator, bool> q =
 #endif
     m_derivations.insert(bestDerivation);
   assert(q.second);

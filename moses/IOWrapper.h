@@ -180,6 +180,9 @@ public:
   void OutputInput(std::ostream& os, const Moses::Hypothesis* hypo);
   void OutputInput(std::vector<const Phrase*>& map, const Hypothesis* hypo);
 
+  void OutputPassthroughInformation(std::string& passthrough, const Moses::Hypothesis* hypo);
+  void OutputPassthroughInformation(std::ostream& os, const Moses::Hypothesis* hypo);
+
   void OutputAlignment(Moses::OutputCollector* collector, size_t lineNo, const Moses::Hypothesis *hypo);
   void OutputAlignment(Moses::OutputCollector* collector, size_t lineNo,  const Moses::TrellisPath &path);
   void OutputAlignment(OutputCollector* collector, size_t lineNo , const std::vector<const Hypothesis *> &edges);
