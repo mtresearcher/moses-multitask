@@ -7,6 +7,8 @@
  * Online feature keeps track of recent source and target phrases in hope / fear hypothesis.
 */
 
+#pragma once
+
 #include "moses/Util.h"
 #include "moses/TypeDef.h"
 #include "moses/FF/FeatureFunction.h"
@@ -17,10 +19,12 @@
 #include "moses/Manager.h"
 #include "math.h"
 #include "moses/StaticData.h"
+
 #include "moses/FF/OnlineLearning/Optimiser.h"
 #include "boost/unordered_map.hpp"
 #include "boost/unordered_set.hpp"
 #include "mert/TER/terAlignment.h"
+
 
 #ifndef ONLINELEARNINGFEATURE_H_
 #define ONLINELEARNINGFEATURE_H_
@@ -31,13 +35,14 @@ using namespace Optimizer;
 typedef boost::unordered_map<std::string, boost::unordered_map<std::string, float> > pp_feature;
 typedef boost::unordered_map<std::string, boost::unordered_map<std::string, int> > pp_list;
 
+
 typedef float learningrate;
 
 namespace Moses {
 
 class Optimiser;
 
-class OnlineLearningFeature : public StatelessFeatureFunction {
+class OnlineLearningFeature : public StatelessFeatureFunction{
 
 public:
 	OnlineLearningFeature(const std::string&);
@@ -90,7 +95,6 @@ public:
 	void Load();
 	void Load(const std::string filename);
 
-
 	enum Algorithm {
 		SparseFeatures = 0
 		, FOnlyPerceptron = 1
@@ -133,6 +137,10 @@ private:
 	float w_init, w_initTargetWords,slack;
 	std::string m_algorithm;
 
+	inline std::string &trim(std::string &s);
+	inline std::string &rtrim(std::string &s);
+	inline std::string &ltrim(std::string &s);
+
 	void Evaluate(const TargetPhrase& tp, ScoreComponentCollection* out) const;
 
 	void ShootUp(std::string, std::string, float);
@@ -159,6 +167,7 @@ private:
 	void updateIntMatrix();
 
 	void GetPE2HypAlignments(const TERCpp::terAlignment&);
+	void Update(std::string, std::string, std::string);
 };
 }
 #endif /* ONLINELEARNINGFEATURE_H_ */

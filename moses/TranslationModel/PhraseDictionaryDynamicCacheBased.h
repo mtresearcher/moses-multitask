@@ -52,6 +52,8 @@ class ChartRuleLookupManager;
 class PhraseDictionaryDynamicCacheBased : public PhraseDictionary
 {
 
+  friend class OnlineLearningFeature;
+
   typedef std::vector<unsigned int> AgeCollection;
   typedef std::pair<TargetPhraseCollection*, AgeCollection*> TargetCollectionAgePair;
   typedef std::map<Phrase, TargetCollectionAgePair> cacheMap;
