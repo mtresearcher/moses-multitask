@@ -299,8 +299,8 @@ namespace Moses {
         return;
     }
 
-    int OnlineLearningFeature::split_marker_perl(std::string& str, std::string marker, std::vector<std::string> &array) {
-    	trim(str);
+    int OnlineLearningFeature::split_marker_perl(std::string& str, std::string marker,
+    											std::vector<std::string> &array) const {
         int found = str.find(marker), prev = 0;
         while (found != string::npos) // warning!
         {
@@ -312,7 +312,7 @@ namespace Moses {
         return array.size() - 1;
     }
 
-    int OnlineLearningFeature::getNGrams(std::string& str, boost::unordered_map<std::string, int>& ngrams) {
+    int OnlineLearningFeature::getNGrams(std::string& str, boost::unordered_map<std::string, int>& ngrams) const {
     	std::vector<std::string> words;
         int numWords = split_marker_perl(str, " ", words);
         for (int i = 1; i <= 4; i++) {
@@ -325,6 +325,34 @@ namespace Moses {
             }
         }
         return str.size();
+    }
+
+    int OnlineLearningFeature::split_marker_perl(std::string& str, std::string marker, std::vector<std::string> &array) {
+    	trim(str);
+    	int found = str.find(marker), prev = 0;
+    	while (found != string::npos) // warning!
+    	{
+    		array.push_back(str.substr(prev, found - prev));
+    		prev = found + marker.length();
+    		found = str.find(marker, found + marker.length());
+    	}
+    	array.push_back(str.substr(prev));
+    	return array.size() - 1;
+    }
+
+    int OnlineLearningFeature::getNGrams(std::string& str, boost::unordered_map<std::string, int>& ngrams) {
+    	std::vector<std::string> words;
+    	int numWords = split_marker_perl(str, " ", words);
+    	for (int i = 1; i <= 4; i++) {
+    		for (int start = 0; start <= numWords - i + 1; start++) {
+    			string str = "";
+    			for (int pos = 0; pos < i; pos++) {
+    				str += words[start + pos] + " ";
+    			}
+    			ngrams[str]++;
+    		}
+    	}
+    	return str.size();
     }
 
     void OnlineLearningFeature::compareNGrams(boost::unordered_map<std::string, int>& hyp,
@@ -660,10 +688,22 @@ namespace Moses {
     		}
     		std::string tword = tp.GetWord(pos)[0]->GetString().as_string();
     		t += tword;
-    		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
-    			out.SparsePlusEquals(tword, 1);
+//    		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
+//    			out.SparsePlusEquals(tword, 1);
+//    		}
+    	}
+    	if(m_triggerTargetWords){
+    		boost::unordered_map<std::string, int> twords;
+    		getNGrams(t, twords);
+    		boost::unordered_map<std::string, int>::const_iterator itr=twords.begin();
+    		while(itr!=twords.end()){
+    			if(m_vocab.find(itr->first) != m_vocab.end()){
+    				out.SparsePlusEquals(itr->first, 1);
+    			}
+    			itr++;
     		}
     	}
+
     	endpos = sp.GetSize();
     	for (size_t pos = 0; pos < endpos; ++pos) {
     		if (pos > 0) {

@@ -157,6 +157,10 @@ private:
 			boost::unordered_map<int, float>& countNgrams, boost::unordered_map<int, float>& TotalNgrams);
 	int getNGrams(std::string& str, boost::unordered_map<string, int>& ngrams);
 	int split_marker_perl(string& str, string marker, vector<string> &array);
+
+	int getNGrams(std::string& str, boost::unordered_map<string, int>& ngrams) const ;
+	int split_marker_perl(string& str, string marker, vector<string> &array) const ;
+
 	void updateFeatureValues();
 	void chop(std::string &str);
 	void Decay();
