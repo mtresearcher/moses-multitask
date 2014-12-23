@@ -153,16 +153,18 @@ private:
 	float GetBleu(std::string hypothesis, std::string reference);
 	float GetTer(std::string hypothesis, std::string reference);
 
-	void compareNGrams(map<string, int>& hyp, map<string, int>& ref, map<int, float>& countNgrams, map<int, float>& TotalNgrams);
-	int getNGrams(std::string str, map<string, int>& ngrams);
-	int split_marker_perl(string str, string marker, vector<string> &array);
+	void compareNGrams(boost::unordered_map<string, int>& hyp, boost::unordered_map<string, int>& ref,
+			boost::unordered_map<int, float>& countNgrams, boost::unordered_map<int, float>& TotalNgrams);
+	int getNGrams(std::string& str, boost::unordered_map<string, int>& ngrams);
+	int split_marker_perl(string& str, string marker, vector<string> &array);
 	void updateFeatureValues();
-	void chop(string &str);
+	void chop(std::string &str);
 	void Decay();
 
-	void DumpFeatures(string);
-	void ReadFeatures(string);
+	void DumpFeatures(std::string);
+	void ReadFeatures(std::string);
 	void InsertTargetWords();
+	void InsertNGrams();
 
 	void updateIntMatrix();
 

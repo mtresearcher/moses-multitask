@@ -299,8 +299,8 @@ namespace Moses {
         return;
     }
 
-    int OnlineLearningFeature::split_marker_perl(string str, string marker, vector<string> &array) {
-	trim(str);
+    int OnlineLearningFeature::split_marker_perl(std::string& str, std::string marker, std::vector<std::string> &array) {
+    	trim(str);
         int found = str.find(marker), prev = 0;
         while (found != string::npos) // warning!
         {
@@ -312,8 +312,8 @@ namespace Moses {
         return array.size() - 1;
     }
 
-    int OnlineLearningFeature::getNGrams(std::string str, map<string, int>& ngrams) {
-        vector<string> words;
+    int OnlineLearningFeature::getNGrams(std::string& str, boost::unordered_map<std::string, int>& ngrams) {
+    	std::vector<std::string> words;
         int numWords = split_marker_perl(str, " ", words);
         for (int i = 1; i <= 4; i++) {
             for (int start = 0; start <= numWords - i + 1; start++) {
@@ -327,17 +327,20 @@ namespace Moses {
         return str.size();
     }
 
-    void OnlineLearningFeature::compareNGrams(map<string, int>& hyp, map<string, int>& ref,
-    		map<int, float>& countNgrams, map<int, float>& TotalNgrams) {
-        for (map<string, int>::const_iterator itr = hyp.begin(); itr != hyp.end(); itr++) {
-            vector<string> temp;
-            int ngrams = split_marker_perl((*itr).first, " ", temp);
-            TotalNgrams[ngrams] += hyp[(*itr).first];
-            if (ref.find((*itr).first) != ref.end()) {
-                if (hyp[(*itr).first] >= ref[(*itr).first]) {
-                    countNgrams[ngrams] += hyp[(*itr).first];
+    void OnlineLearningFeature::compareNGrams(boost::unordered_map<std::string, int>& hyp,
+    		boost::unordered_map<std::string, int>& ref,
+    		boost::unordered_map<int, float>& countNgrams,
+    		boost::unordered_map<int, float>& TotalNgrams) {
+        for (boost::unordered_map<std::string, int>::const_iterator itr = hyp.begin(); itr != hyp.end(); itr++) {
+            std::vector<std::string> temp;
+            std::string x=(*itr).first;
+            int ngrams = split_marker_perl(x, " ", temp);
+            TotalNgrams[ngrams] += hyp[x];
+            if (ref.find(x) != ref.end()) {
+                if (hyp[x] >= ref[x]) {
+                    countNgrams[ngrams] += hyp[x];
                 } else {
-                    countNgrams[ngrams] += ref[(*itr).first];
+                    countNgrams[ngrams] += ref[x];
                 }
             }
         }
@@ -350,9 +353,9 @@ namespace Moses {
 
     float OnlineLearningFeature::GetBleu(std::string hypothesis, std::string reference) {
         double bp = 1;
-        map<string, int> hypNgrams, refNgrams;
-        map<int, float> countNgrams, TotalNgrams;
-        map<int, double> BLEU;
+        boost::unordered_map<string, int> hypNgrams, refNgrams;
+        boost::unordered_map<int, float> countNgrams, TotalNgrams;
+        boost::unordered_map<int, double> BLEU;
         int length_translation = getNGrams(hypothesis, hypNgrams);
         int length_reference = getNGrams(reference, refNgrams);
         compareNGrams(hypNgrams, refNgrams, countNgrams, TotalNgrams);
@@ -386,9 +389,6 @@ namespace Moses {
     				ref_p++;
     				break;
     			case 'I':
-				//trim(hyp_afterShift[hyp_p]);
-    				//if(!has_only_spaces(hyp_afterShift[hyp_p]))
-    				//	curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
     				hyp_p++;
     				break;
     			default:
@@ -415,7 +415,7 @@ namespace Moses {
     }
 
     float OnlineLearningFeature::GetTer(std::string hypothesis, std::string reference) {
-    	vector<string> hypStr,refStr;
+    	std::vector<std::string> hypStr,refStr;
     	trim(hypothesis);
     	trim(reference);
     	VERBOSE(3, "Hyp:"<<hypothesis<<"|||\n");
@@ -442,7 +442,7 @@ namespace Moses {
     bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
         if (m_postedited.empty()) {
             m_postedited = s;
-            InsertTargetWords();
+            InsertNGrams(); // instead of InsertTargetWords
             return true;
         } else {
         	VERBOSE(1, "post edited already exists.. " << m_postedited << endl);
@@ -453,6 +453,21 @@ namespace Moses {
     bool OnlineLearningFeature::SetSourceSentence(std::string s) {
     	m_source = s;
     	return true;
+    }
+
+    void OnlineLearningFeature::InsertNGrams(){
+    	boost::unordered_map<std::string, int> twords;
+    	std::string temp_postedit=m_postedited;
+    	getNGrams(temp_postedit, twords);
+    	boost::unordered_map<std::string, int>::const_iterator itr=twords.begin();
+    	while(itr!=twords.end()){
+    		if(m_vocab.find(itr->first)==m_vocab.end() && m_stopwords.find(itr->first)==m_stopwords.end()) {
+    			m_vocab.insert(itr->first);
+    			StaticData::InstanceNonConst().SetSparseWeight(this, itr->first, w_initTargetWords);
+    		}
+    		itr++;
+    	}
+    	return;
     }
 
     void OnlineLearningFeature::InsertTargetWords(){
@@ -570,17 +585,12 @@ namespace Moses {
     }
 
     void OnlineLearningFeature::Update(std::string& source, std::string& target, std::string age){
-	trim(source);
-	trim(target);
-//	std::vector<std::string> temp;
-//	size_t sourceSize = split_marker_perl(source, " ", temp);
-//	size_t targetSize = split_marker_perl(target, " ", temp);
-//
-//	if(abs(int(sourceSize)-int(targetSize)) < 2)
-	if(source.length()>=10 && target.length()>=10){
-    	VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
-    	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
-	}
+    	trim(source);
+    	trim(target);
+    	if(source.length()>=10 && target.length()>=10){
+    		VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
+    		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
+    	}
     }
 
     void OnlineLearningFeature::updateFeatureValues(){
