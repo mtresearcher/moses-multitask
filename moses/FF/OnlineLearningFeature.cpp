@@ -300,6 +300,7 @@ namespace Moses {
     }
 
     int OnlineLearningFeature::split_marker_perl(string str, string marker, vector<string> &array) {
+	trim(str);
         int found = str.find(marker), prev = 0;
         while (found != string::npos) // warning!
         {
@@ -374,6 +375,8 @@ namespace Moses {
     	for (size_t i=0; i<align.size(); i++){
     		switch(align[i]){
     			case 'S': case 'A':
+				trim(hyp_afterShift[hyp_p]);
+				trim(ref[ref_p]);
     				if(!has_only_spaces(hyp_afterShift[hyp_p]) && !has_only_spaces(ref[ref_p]))
     					curr_wordpair[hyp_afterShift[hyp_p]]=ref[ref_p];
     				hyp_p++;
@@ -383,8 +386,9 @@ namespace Moses {
     				ref_p++;
     				break;
     			case 'I':
-    				if(!has_only_spaces(hyp_afterShift[hyp_p]))
-    					curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
+				//trim(hyp_afterShift[hyp_p]);
+    				//if(!has_only_spaces(hyp_afterShift[hyp_p]))
+    				//	curr_wordpair["NULL"]=hyp_afterShift[hyp_p];
     				hyp_p++;
     				break;
     			default:
@@ -565,9 +569,18 @@ namespace Moses {
         }
     }
 
-    void OnlineLearningFeature::Update(std::string source, std::string target, std::string age){
-    	VERBOSE(2, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
+    void OnlineLearningFeature::Update(std::string& source, std::string& target, std::string age){
+	trim(source);
+	trim(target);
+//	std::vector<std::string> temp;
+//	size_t sourceSize = split_marker_perl(source, " ", temp);
+//	size_t targetSize = split_marker_perl(target, " ", temp);
+//
+//	if(abs(int(sourceSize)-int(targetSize)) < 2)
+	if(source.length()>=10 && target.length()>=10){
+    	VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
     	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
+	}
     }
 
     void OnlineLearningFeature::updateFeatureValues(){
@@ -671,7 +684,7 @@ namespace Moses {
     	if(implementation == SparseFeatures) return;
     	const StaticData& staticData = StaticData::Instance();
     	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-    	//Decay();
+    	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
     	const Hypothesis* hypo = manager.GetBestHypothesis();
     	float bestScore = hypo->GetScore();
     	stringstream bestHypothesis;
@@ -701,13 +714,12 @@ namespace Moses {
     	std::vector<std::vector<ScoreComponentCollection> > featureValues;
     	TrellisPathList::const_iterator iter;
     	pp_list BestOracle, Visited, tempHopeFear;
-    	pp_feature Hope, Fear, NewHope, NewFear;
+    	pp_feature Hope, Fear, NewHope, oracleHope;
     	float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
     	size_t whichoracle = -1;
     	for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
     		tempHopeFear.clear();
     		whichoracle++;
-//    		if(whichoracle==0) continue;
     		const TrellisPath &path = **iter;
     		oracleScore = path.GetTotalScore();
     		PP_ORACLE.clear();
@@ -738,22 +750,7 @@ namespace Moses {
     			featureValue.push_back(path.GetScoreBreakdown());
     			modelScore.push_back(oracleScore);
     		}
-    		if (oraclebleu > maxBleu) {
-    			if(m_sctype.compare("Ter")==0){
-    				VERBOSE(1, "NBEST		: " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl);
-    			}
-    			else if(m_sctype.compare("Bleu")==0){
-    				VERBOSE(1, "NBEST		: " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl);
-    			}
-    			maxBleu = oraclebleu;
-    			maxScore = oracleScore;
-    			bestOracle = oracle.str();
-    			oracleBleuScores.clear();
-    			oraclefeatureScore.clear();
-    			BestOracle = PP_ORACLE;
-    			oracleBleuScores.push_back(oraclebleu);
-    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
-    		}
+
     		if(m_forceAlign){
     			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
     				const Hypothesis &edge = *edges[currEdge];
@@ -771,14 +768,13 @@ namespace Moses {
     						string srword=sourceVec[Iter->first];
     						// ensure that only new pairs are inserted
     						if(peword.compare(mtword)!=0 && !has_only_spaces(peword) &&
-    								peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0){
+    								peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0 && (peword.length() / mtword.length()) < 2
+    								&& (mtword.length() / peword.length()) < 2){
     							// new word2word alignments
     							if(oraclebleu >= bestbleu){
     								NewHope[srword][peword]=oracleScore;
-    								Update(srword, peword, "1");
     							}
-    							else
-    								NewFear[srword][peword]=oracleScore;
+
     							// replace the mtword with peword in target phrase
     							if(targetP.find(mtword) != std::string::npos){
     								std::vector<std::string> sentVec;
@@ -797,15 +793,28 @@ namespace Moses {
     				if(targetP.compare(edge.GetTargetPhraseStringRep())!=0 &&
     						!has_only_spaces(targetP) && targetP.length()!=0){
     					if(oraclebleu >= bestbleu){
-    						if(NewHope[sourceP][targetP]!=oracleScore){
-    							NewHope[sourceP][targetP]=oracleScore;
-    							Update(sourceP, targetP, "1");
-    						}
+    						NewHope[sourceP][targetP]=oracleScore;
     					}
-    					else
-    						NewFear[sourceP][targetP]=oracleScore;
     				}
     			}
+    		}
+
+    		if (oraclebleu > maxBleu) {
+    			if(m_sctype.compare("Ter")==0){
+    				VERBOSE(1, "NBEST		: " << oracle.str() << "\t|||\t sTER : " << oraclebleu << endl);
+    			}
+    			else if(m_sctype.compare("Bleu")==0){
+    				VERBOSE(1, "NBEST		: " << oracle.str() << "\t|||\t sBLEU : " << oraclebleu << endl);
+    			}
+    			maxBleu = oraclebleu;
+    			maxScore = oracleScore;
+    			bestOracle = oracle.str();
+    			oracleBleuScores.clear();
+    			oraclefeatureScore.clear();
+    			oracleHope = NewHope;
+    			BestOracle = PP_ORACLE;
+    			oracleBleuScores.push_back(oraclebleu);
+    			oraclefeatureScore.push_back(path.GetScoreBreakdown());
     		}
 
     		// ------------------------trial--------------------------------//
@@ -817,7 +826,6 @@ namespace Moses {
     					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
     						if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
     							Hope[it1->first][itr1->first]=oracleScore;
-//                                Visited[it1->first][itr1->first] = 1;
     						}
     					}
     				}
@@ -829,7 +837,6 @@ namespace Moses {
     					for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
     						if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
     							Fear[it1->first][itr1->first]=oracleScore;
-//                                Visited[it1->first][itr1->first] = 1;
     						}
     					}
     				}
@@ -844,17 +851,15 @@ namespace Moses {
     		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
     			boost::unordered_map<std::string, int>::const_iterator itr1;
     			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    				if (BestOracle[it1->first][itr1->first] != 1) {
+    				if (BestOracle[it1->first][itr1->first] != 1)
     					ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
-    				}
     			}
     		}
     		for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
     			boost::unordered_map<std::string, int>::const_iterator itr1;
     			for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
-    				if (PP_BEST[it1->first][itr1->first] != 1) {
+    				if (PP_BEST[it1->first][itr1->first] != 1)
     					ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
-    				}
     			}
     		}
     		// for the 2-N in nbest list
@@ -862,28 +867,25 @@ namespace Moses {
     		for (it2 = Hope.begin(); it2 != Hope.end(); it2++) {
     			boost::unordered_map<std::string, float>::const_iterator itr2;
     			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-    				ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+    				ShootUp(it2->first, itr2->first, abs(bestScore - itr2->second));
     			}
     		}
     		for (it2 = Fear.begin(); it2 != Fear.end(); it2++) {
     			boost::unordered_map<std::string, float>::const_iterator itr2;
     			for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-    				ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
+    				ShootDown(it2->first, itr2->first, abs(bestScore - itr2->second));
     			}
     		}
     		if(m_forceAlign){
-    			for (it2 = NewHope.begin(); it2 != NewHope.end(); it2++) {
+    			for (it2 = oracleHope.begin(); it2 != oracleHope.end(); it2++) {
     				boost::unordered_map<std::string, float>::const_iterator itr2;
     				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-    					ShootUp(it2->first, itr2->first, abs(maxScore - itr2->second));
+    					ShootUp(it2->first, itr2->first, abs(maxScore-bestScore));
+    					std::string sourcePhraseString = it2->first;
+    					std::string targetPhraseString = itr2->first;
+    					Update(sourcePhraseString, targetPhraseString, "1");
     				}
     			}
-//    			for (it2 = NewFear.begin(); it2 != NewFear.end(); it2++) {
-//    				boost::unordered_map<std::string, float>::const_iterator itr2;
-//    				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
-//    					ShootDown(it2->first, itr2->first, abs(maxScore - itr2->second));
-//    				}
-//    			}
     		}
     	}
     	VERBOSE(1, "Read all the oracles in the list!\n");

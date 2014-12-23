@@ -167,7 +167,7 @@ private:
 	void updateIntMatrix();
 
 	void GetPE2HypAlignments(const TERCpp::terAlignment&);
-	void Update(std::string, std::string, std::string);
+	void Update(std::string& , std::string& , std::string);
 };
 }
 #endif /* ONLINELEARNINGFEATURE_H_ */
