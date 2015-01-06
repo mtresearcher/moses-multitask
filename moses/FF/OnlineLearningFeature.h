@@ -54,7 +54,8 @@ public:
 
 	bool SetSourceSentence(std::string);
 	const std::string GetSourceSentence() const {return m_source;}
-	bool SetPostEditedSentence(std::string s);
+	bool SetPostEditedSentence(std::string);
+	bool SetAlignments(std::string);
 	void RunOnlineLearning(Manager& manager);
 	void RunOnlineMultiTaskLearning(Manager& manager, uint8_t task);
 	void RemoveJunk();
@@ -126,11 +127,12 @@ private:
 	learningrate flr, wlr;
 	float m_decayValue;
 	size_t m_nbestSize;
-	std::string m_source, m_postedited;
+	std::string m_source, m_postedited, m_alignments;
 	std::string m_sctype;
+	std::vector< std::pair<std::string, std::string> > alignVec;
 	Language m_language;
 	bool m_normaliseScore, m_sigmoidParam, m_normaliseMargin, m_learn,
-		m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign;
+		m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign, m_terAlign;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
 	MiraOptimiser* optimiser;
 	std::string m_filename;
@@ -146,6 +148,7 @@ private:
 	void ShootUp(std::string, std::string, float);
 	void ShootDown(std::string, std::string, float);
 
+	void make_align_pairs();
 	float calcMargin(Hypothesis* oracle, Hypothesis* bestHyp);
 	void PrintHypo(const Hypothesis* hypo, ostream& HypothesisStringStream);
 	bool has_only_spaces(const std::string& str);

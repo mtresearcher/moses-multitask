@@ -207,6 +207,14 @@ namespace Moses {
 			m_triggerTargetWords = true;
 		} else if (key == "slack") {
 			slack = Scan<float>(value);
+		} else if (key == "terAlign") {
+			m_terAlign = Scan<bool>(value);
+			if(m_terAlign){
+				cerr<<"********************************************************************************\n";
+				cerr<<"*                     You are using TER alignment option                       *\n";
+				cerr<<"*       Make sure your phrase table contain word alignment information         *\n";
+				cerr<<"********************************************************************************\n";
+			}
 		} else if (key == "forceAlign") {
 			m_forceAlign = Scan<bool>(value);
 			if(m_forceAlign){
@@ -456,7 +464,8 @@ namespace Moses {
     	delete evaluation;
     	double ter = result.scoreAv();
 //    	cerr<<result.toString()<<endl;
-    	GetPE2HypAlignments(result);
+	if(m_terAlign)
+	    GetPE2HypAlignments(result);
     	result.numEdits = 0.0 ;
     	result.numWords = 0.0 ;
     	result.averageWords = 0.0;
@@ -468,21 +477,55 @@ namespace Moses {
     }
 
     bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
+    	trim(s);
         if (m_postedited.empty()) {
-            m_postedited = s;
-            InsertNGrams(); // instead of InsertTargetWords
-            return true;
+        	m_postedited = s;
+        	InsertTargetWords();
+//          InsertNGrams(); // instead of InsertTargetWords
+        	return true;
         } else {
         	VERBOSE(1, "post edited already exists.. " << m_postedited << endl);
-            return false;
+        	return false;
         }
     }
 
     bool OnlineLearningFeature::SetSourceSentence(std::string s) {
+    	trim(s);
     	m_source = s;
     	return true;
     }
-
+    bool OnlineLearningFeature::SetAlignments(std::string s) {
+    	trim(s);
+    	m_alignments = s;
+    	make_align_pairs();
+    	return true;
+    }
+    void OnlineLearningFeature::make_align_pairs() {
+    	curr_wordpair.clear();
+    	std::vector<std::string> src, trg, temp1;
+    	split_marker_perl(m_source, " ", src);
+    	split_marker_perl(m_postedited, " ", trg);
+    	split_marker_perl(m_alignments, " ", temp1);
+    	for(size_t i=0; i<temp1.size(); i++){
+    		std::vector<std::string> temp2;
+    		split_marker_perl(temp1[i], "-", temp2);
+    		if(temp2.size()==2){
+    			size_t s, t;
+    			stringstream(temp2[0]) >> s;
+    			stringstream(temp2[1]) >> t;
+			VERBOSE(1, "ALIGN IDX : "<<s<<" | "<<t<<endl);
+			if(s >= src.size()) s=src.size();   // NULL word in source
+			if(t >= trg.size()) t=trg.size()-1;
+			if(s!=0 && t!=0){
+			    curr_wordpair[src[s-1]]=trg[t]; // NULL word in source
+			    VERBOSE(1, "ALIGN : "<<src[s-1]<<" | "<<trg[t]<<endl);
+			}
+    		} else {
+    			VERBOSE(1, "alignment information incorrect : "<<temp1[i]<<endl);
+    			exit(0);
+    		}
+    	}
+    }
     void OnlineLearningFeature::InsertNGrams(){
     	boost::unordered_map<std::string, int> twords;
     	std::string temp_postedit=m_postedited;
@@ -688,21 +731,21 @@ namespace Moses {
     		}
     		std::string tword = tp.GetWord(pos)[0]->GetString().as_string();
     		t += tword;
-//    		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
-//    			out.SparsePlusEquals(tword, 1);
-//    		}
-    	}
-    	if(m_triggerTargetWords){
-    		boost::unordered_map<std::string, int> twords;
-    		getNGrams(t, twords);
-    		boost::unordered_map<std::string, int>::const_iterator itr=twords.begin();
-    		while(itr!=twords.end()){
-    			if(m_vocab.find(itr->first) != m_vocab.end()){
-    				out.SparsePlusEquals(itr->first, 1);
-    			}
-    			itr++;
+    		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
+    			out.SparsePlusEquals(tword, 1);
     		}
     	}
+//    	if(m_triggerTargetWords){
+//    		boost::unordered_map<std::string, int> twords;
+//    		getNGrams(t, twords);
+//    		boost::unordered_map<std::string, int>::const_iterator itr=twords.begin();
+//    		while(itr!=twords.end()){
+//    			if(m_vocab.find(t) != m_vocab.end()){
+//    				out.SparsePlusEquals(t, 1);
+//    			}
+//    			itr++;
+//    		}
+//    	}
 
     	endpos = sp.GetSize();
     	for (size_t pos = 0; pos < endpos; ++pos) {
@@ -801,7 +844,7 @@ namespace Moses {
     			modelScore.push_back(oracleScore);
     		}
 
-    		if(m_forceAlign){
+    		if(m_forceAlign || m_terAlign){
     			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
     				const Hypothesis &edge = *edges[currEdge];
     				size_t size = edge.GetCurrTargetPhrase().GetSize();
@@ -926,7 +969,7 @@ namespace Moses {
     				ShootDown(it2->first, itr2->first, abs(bestScore - itr2->second));
     			}
     		}
-    		if(m_forceAlign){
+    		if(m_forceAlign || m_terAlign){
     			for (it2 = oracleHope.begin(); it2 != oracleHope.end(); it2++) {
     				boost::unordered_map<std::string, float>::const_iterator itr2;
     				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {

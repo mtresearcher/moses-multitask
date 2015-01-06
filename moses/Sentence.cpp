@@ -82,20 +82,25 @@ int Sentence::Read(std::istream& in,const std::vector<FactorType>& factorOrder)
 
 	  if(strs.size()>=2){
 		  ol->ActivateOnlineLearning();
-		  cerr<<"Activating Online Learning\n";
+		  VERBOSE(1, "Activating Online Learning\n");
 		  if(!ol->SetPostEditedSentence(strs[1])) return 0;
-		  cerr<<"Setting Post Edited Sentence\n";
+		  VERBOSE(1, "Setting Post Edited Sentence\n");
+		  if(strs.size()>=3){
+			  // set the alignments
+			  if(!ol->SetAlignments(strs[2])) return 0;
+			  VERBOSE(1, "Setting Alignments\n");
+		  }
 	  }
 	  else{
 		  ol->DeactivateOnlineLearning();
-		  cerr<<"Deactivating Online Learning\n";
+		  VERBOSE(1, "Deactivating Online Learning\n");
 	  }
 	  line=strs[0];
 	  ol->SetSourceSentence(line);
-	  cerr<<"Setting source line : "<<line<<endl;
+	  VERBOSE(1, "Setting source sentence : "<<line<<endl);
   }
   else {
-	  cerr<<"Online Learning is not activated\n";
+	  VERBOSE(1, "Online Learning is not activated\n");
   }
   m_frontSpanCoveredLength = 0;
   m_sourceCompleted.resize(0);
