@@ -120,7 +120,7 @@ private:
 	Algorithm implementation;
 	UpdateStep m_updateType;
 	boost::unordered_set<std::string> m_vocab, m_stopwords;
-	boost::unordered_map<std::string, std::string> curr_wordpair;
+	boost::unordered_map<std::string, std::string> curr_wordpair, postedit_wordpair;
 	pp_feature m_feature;
 	pp_list m_featureIdx;
 	pp_list PP_ORACLE, PP_BEST, PP_NEW;

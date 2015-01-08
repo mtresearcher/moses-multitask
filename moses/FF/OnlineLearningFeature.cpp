@@ -168,6 +168,7 @@ namespace Moses {
 		m_sigmoidParam=false;
 		m_updateFeatures=false;
 		m_forceAlign=false;
+		m_terAlign=false;
 		m_nbestSize=200;
 		m_decayValue=1;
 		m_sctype="Bleu";
@@ -416,8 +417,11 @@ namespace Moses {
     			case 'S': case 'A':
 				trim(hyp_afterShift[hyp_p]);
 				trim(ref[ref_p]);
-    				if(!has_only_spaces(hyp_afterShift[hyp_p]) && !has_only_spaces(ref[ref_p]))
+    				if(!has_only_spaces(hyp_afterShift[hyp_p]) && !has_only_spaces(ref[ref_p])
+    						&& (hyp_afterShift[hyp_p].length()/ref[ref_p].length())<3 && (ref[ref_p].length()/hyp_afterShift[hyp_p].length())<3){
+    					VERBOSE(1,"Inserting in CURR_WORDPAIR : "<<hyp_afterShift[hyp_p]<<" ||| "<<ref[ref_p]<<endl);
     					curr_wordpair[hyp_afterShift[hyp_p]]=ref[ref_p];
+    				}
     				hyp_p++;
     				ref_p++;
     				break;
@@ -501,7 +505,7 @@ namespace Moses {
     	return true;
     }
     void OnlineLearningFeature::make_align_pairs() {
-    	curr_wordpair.clear();
+    	postedit_wordpair.clear();
     	std::vector<std::string> src, trg, temp1;
     	split_marker_perl(m_source, " ", src);
     	split_marker_perl(m_postedited, " ", trg);
@@ -513,16 +517,10 @@ namespace Moses {
     			size_t s, t;
     			stringstream(temp2[0]) >> s;
     			stringstream(temp2[1]) >> t;
-			VERBOSE(1, "ALIGN IDX : "<<s<<" | "<<t<<endl);
-			if(s >= src.size()) s=src.size();   // NULL word in source
-			if(t >= trg.size()) t=trg.size()-1;
-			if(s!=0 && t!=0){
-			    curr_wordpair[src[s-1]]=trg[t]; // NULL word in source
-			    VERBOSE(1, "ALIGN : "<<src[s-1]<<" | "<<trg[t]<<endl);
-			}
-    		} else {
-    			VERBOSE(1, "alignment information incorrect : "<<temp1[i]<<endl);
-    			exit(0);
+    			postedit_wordpair[src[s]]=trg[t];
+    			VERBOSE(1, "ALIGN : "<<src[s]<<" | "<<trg[t]<<endl);
+    			if(implementation!=Mira)
+    				Update(src[s], trg[t], "1");
     		}
     	}
     }
@@ -658,7 +656,8 @@ namespace Moses {
     void OnlineLearningFeature::Update(std::string& source, std::string& target, std::string age){
     	trim(source);
     	trim(target);
-    	if(source.length()>=10 && target.length()>=10){
+    	if(source.length()>=4 && target.length()>=4 &&
+    			(source.length()/target.length())<3 && (target.length()/source.length())<3){
     		VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
     		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
     	}
@@ -777,7 +776,10 @@ namespace Moses {
     	if(implementation == SparseFeatures) return;
     	const StaticData& staticData = StaticData::Instance();
     	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-    	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
+    	if(implementation != Mira){
+    		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
+    		Update(m_source, m_postedited, "1");
+    	}
     	const Hypothesis* hypo = manager.GetBestHypothesis();
     	float bestScore = hypo->GetScore();
     	stringstream bestHypothesis;
@@ -843,8 +845,10 @@ namespace Moses {
     			featureValue.push_back(path.GetScoreBreakdown());
     			modelScore.push_back(oracleScore);
     		}
-
-    		if(m_forceAlign || m_terAlign){
+//    		if(whichoracle==0 && m_forceAlign){
+//
+//    		}
+    		if(m_terAlign){
     			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
     				const Hypothesis &edge = *edges[currEdge];
     				size_t size = edge.GetCurrTargetPhrase().GetSize();
@@ -864,10 +868,9 @@ namespace Moses {
     								peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0 && (peword.length() / mtword.length()) < 2
     								&& (mtword.length() / peword.length()) < 2){
     							// new word2word alignments
-    							if(oraclebleu >= bestbleu){
-    								NewHope[srword][peword]=oracleScore;
-    							}
-
+//    							if(oraclebleu >= bestbleu){
+//    								NewHope[srword][peword]=oracleScore;
+//    							}
     							// replace the mtword with peword in target phrase
     							if(targetP.find(mtword) != std::string::npos){
     								std::vector<std::string> sentVec;
@@ -969,7 +972,7 @@ namespace Moses {
     				ShootDown(it2->first, itr2->first, abs(bestScore - itr2->second));
     			}
     		}
-    		if(m_forceAlign || m_terAlign){
+    		if(m_terAlign){
     			for (it2 = oracleHope.begin(); it2 != oracleHope.end(); it2++) {
     				boost::unordered_map<std::string, float>::const_iterator itr2;
     				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
