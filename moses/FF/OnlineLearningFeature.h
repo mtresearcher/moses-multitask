@@ -44,6 +44,12 @@ class Optimiser;
 
 class OnlineLearningFeature : public StatelessFeatureFunction{
 
+	friend class PhraseDictionaryDynamicCacheBased;
+
+protected:
+	void InsertSparseFeature(std::string, std::string, int age=1, float margin=0.0);
+	bool IfForceAlign() const {return m_forceAlign;}
+
 public:
 	OnlineLearningFeature(const std::string&);
 	virtual ~OnlineLearningFeature();
@@ -101,6 +107,7 @@ public:
 		, FOnlyPerceptron = 1
 		, FPercepWMira = 2
 		, Mira = 3
+		, SparseMira = 4
 	};
 
 	enum UpdateStep {
@@ -125,7 +132,7 @@ private:
 	pp_list m_featureIdx;
 	pp_list PP_ORACLE, PP_BEST, PP_NEW;
 	learningrate flr, wlr;
-	float m_decayValue;
+	float m_decayValue, m_initScore;
 	size_t m_nbestSize;
 	std::string m_source, m_postedited, m_alignments;
 	std::string m_sctype;

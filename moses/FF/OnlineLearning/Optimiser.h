@@ -135,7 +135,6 @@ namespace Optimizer {
     		  	float alpha = alphas[k];
     		  	ScoreComponentCollection update(featureValueDiffs[k]);
     		    update.MultiplyEquals(alpha);
-
     		    // sum updates
     		    summedUpdate.PlusEquals(update);
     		  }
@@ -163,7 +162,6 @@ namespace Optimizer {
     			weightUpdate.SparseL1Regularize(0.01);
     		if(m_l2)
     			weightUpdate.SparseL2Regularize(0.01);
-
 
     		return 0;
 

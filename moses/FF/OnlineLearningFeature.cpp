@@ -169,6 +169,7 @@ namespace Moses {
 		m_updateFeatures=false;
 		m_forceAlign=false;
 		m_terAlign=false;
+		m_initScore=1;
 		m_nbestSize=200;
 		m_decayValue=1;
 		m_sctype="Bleu";
@@ -176,7 +177,7 @@ namespace Moses {
 		m_triggerTargetWords = false;
 		ReadParameters();
 
-		if(implementation!=FOnlyPerceptron){
+		if(implementation!=FOnlyPerceptron && implementation!=SparseFeatures){
 			optimiser = new Optimizer::MiraOptimiser(slack, scale_margin, scale_margin_precision, scale_update,
 					scale_update_precision, m_normaliseMargin, m_sigmoidParam, m_l1, m_l2);
 		}
@@ -222,6 +223,7 @@ namespace Moses {
 				cerr<<"********************************************************************************\n";
 				cerr<<"*                   You are using force alignment option                       *\n";
 				cerr<<"*       Make sure your phrase table contain word alignment information         *\n";
+				cerr<<"*           PhraseDictionaryDynamicCacheBased should be instantiated           *\n";
 				cerr<<"********************************************************************************\n";
 			}
 		} else if (key == "scale_update_precision") {
@@ -284,6 +286,10 @@ namespace Moses {
 			else if(m_algorithm.compare("Mira")==0){
 				implementation=Mira;
 				VERBOSE(1, "Online Algorithm : Mira\n");
+			}
+			else if(m_algorithm.compare("SparseMira")==0){
+				implementation=SparseMira;
+				VERBOSE(1, "Online Algorithm : Sparse Mira\n");
 			}
 		} else {
 			StatelessFeatureFunction::SetParameter(key, value);
@@ -484,7 +490,8 @@ namespace Moses {
     	trim(s);
         if (m_postedited.empty()) {
         	m_postedited = s;
-        	InsertTargetWords();
+        	if(m_triggerTargetWords)
+        		InsertTargetWords();
 //          InsertNGrams(); // instead of InsertTargetWords
         	return true;
         } else {
@@ -582,9 +589,11 @@ namespace Moses {
     			if(splits.size()==3){
     				float score;
     				stringstream(splits[2])>>score;
-    				m_feature[splits[0]][splits[1]] = score;
     				std::string featureName(splits[0]+"|||"+splits[1]);
-    				StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
+    				if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    					score /= float(1.0 + float(abs(score)));
+    				m_feature[splits[0]][splits[1]] = score;
+    				StaticData::InstanceNonConst().SetSparseWeight(this, featureName, score);
     			}
     			else{
     				TRACE_ERR("The format of feature file does not comply!\n There should be "<<splits.size()<<"columns \n");
@@ -598,41 +607,64 @@ namespace Moses {
     	file.close();
     }
 
+    void OnlineLearningFeature::InsertSparseFeature(std::string sp, std::string tp, int age, float margin){
+    	VERBOSE(2, "Inserting Sparse Feature : "<<sp<<" || "<<tp<<" || "<<margin<<endl);
+    	ShootUp(sp, tp, margin);
+    }
+
     void OnlineLearningFeature::ShootUp(std::string sp, std::string tp, float margin) {
     	if (m_feature.find(sp) != m_feature.end()) {
     		if (m_feature[sp].find(tp) != m_feature[sp].end()) {
-    			float val = m_feature[sp][tp];
+    			StringPiece fName(sp+"|||"+tp);
+    			FName fname(fName);
+    			float val = StaticData::Instance().GetAllWeights().GetSparseWeight(fname);
     			val += flr * margin;
     			m_feature[sp][tp] = val;
     			std::string featureName(sp+"|||"+tp);
+    			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     		} else {
     			m_feature[sp][tp] = flr*margin;
     			std::string featureName(sp+"|||"+tp);
-    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
+    			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     		}
     	} else {
     		m_feature[sp][tp] = flr*margin;
     		std::string featureName(sp+"|||"+tp);
-    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
+    		if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    			m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     	}
     }
 
     void OnlineLearningFeature::ShootDown(std::string sp, std::string tp, float margin) {
     	if (m_feature.find(sp) != m_feature.end()) {
     		if (m_feature[sp].find(tp) != m_feature[sp].end()) {
-    			float val = m_feature[sp][tp];
+    			StringPiece fName(sp+"|||"+tp);
+    			FName fname(fName);
+    			float val = StaticData::Instance().GetAllWeights().GetSparseWeight(fname);
     			val -= flr * margin;
     			m_feature[sp][tp] = val;
     			std::string featureName(sp+"|||"+tp);
+    			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     		} else {
     			m_feature[sp][tp] = -1 * flr *margin;
     			std::string featureName(sp+"|||"+tp);
-    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
+    			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     		}
     	} else {
     		m_feature[sp][tp] = -1 * flr *margin;
     		std::string featureName(sp+"|||"+tp);
-    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
+    		if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    			m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
+    		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
     	}
     }
 
@@ -656,11 +688,11 @@ namespace Moses {
     void OnlineLearningFeature::Update(std::string& source, std::string& target, std::string age){
     	trim(source);
     	trim(target);
-    	if(source.length()>=4 && target.length()>=4 &&
-    			(source.length()/target.length())<3 && (target.length()/source.length())<3){
-    		VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
-    		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
-    	}
+//    	if(source.length()>=4 && target.length()>=4 &&
+//    			(source.length()/target.length())<3 && (target.length()/source.length())<3){
+    	VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
+    	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
+//    	}
     }
 
     void OnlineLearningFeature::updateFeatureValues(){
@@ -674,8 +706,10 @@ namespace Moses {
     				FName fname(featureName);
     				const float weightFeature = StaticData::Instance().GetAllWeights().GetSparseWeight(fname);
     				score *= weightFeature;
+    				if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+    				    		score /= float(1.0 + float(abs(score)));
     				m_feature[itr1->first][itr2->first] = score;
-    				StaticData::InstanceNonConst().SetSparseWeight(this, itr1->first+"|||"+itr2->first, w_init);
+    				StaticData::InstanceNonConst().SetSparseWeight(this, itr1->first+"|||"+itr2->first, score);
     			}
     			itr2++;
     		}
@@ -753,6 +787,7 @@ namespace Moses {
     		}
     		s += sp.GetWord(pos)[0]->GetString().as_string();
     	}
+
     	pp_feature::const_iterator it;
     	it=m_feature.find(s);
     	if(it!=m_feature.end())
@@ -764,19 +799,20 @@ namespace Moses {
     			score=it2->second;
     		}
     	}
-    	if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
-    		score /= float(1.0 + float(abs(score)));
+//    	if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
+//    		score /= float(1.0 + float(abs(score)));
 //    		score = (2 / (1 + exp(-score))) - 1; // normalising score!
 
     	std::string featureN = s+"|||"+t;
-    	out.SparsePlusEquals(featureN, score);
+    	if(score!=0)
+    		out.SparsePlusEquals(featureN, 1);
     }
 
     void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
     	if(implementation == SparseFeatures) return;
     	const StaticData& staticData = StaticData::Instance();
     	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-    	if(implementation != Mira){
+    	if(implementation != Mira && m_terAlign){
     		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
     		Update(m_source, m_postedited, "1");
     	}
@@ -839,15 +875,13 @@ namespace Moses {
     			oraclebleu = GetBleu(oracle.str(), m_postedited);
     		else if(m_sctype.compare("Ter")==0)
     			oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
-    		if (implementation == FPercepWMira || implementation == Mira) {
+    		if (implementation == FPercepWMira || implementation == Mira || implementation == SparseMira) {
     			HypothesisList.push_back(oracle.str());
     			BleuScore.push_back(oraclebleu);
     			featureValue.push_back(path.GetScoreBreakdown());
     			modelScore.push_back(oracleScore);
     		}
-//    		if(whichoracle==0 && m_forceAlign){
-//
-//    		}
+
     		if(m_terAlign){
     			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
     				const Hypothesis &edge = *edges[currEdge];
@@ -868,9 +902,9 @@ namespace Moses {
     								peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0 && (peword.length() / mtword.length()) < 2
     								&& (mtword.length() / peword.length()) < 2){
     							// new word2word alignments
-//    							if(oraclebleu >= bestbleu){
-//    								NewHope[srword][peword]=oracleScore;
-//    							}
+    							if(oraclebleu >= bestbleu){
+    								NewHope[srword][peword]=oracleScore;
+    							}
     							// replace the mtword with peword in target phrase
     							if(targetP.find(mtword) != std::string::npos){
     								std::vector<std::string> sentVec;
@@ -987,7 +1021,8 @@ namespace Moses {
     	VERBOSE(1, "Read all the oracles in the list!\n");
 
     	//	Update the weights as I found a better oracle translation
-    	if ((implementation == FPercepWMira || implementation == Mira) && maxBleu!=bestbleu && maxScore!=bestScore) {
+    	if ((implementation == FPercepWMira || implementation == Mira || implementation==SparseMira)
+    			&& maxBleu!=bestbleu && maxScore!=bestScore) {
     		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
     		{
     			float bleuscore = BleuScore[i];
@@ -999,20 +1034,20 @@ namespace Moses {
     		losses.push_back(loss);
     		oracleModelScores.push_back(maxScore);
     		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
-    		VERBOSE(2, "Updating the Weights...\n");
+    		VERBOSE(1, "Updating the Weights...\n");
     		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
     				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
     		if(update_status == 0){
-    			VERBOSE(2, "setting weights\n");
+    			VERBOSE(1, "setting weights\n");
     			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-    			VERBOSE(2, "Total features : "<<weightUpdate.Size()<<endl);
+    			weightUpdate.PrintCoreFeatures();
     		}
     		else{
-    			VERBOSE(2, "No Update\n");
+    			VERBOSE(1, "No Update\n");
     		}
     	}
-    	else if(implementation == FPercepWMira || implementation == Mira){
-    		VERBOSE(2, "Didn't find any good oracle translations, continuing the process.\n");
+    	else if(implementation == FPercepWMira || implementation == Mira || implementation == SparseMira){
+    		VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
     	}
     	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
     		updateFeatureValues();
