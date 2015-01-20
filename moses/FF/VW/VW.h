@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <limits>
 
 #include "moses/FF/StatelessFeatureFunction.h"
 #include "moses/TranslationOptionList.h"
@@ -24,6 +25,39 @@ namespace Moses
 const std::string VW_DUMMY_LABEL = "1111"; // VW does not use the actual label, other classifiers might
 
 /**
+ * Helper class for storing alignment constraints.
+ */
+class Constraint {
+public:
+  Constraint() : m_min(std::numeric_limits<int>::max()), m_max(-1) {}
+
+  Constraint(int min, int max) : m_min(min), m_max(max) {}
+
+  /**
+   * We are aligned to point => our min cannot be larger, our max cannot be smaller.
+   */
+  void Update(int point) {
+    if (m_min > point) m_min = point;
+    if (m_max < point) m_max = point;
+  }
+
+  bool IsSet() const {
+    return m_max != -1;
+  }
+
+  int GetMin() const {
+    return m_min;
+  }
+
+  int GetMax() const {
+    return m_max;
+  }
+
+private:
+  int m_min, m_max;
+};
+
+/**
  * VW thread-specific data about target sentence.
  */
 struct VWTargetSentence {
@@ -38,8 +72,25 @@ struct VWTargetSentence {
     Clear();
   }
 
+  void SetConstraints(size_t sourceSize) {
+    // initialize to unconstrained
+    m_sourceConstraints.assign(sourceSize, Constraint());
+    m_targetConstraints.assign(m_sentence->GetSize(), Constraint());
+
+    // set constraints according to alignment points
+    AlignmentInfo::const_iterator it;
+    for (it = m_alignment->begin(); it != m_alignment->end(); it++) {
+      int src = it->first;
+      int tgt = it->second;
+
+      m_sourceConstraints[src].Update(tgt);
+      m_targetConstraints[tgt].Update(src);
+    }
+  }
+
   Phrase *m_sentence;
   AlignmentInfo *m_alignment;
+  std::vector<Constraint> m_sourceConstraints, m_targetConstraints;
 };
 
 typedef ThreadLocalByFeatureStorage<Discriminative::Classifier, Discriminative::ClassifierFactory &> TLSClassifier;
@@ -176,7 +227,8 @@ public:
 
     const TabbedSentence& tabbedSentence = static_cast<const TabbedSentence&>(source);
     UTIL_THROW_IF2(tabbedSentence.GetColumns().size() < 2, "TabbedSentence must contain target<tab>alignment");
-
+    
+    
     // target sentence represented as a phrase
     Phrase *target = new Phrase();
     target->CreateFromString(
@@ -184,7 +236,7 @@ public:
       , StaticData::Instance().GetOutputFactorOrder()
       , tabbedSentence.GetColumns()[0]
       , NULL);
-
+      
     // word alignment between source and target sentence
     // we don't store alignment info in AlignmentInfoCollection because we keep alignments of whole
     // sentences, not phrases
@@ -194,6 +246,14 @@ public:
     targetSent.Clear();
     targetSent.m_sentence = target;
     targetSent.m_alignment = alignment;
+
+    //std::cerr << static_cast<const Phrase&>(tabbedSentence) << std::endl;
+    //std::cerr << *target << std::endl;
+    //std::cerr << *alignment << std::endl;
+
+    
+    // pre-compute max- and min- aligned points for faster translation option checking
+    targetSent.SetConstraints(source.GetSize());
   }
 
 
@@ -203,45 +263,73 @@ private:
   }
 
   bool IsCorrectTranslationOption(const TranslationOption &topt) const {
-    size_t sourceStart = topt.GetSourceWordsRange().GetStartPos();
-    size_t sourceEnd   = topt.GetSourceWordsRange().GetEndPos() + 1;
+    
+    //std::cerr << topt.GetSourceWordsRange() << std::endl;
+    
+    int sourceStart = topt.GetSourceWordsRange().GetStartPos();
+    int sourceEnd   = topt.GetSourceWordsRange().GetEndPos();
 
     const VWTargetSentence &targetSentence = *GetStored();
 
-    // get the left-most alignment point withitn sourceRange
-    std::set<size_t> aligned;
-    while ((aligned = targetSentence.m_alignment->GetAlignmentsForSource(sourceStart)).empty()) {
-      sourceStart++;
-
-      if (sourceStart >= sourceEnd) {
-        // no alignment point between source and target sentence within current source span;
-        // return immediately
-        return false;
+    // [targetStart, targetEnd] spans aligned target words
+    int targetStart = targetSentence.m_sentence->GetSize();
+    int targetEnd   = -1;
+    
+    // get the left-most and right-most alignment point within source span
+    for(int i = sourceStart; i <= sourceEnd; ++i) {
+      if(targetSentence.m_sourceConstraints[i].IsSet()) {
+        if(targetStart > targetSentence.m_sourceConstraints[i].GetMin())
+          targetStart = targetSentence.m_sourceConstraints[i].GetMin();
+        if(targetEnd < targetSentence.m_sourceConstraints[i].GetMax())
+          targetEnd = targetSentence.m_sourceConstraints[i].GetMax();
       }
     }
-
-    size_t targetSentOffset = *aligned.begin(); // index of first aligned target word covered in source span
+    // there was no alignment
+    if(targetEnd == -1)
+      return false;
+    
+    //std::cerr << "Shorter: " << targetStart << " " << targetEnd << std::endl;
+    
+    // [targetStart2, targetEnd2] spans unaligned words left and right of [targetStart, targetEnd]
+    int targetStart2 = targetStart;
+    for(int i = targetStart2; i >= 0 && !targetSentence.m_targetConstraints[i].IsSet(); --i)
+      targetStart2 = i;
+    
+    int targetEnd2   = targetEnd;
+    for(int i = targetEnd2; i < targetSentence.m_sentence->GetSize() && !targetSentence.m_targetConstraints[i].IsSet(); ++i)
+      targetEnd2 = i;
+    
+    //std::cerr << "Longer: " << targetStart2 << " " << targetEnd2 << std::endl;
 
     const TargetPhrase &tphrase = topt.GetTargetPhrase();
+    //std::cerr << tphrase << std::endl;
+  
+    // if target phrase is shorter than inner span return false
+    if(tphrase.GetSize() < targetEnd - targetStart + 1)
+      return false;
 
-    // get the left-most alignment point within topt
-    size_t targetStart = 0;
-    while ((aligned = tphrase.GetAlignTerm().GetAlignmentsForSource(targetStart)).empty())
-      targetStart++;
-
-    size_t toptOffset = *aligned.begin(); // index of first aligned target word in the translation option
-
-    size_t startAt = targetSentOffset - toptOffset;
-    bool matches = true;
-    for (size_t i = 0; i < tphrase.GetSize(); i++) {
-      if (startAt + i >= targetSentence.m_sentence->GetSize()
-          || tphrase.GetWord(i) != targetSentence.m_sentence->GetWord(startAt + i)) {
-        matches = false;
-        break;
+    // if target phrase is longer than outer span return false
+    if(tphrase.GetSize() > targetEnd2 - targetStart2 + 1)
+      return false;
+    
+    // for each possible starting point
+    for(int tempStart = targetStart2; tempStart <= targetStart; tempStart++) {
+      bool found = true;
+      // check if the target phrase is within longer span
+      for(int i = tempStart; i <= targetEnd2 && i < tphrase.GetSize() + tempStart; ++i) {
+        if(tphrase.GetWord(i - tempStart) != targetSentence.m_sentence->GetWord(i)) {
+          found = false;
+          break;
+        }
+      }
+      // return true if there was a match
+      if(found) {
+        //std::cerr << "Found" << std::endl;
+        return true;
       }
     }
-
-    return matches;
+    
+    return false;
   }
 
   bool m_train; // false means predict
