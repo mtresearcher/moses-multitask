@@ -46,6 +46,7 @@
 #include "moses/FF/HyperParameterAsWeight.h"
 #include "moses/FF/SetSourcePhrase.h"
 #include "moses/FF/PhraseOrientationFeature.h"
+#include "moses/FF/UnalignedWordCountFeature.h"
 #include "CountNonTerms.h"
 #include "ReferenceComparison.h"
 #include "RuleScope.h"
@@ -239,6 +240,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SyntaxRHS);
   MOSES_FNAME(PhraseOrientationFeature);
   MOSES_FNAME(OnlineLearningFeature);
+  MOSES_FNAME(UnalignedWordCountFeature);
 
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
