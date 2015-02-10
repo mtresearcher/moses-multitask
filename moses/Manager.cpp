@@ -127,6 +127,13 @@ void Manager::Decode()
     GetSentenceStats().StopTimeTotal();
     TRACE_ERR(GetSentenceStats());
   }
+
+  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+	  OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(*this);
+	  OnlineLearningFeature::InstanceNonConst().RemoveJunk();
+  }
+
 }
 
 /**

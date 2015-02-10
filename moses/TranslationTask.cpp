@@ -101,11 +101,6 @@ void TranslationTask::Run()
 
   VERBOSE(1, "Line " << translationId << ": Initialize search took " << initTime << " seconds total" << endl);
   manager->Decode();
-  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
-  if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
-	OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(*manager);
-	OnlineLearningFeature::InstanceNonConst().RemoveJunk();
-  }
 
   // we are done with search, let's look what we got
   Timer additionalReportingTime;

@@ -44,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "TranslationModel/PhraseDictionary.h"
 #include "FF/StatefulFeatureFunction.h"
 #include "FF/StatelessFeatureFunction.h"
+#include "FF/OnlineLearningFeature.h"
 #include "TranslationTask.h"
 
 #ifdef HAVE_PROTOBUF
@@ -138,9 +139,9 @@ int decoder_main(int argc, char** argv)
       TRACE_ERR("\n");
     }
 
-#ifdef WITH_THREADS
-    ThreadPool pool(staticData.ThreadCount());
-#endif
+//#ifdef WITH_THREADS
+//    ThreadPool pool(staticData.ThreadCount());
+//#endif
 
     // main loop over set of input sentences
     InputType* source = NULL;
@@ -157,43 +158,57 @@ int decoder_main(int argc, char** argv)
       TranslationTask* task = new TranslationTask(source, *ioWrapper);
 
       // execute task
-#ifdef WITH_THREADS
-#ifdef PT_UG
-      bool spe = params.isParamSpecified("spe-src");
-      if (spe) {
-        // simulated post-editing: always run single-threaded!
-        task->Run();
-        delete task;
-        string src,trg,aln;
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl()) {
-          Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
-          if (sapt) sapt->add(src,trg,aln);
-          VERBOSE(1,"[" << HERE << " added src] " << src << endl);
-          VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
-          VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
-        }
-      } else
-#endif
-        pool.Submit(task);
-#else
+//#ifdef WITH_THREADS
+//#ifdef PT_UG
+//      bool spe = params.isParamSpecified("spe-src");
+//      if (spe) {
+//        // simulated post-editing: always run single-threaded!
+//        task->Run();
+//        delete task;
+//        string src,trg,aln;
+//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
+//                       << "missing update data for simulated post-editing.");
+//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
+//                       << "missing update data for simulated post-editing.");
+//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
+//                       << "missing update data for simulated post-editing.");
+//        BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl()) {
+//          Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
+//          if (sapt) sapt->add(src,trg,aln);
+//          VERBOSE(1,"[" << HERE << " added src] " << src << endl);
+//          VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
+//          VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
+//        }
+//      } else
+//#endif
+//        pool.Submit(task);
+//#else
       task->Run();
       delete task;
-#endif
+//#endif
 
       source = NULL; //make sure it doesn't get deleted
-      ++lineCount;
+      const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+      if(ol != NULL){
+    	  vector<string> vecstr=TokenizeMultiCharSeparator(OnlineLearningFeature::Instance().GetSourceSentence(), "_#_");
+    	  // if the sentence is supposed to be translated then lineCount ++ else nothing
+    	  if(vecstr.size()==1 && !OnlineLearningFeature::Instance().OnlineLearningActivated()){
+    		  ++lineCount;
+    	  }
+    	  // if the sentence is supposed to be translated then lineCount ++ else nothing
+    	  else if(vecstr.size()==2 && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+    		  ++lineCount;
+    	  }
+      }
+      else{
+    	  ++lineCount;
+      }
     }
 
     // we are done, finishing up
-#ifdef WITH_THREADS
-    pool.Stop(true); //flush remaining jobs
-#endif
+//#ifdef WITH_THREADS
+//    pool.Stop(true); //flush remaining jobs
+//#endif
 
     delete ioWrapper;
     FeatureFunction::Destroy();
