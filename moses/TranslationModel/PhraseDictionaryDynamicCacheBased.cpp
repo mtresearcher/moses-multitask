@@ -26,6 +26,7 @@
 #include "moses/InputFileStream.h"
 #include "moses/StaticData.h"
 #include "moses/TargetPhrase.h"
+#include "moses/FF/OnlineLearningFeature.h"
 
 using namespace std;
 
@@ -163,8 +164,8 @@ const TargetPhraseCollection *PhraseDictionaryDynamicCacheBased::GetTargetPhrase
     std::vector<const TargetPhrase*>::const_iterator it2 = tpc->begin();
 
     while (it2 != tpc->end()) {
-      ((TargetPhrase*) *it2)->EvaluateInIsolation(source, GetFeaturesToApply());
-      it2++;
+    	((TargetPhrase*) *it2)->EvaluateInIsolation(source, GetFeaturesToApply());
+    	it2++;
     }
   }
   if (tpc)  {
@@ -499,12 +500,14 @@ void PhraseDictionaryDynamicCacheBased::Update(std::vector<std::string> entries,
     pp = TokenizeMultiCharSeparator((*it), "|||");
     VERBOSE(3,"pp[0]:|" << pp[0] << "|" << std::endl);
     VERBOSE(3,"pp[1]:|" << pp[1] << "|" << std::endl);
-
+    OnlineLearningFeature *ol = &OnlineLearningFeature::InstanceNonConst();
+    if(ol!=NULL && ol->IfForceAlign())
+    	ol->InsertSparseFeature(pp[0], pp[1],1, decaying_score(1));
     if (pp.size() > 2) {
-      VERBOSE(3,"pp[2]:|" << pp[2] << "|" << std::endl);
-      Update(pp[0], pp[1], ageString, pp[2]);
+    	VERBOSE(3,"pp[2]:|" << pp[2] << "|" << std::endl);
+    	Update(pp[0], pp[1], ageString, pp[2]);
     } else {
-      Update(pp[0], pp[1], ageString);
+    	Update(pp[0], pp[1], ageString);
     }
   }
 }

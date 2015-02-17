@@ -5,7 +5,7 @@
 
 /*
  * Online feature keeps track of recent source and target phrases in hope / fear hypothesis.
-*/
+ */
 
 #pragma once
 
@@ -66,27 +66,29 @@ public:
 	void RunOnlineMultiTaskLearning(Manager& manager, uint8_t task);
 	void RemoveJunk();
 
-//	inline size_t GetNumScoreComponents() const { return 1; };
+	//	inline size_t GetNumScoreComponents() const { return 1; };
 
 	inline std::string GetScoreProducerWeightShortName(unsigned) const { return "ol"; };
 
 	virtual void EvaluateInIsolation(const Moses::Phrase&, const Moses::TargetPhrase&,
 			Moses::ScoreComponentCollection&, Moses::ScoreComponentCollection&) const ;
 	void EvaluateWithSourceContext(const InputType &input
-	                    , const InputPath &inputPath
-	                    , const TargetPhrase &targetPhrase
-	                    , const StackVec *stackVec
-	                    , ScoreComponentCollection &scoreBreakdown
-	                    , ScoreComponentCollection *estimatedFutureScore = NULL) const  {}
+			, const InputPath &inputPath
+			, const TargetPhrase &targetPhrase
+			, const StackVec *stackVec
+			, ScoreComponentCollection &scoreBreakdown
+			, ScoreComponentCollection *estimatedFutureScore = NULL) const  {}
+	void EvaluateTranslationOptionListWithSourceContext(const Moses::InputType&,
+			const Moses::TranslationOptionList&) const {}
 	void EvaluateWhenApplied(const Hypothesis& hypo,
-                        ScoreComponentCollection* accumulator) const {}
+			ScoreComponentCollection* accumulator) const {}
 	void EvaluateWhenApplied(const ChartHypothesis &hypo,
-                             ScoreComponentCollection* accumulator) const {assert(false);}
+			ScoreComponentCollection* accumulator) const {assert(false);}
 
 	void EvaluateWhenApplied(const Syntax::SHyperedge &,
-                             ScoreComponentCollection*) const { assert(false); }
+			ScoreComponentCollection*) const { assert(false); }
 
-    void SetParameter(const std::string& key, const std::string& value);
+	void SetParameter(const std::string& key, const std::string& value);
 
 	static const OnlineLearningFeature& Instance() {
 		return *s_instance;
@@ -107,7 +109,6 @@ public:
 		, FOnlyPerceptron = 1
 		, FPercepWMira = 2
 		, Mira = 3
-		, SparseMira = 4
 	};
 
 	enum UpdateStep {
@@ -138,12 +139,12 @@ private:
 	std::string m_sctype;
 	std::vector< std::pair<std::string, std::string> > alignVec;
 	Language m_language;
-	bool m_normaliseScore, m_sigmoidParam, m_normaliseMargin, m_learn,
-		m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign, m_terAlign;
+	bool m_normaliseScore, m_normaliseMargin, m_learn,
+	m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign, m_terAlign;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
 	MiraOptimiser* optimiser;
 	std::string m_filename;
-	float w_init, w_initTargetWords,slack;
+	float w_init, w_initTargetWords,slack, m_sigmoidParam;
 	std::string m_algorithm;
 
 	inline std::string &trim(std::string &s);
@@ -182,7 +183,7 @@ private:
 
 	void updateIntMatrix();
 
-	void GetPE2HypAlignments(const TERCpp::terAlignment&);
+	void GetPE2HypAlignments(const TERCPPNS_TERCpp::terAlignment&);
 	void Update(std::string& , std::string& , std::string);
 };
 }
