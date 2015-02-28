@@ -1589,9 +1589,17 @@ void Manager::OutputBest(OutputCollector *collector)  const
     }
 
     // report best translation to output collector
-    if((ol != NULL && !OnlineLearningFeature::Instance().OnlineLearningActivated()) || ol == NULL)
+    if((ol != NULL && !OnlineLearningFeature::Instance().OnlineLearningActivated()) || ol == NULL){
+				bestHypo = GetBestHypothesis();
+				IFVERBOSE(1) {
+						debug << "BEST TRANSLATION: " << *bestHypo << endl;
+				}
+				if (staticData.PrintAlignmentInfo()) {
+						out << "||| ";
+						bestHypo->OutputAlignment(out);
+				}
         collector->Write(translationId,out.str(),debug.str());
-
+		}
     decisionRuleTime.stop();
     VERBOSE(1, "Line " << translationId << ": Decision rule took " << decisionRuleTime << " seconds total" << endl);
   } // if (m_ioWrapper.GetSingleBestOutputCollector())

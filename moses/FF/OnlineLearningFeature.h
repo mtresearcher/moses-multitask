@@ -139,7 +139,7 @@ private:
 	std::string m_sctype;
 	std::vector< std::pair<std::string, std::string> > alignVec;
 	Language m_language;
-	bool m_normaliseScore, m_normaliseMargin, m_learn,
+	bool m_normaliseScore, m_normaliseMargin, m_learn, m_cbtm, m_ngrams,
 	m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign, m_terAlign;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
 	MiraOptimiser* optimiser;

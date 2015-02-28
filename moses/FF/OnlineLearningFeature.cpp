@@ -172,6 +172,7 @@ OnlineLearningFeature::OnlineLearningFeature(const std::string &line) :
 	m_initScore=1;
 	m_nbestSize=200;
 	m_decayValue=1;
+	m_ngrams=false;
 	m_sctype="Bleu";
 	slack=0.001;
 	m_triggerTargetWords = false;
@@ -196,6 +197,8 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 		m_l1 = Scan<bool>(value);
 	} else if (key == "l2regularize") {
 		m_l2 = Scan<bool>(value);
+	} else if (key == "includeNgrams") {	// PEWI features
+		m_ngrams = Scan<bool>(value);
 	} else if (key == "f_learningrate") {
 		flr = Scan<float>(value);
 	} else if (key == "w_learningrate") {
@@ -209,6 +212,8 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 		m_triggerTargetWords = true;
 	} else if (key == "slack") {
 		slack = Scan<float>(value);
+	} else if (key == "activateCBTM") {
+		m_cbtm = Scan<bool>(value);
 	} else if (key == "terAlign") {
 		m_terAlign = Scan<bool>(value);
 		if(m_terAlign){
@@ -487,9 +492,10 @@ bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
 	trim(s);
 	if (m_postedited.empty()) {
 		m_postedited = s;
-		if(m_triggerTargetWords)
+		if(m_triggerTargetWords && !m_ngrams)
 			InsertTargetWords();
-		//          InsertNGrams(); // instead of InsertTargetWords
+		if(m_triggerTargetWords && m_ngrams)
+			InsertNGrams(); // instead of InsertTargetWords
 		return true;
 	} else {
 		VERBOSE(1, "post edited already exists.. " << m_postedited << endl);
@@ -523,7 +529,7 @@ void OnlineLearningFeature::make_align_pairs() {
 			stringstream(temp2[1]) >> t;
 			postedit_wordpair[src[s]]=trg[t];
 			VERBOSE(1, "ALIGN : "<<src[s]<<" | "<<trg[t]<<endl);
-			if(implementation!=Mira)
+			if(implementation!=Mira && m_cbtm)
 				Update(src[s], trg[t], "1");
 		}
 	}
@@ -590,7 +596,7 @@ void OnlineLearningFeature::ReadFeatures(std::string filename)
 				if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 					score /= float(1.0 + float(abs(score)));
 				m_feature[splits[0]][splits[1]] = score;
-				StaticData::InstanceNonConst().SetSparseWeight(this, featureName, score);
+				StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
 			}
 			else{
 				TRACE_ERR("The format of feature file does not comply!\n There should be "<<splits.size()<<"columns \n");
@@ -606,62 +612,61 @@ void OnlineLearningFeature::ReadFeatures(std::string filename)
 
 void OnlineLearningFeature::InsertSparseFeature(std::string sp, std::string tp, int age, float margin){
 	VERBOSE(2, "Inserting Sparse Feature : "<<sp<<" || "<<tp<<" || "<<margin<<endl);
+	if(m_triggerTargetWords && m_ngrams)
+	    if(m_vocab.find(tp)==m_vocab.end() && m_stopwords.find(tp)==m_stopwords.end()) {
+		m_vocab.insert(tp);
+		StaticData::InstanceNonConst().SetSparseWeight(this, tp, w_initTargetWords);
+	    }
 	ShootUp(sp, tp, margin);
 }
 
 void OnlineLearningFeature::ShootUp(std::string sp, std::string tp, float margin) {
 	if (m_feature.find(sp) != m_feature.end()) {
 		if (m_feature[sp].find(tp) != m_feature[sp].end()) {
-			StringPiece fName(sp+"|||"+tp);
-			FName fname(fName);
-			float val = StaticData::Instance().GetAllWeights().GetSparseWeight(fname);
+			float val = m_feature[sp][tp];
 			val += flr * margin;
 			m_feature[sp][tp] = val;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
 		} else {
 			m_feature[sp][tp] = flr*margin;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
+			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
 		}
 	} else {
 		m_feature[sp][tp] = flr*margin;
 		std::string featureName(sp+"|||"+tp);
 		if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 			m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
+		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
 	}
 }
 
 void OnlineLearningFeature::ShootDown(std::string sp, std::string tp, float margin) {
 	if (m_feature.find(sp) != m_feature.end()) {
 		if (m_feature[sp].find(tp) != m_feature[sp].end()) {
-			StringPiece fName(sp+"|||"+tp);
-			FName fname(fName);
-			float val = StaticData::Instance().GetAllWeights().GetSparseWeight(fname);
+			float val = m_feature[sp][tp];
 			val -= flr * margin;
 			m_feature[sp][tp] = val;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
 		} else {
 			m_feature[sp][tp] = -1 * flr *margin;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
+			StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
 		}
 	} else {
 		m_feature[sp][tp] = -1 * flr *margin;
 		std::string featureName(sp+"|||"+tp);
 		if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 			m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, m_feature[sp][tp]);
+		StaticData::InstanceNonConst().SetSparseWeight(this, featureName, w_init);
 	}
 }
 
@@ -706,7 +711,7 @@ void OnlineLearningFeature::updateFeatureValues(){
 				if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 					score /= float(1.0 + float(abs(score)));
 				m_feature[itr1->first][itr2->first] = score;
-				StaticData::InstanceNonConst().SetSparseWeight(this, itr1->first+"|||"+itr2->first, score);
+				StaticData::InstanceNonConst().SetSparseWeight(this, itr1->first+"|||"+itr2->first, 1);
 			}
 			itr2++;
 		}
@@ -761,21 +766,15 @@ void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const M
 		}
 		std::string tword = tp.GetWord(pos)[0]->GetString().as_string();
 		t += tword;
-		if(m_triggerTargetWords && m_vocab.find(t)!=m_vocab.end()){
+		if(m_triggerTargetWords && m_vocab.find(tword)!=m_vocab.end() && !m_ngrams){
 			out.SparsePlusEquals(tword, 1);
 		}
 	}
-	//    	if(m_triggerTargetWords){
-	//    		boost::unordered_map<std::string, int> twords;
-	//    		getNGrams(t, twords);
-	//    		boost::unordered_map<std::string, int>::const_iterator itr=twords.begin();
-	//    		while(itr!=twords.end()){
-	//    			if(m_vocab.find(t) != m_vocab.end()){
-	//    				out.SparsePlusEquals(t, 1);
-	//    			}
-	//    			itr++;
-	//    		}
-	//    	}
+	if(m_triggerTargetWords && m_ngrams){
+		if(m_triggerTargetWords && m_vocab.find(t+" ")!=m_vocab.end()){
+			out.SparsePlusEquals(t+" ", 1);
+		}
+	}
 
 	endpos = sp.GetSize();
 	for (size_t pos = 0; pos < endpos; ++pos) {
@@ -799,14 +798,14 @@ void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const M
 
 	std::string featureN = s+"|||"+t;
 	if(score!=0)
-		out.SparsePlusEquals(featureN, 1);
+		out.SparsePlusEquals(featureN, score);
 }
 
 void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	if(implementation == SparseFeatures) return;
 	const StaticData& staticData = StaticData::Instance();
 	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-	if(implementation != Mira && m_terAlign){
+	if(implementation != Mira && m_terAlign && !m_forceAlign && m_cbtm){
 		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
 		Update(m_source, m_postedited, "1");
 	}
@@ -1030,6 +1029,9 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			VERBOSE(1, "setting weights\n");
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
 			weightUpdate.PrintCoreFeatures();
+			stringstream ss;
+			weightUpdate.GetScoresVector().print(ss);
+			ss.flush();
 			VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
 		}
 		else{
