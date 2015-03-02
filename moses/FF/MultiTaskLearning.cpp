@@ -2,19 +2,20 @@
  * MultiTaskLearning.cpp
  *
  *  Created on: Mar 1, 2015
- *      Author: prashant
+ *
  */
 
 #include "MultiTaskLearning.h"
 
 namespace Moses {
+MultiTaskLearning *MultiTaskLearning::s_instance = NULL;
 
 MultiTaskLearning::MultiTaskLearning(const std::string &line) :
 		StatelessFeatureFunction(1, line){
 	m_users = 1;
 	m_learningrate=0.1;
 	m_implementation = noupdate;
-	m_learnmatrix=true;
+	m_multitask=true;
 	m_currtask=0;
 	ReadParameters();
 }
@@ -25,18 +26,15 @@ void MultiTaskLearning::SetParameter(const std::string& key, const std::string& 
 		m_implementation = Scan<std::string>(value);
 	} else if (key == "matrix-lr"){
 		m_learningrate = Scan<double>(value);
+	} else if (key=="matrix"){
 	} else {
 		StatelessFeatureFunction::SetParameter(key, value);
 	}
 }
-void EvaluateWithSourceContext(const InputType &input
-			, const InputPath &inputPath
-			, const TargetPhrase &targetPhrase
-			, const StackVec *stackVec
-			, ScoreComponentCollection &scoreBreakdown
-			, ScoreComponentCollection *estimatedFutureScore) const {
+void EvaluateInIsolation(const Moses::Phrase& sp, const Moses::TargetPhrase& tp,
+		Moses::ScoreComponentCollection& out, Moses::ScoreComponentCollection& fs) const  {
 	float score=1;
-	scoreBreakdown.Assign(this, score);
+	out.PlusEquals(this, score);
 }
 void MultiTaskLearning::SetInteractionMatrix(boost::numeric::ublas::matrix<double>& interactionMatrix){
 	m_intMatrix = interactionMatrix;
@@ -44,7 +42,7 @@ void MultiTaskLearning::SetInteractionMatrix(boost::numeric::ublas::matrix<doubl
 void MultiTaskLearning::SetKdKdMatrix(boost::numeric::ublas::matrix<double>& kdkdmatrix){
 	m_kdkdmatrix=kdkdmatrix;
 }
-ScoreComponentCollection MultiTaskLearning::GetWeightsVector(int user) {
+ScoreComponentCollection MultiTaskLearning::GetWeightsVector(int user) const {
 	if(m_user2weightvec.find(user) != m_user2weightvec.end()){
 		return m_user2weightvec[user];
 	}
@@ -65,7 +63,7 @@ boost::numeric::ublas::matrix<double> MultiTaskLearning::GetWeightsMatrix() {
 	}
 	return A;
 }
-void MultiTaskLearning::SetWeightsVector(int user, ScoreComponentCollection weightVec){
+void MultiTaskLearning::SetWeightsVector(uint8_t user, ScoreComponentCollection weightVec){
 	if(user < m_users){	// < because the indexing starts from 0
 		m_user2weightvec[user] = weightVec;
 	}

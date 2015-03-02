@@ -1273,16 +1273,14 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 					BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");
-				StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-				weightUpdate.PrintCoreFeatures();
-				stringstream ss;
-				weightUpdate.GetScoresVector().print(ss);
-				ss.flush();
+				MultiTaskLearning::InstanceNonConst().SetWeightsVector(task, weightUpdate);
 				VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
 			}
 			else{
 				VERBOSE(1, "No Update\n");
 			}
+			// update the interaction matrix
+			updateIntMatrix();
 		}
 		else if(implementation == FPercepWMira || implementation == Mira){
 			VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
@@ -1294,7 +1292,44 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 }
 
 void OnlineLearningFeature::updateIntMatrix(){
+	boost::numeric::ublas::matrix<double> W = MultiTaskLearning::InstanceNonConst().GetWeightsMatrix();
+	std::cerr << "\n\nWeight Matrix = ";
+	std::cerr << W << endl;
+	boost::numeric::ublas::matrix<double> updated = MultiTaskLearning::Instance().GetInteractionMatrix();
 
+	if(updateType == MultiTaskLearning::vonNeumann){
+		// log (A^{-1}_t) = log (A^{-1}_{t-1}) - \frac{\eta} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
+		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
+		boost::numeric::ublas::matrix<double> sub = prod(trans(W), W) + trans(prod(trans(W), W)) ;
+		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::log);
+		updated -= eta * sub;
+		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::exp);
+		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
+		std::cerr << "Updated = ";
+		std::cerr << updated << endl;
+	}
+
+	if(updateType == MultiTaskLearning::logDet){
+		// A^{-1}_t = A^{-1}_{t-1} + \frac{\eta}{2} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
+		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
+		boost::numeric::ublas::matrix<double> adding = prod(trans(W), W) + trans(prod(trans(W), W)) ;
+		updated += eta * adding;
+		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
+		std::cerr << "Updated = ";
+		std::cerr << updated << endl;
+
+	}
+
+	if(updateType == MultiTaskLearning::Burg){
+
+	}
+	// update kd x kd matrix because it is used in weight update not the interaction matrix
+	int size = StaticData::Instance().GetAllWeights().Size();
+	uint8_t tasks= MultiTaskLearning::Instance().GetNumberOfTasks();
+	boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
+	boost::numeric::ublas::identity_matrix<double> m (size);
+	MatrixOps::KroneckerProduct(updated, m, kdkdmatrix);
+	MultiTaskLearning::InstanceNonConst().SetKdKdMatrix(kdkdmatrix);
 }
 
 

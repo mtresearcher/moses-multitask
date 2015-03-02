@@ -19,6 +19,7 @@
 #include "moses/Manager.h"
 #include "math.h"
 #include "moses/StaticData.h"
+#include "moses/FF/MultiTaskLearning.cpp"
 
 #include "moses/FF/OnlineLearning/Optimiser.h"
 #include "boost/unordered_map.hpp"
@@ -111,11 +112,6 @@ public:
 		, Mira = 3
 	};
 
-	enum UpdateStep {
-		vonNeumann = 0
-		, logDet = 1
-	};
-
 	enum Language {
 		french = 0
 		, spanish = 1
@@ -126,7 +122,7 @@ public:
 private:
 	static OnlineLearningFeature *s_instance;
 	Algorithm implementation;
-	UpdateStep m_updateType;
+	MultiTaskLearning::UpdateInteractionMatrixType updateType;
 	boost::unordered_set<std::string> m_vocab, m_stopwords;
 	boost::unordered_map<std::string, std::string> curr_wordpair, postedit_wordpair;
 	pp_feature m_feature;
