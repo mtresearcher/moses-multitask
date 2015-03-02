@@ -1048,7 +1048,249 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 }
 
 void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
+	if(implementation == SparseFeatures) return;
+		const StaticData& staticData = StaticData::Instance();
+		const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
+		if(implementation != Mira && m_terAlign && !m_forceAlign && m_cbtm){
+			PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
+			Update(m_source, m_postedited, "1");
+		}
+		const Hypothesis* hypo = manager.GetBestHypothesis();
+		float bestScore = hypo->GetScore();
+		stringstream bestHypothesis;
+		PP_BEST.clear();
+		PrintHypo(hypo, bestHypothesis);
+		float bestbleu;
+		double ter = GetTer(bestHypothesis.str(), m_postedited);
+		if(m_sctype.compare("Bleu")==0)
+			bestbleu = GetBleu(bestHypothesis.str(), m_postedited);
+		else if(m_sctype.compare("Ter")==0)
+			bestbleu = 1-ter;
+		VERBOSE(1, "Post Edit	: " << m_postedited << endl);
+		if(m_sctype.compare("Bleu")==0){
+			VERBOSE(1, "Best Hypothesis	: " << bestHypothesis.str() << "|||" << bestScore<<"|||"<<bestbleu << endl);
+		}
+		else if(m_sctype.compare("Ter")==0){
+			VERBOSE(1, "Best Hypothesis	: " << bestHypothesis.str() << "|||" << bestScore<<"|||"<<bestbleu << endl);
+		}
+		TrellisPathList nBestList;
+		manager.CalcNBest(m_nbestSize, nBestList, true);
 
+		std::string bestOracle;
+		std::vector<string> HypothesisList;
+		std::vector<float> loss, BleuScore, oracleBleuScores, modelScore, oracleModelScores;
+		std::vector<std::vector<float> > losses, BleuScores, modelScores;
+		std::vector<ScoreComponentCollection> featureValue, oraclefeatureScore;
+		std::vector<std::vector<ScoreComponentCollection> > featureValues;
+		TrellisPathList::const_iterator iter;
+		pp_list BestOracle, Visited, tempHopeFear;
+		pp_feature Hope, Fear, NewHope, oracleHope;
+		float maxBleu = bestbleu, maxScore = bestScore, oracleScore = 0.0;
+		size_t whichoracle = -1;
+		for (iter = nBestList.begin(); iter != nBestList.end(); ++iter) {
+			tempHopeFear.clear();
+			whichoracle++;
+			const TrellisPath &path = **iter;
+			oracleScore = path.GetTotalScore();
+			PP_ORACLE.clear();
+			const std::vector<const Hypothesis *> &edges = path.GetEdges();
+			stringstream oracle;
+			for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+				const Hypothesis &edge = *edges[currEdge];
+				size_t size = edge.GetCurrTargetPhrase().GetSize();
+				for (size_t pos = 0; pos < size; pos++) {
+					const Factor *factor = edge.GetCurrTargetPhrase().GetFactor(pos, outputFactorOrder[0]);
+					oracle << *factor;
+					oracle << " ";
+				}
+				std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+				std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+				if (!has_only_spaces(sourceP) && !has_only_spaces(targetP))
+					PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
+			}
+			float oraclebleu;
+			if(m_sctype.compare("Bleu")==0)
+				oraclebleu = GetBleu(oracle.str(), m_postedited);
+			else if(m_sctype.compare("Ter")==0)
+				oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
+			if (implementation == FPercepWMira || implementation == Mira) {
+				HypothesisList.push_back(oracle.str());
+				BleuScore.push_back(oraclebleu);
+				featureValue.push_back(path.GetScoreBreakdown());
+				modelScore.push_back(oracleScore);
+			}
+			if(m_terAlign){
+				for (int currEdge = (int) edges.size() - 1; currEdge >= 0; currEdge--) {
+					const Hypothesis &edge = *edges[currEdge];
+					size_t size = edge.GetCurrTargetPhrase().GetSize();
+					std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
+					std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
+					std::set<std::pair<size_t,size_t> > alignments=edge.GetCurrTargetPhrase().GetAlignTerm().GetAlignments();
+					std::vector<std::string> sourceVec, targetVec;
+					split_marker_perl(sourceP, " ", sourceVec);
+					split_marker_perl(targetP, " ", targetVec);
+					for(std::set<std::pair<size_t,size_t> >::const_iterator Iter=alignments.begin(); Iter!=alignments.end(); Iter++){
+						string mtword=targetVec[Iter->second];
+						if(curr_wordpair.find(mtword)!=curr_wordpair.end()){
+							string peword=curr_wordpair.at(mtword);
+							string srword=sourceVec[Iter->first];
+							// ensure that only new pairs are inserted
+							if(peword.compare(mtword)!=0 && !has_only_spaces(peword) &&
+									peword.length()!=0 && !has_only_spaces(mtword) && mtword.length()!=0 && (peword.length() / mtword.length()) < 2
+									&& (mtword.length() / peword.length()) < 2){
+								// new word2word alignments
+								if(oraclebleu >= bestbleu){
+									NewHope[srword][peword]=oracleScore;
+								}
+								// replace the mtword with peword in target phrase
+								if(targetP.find(mtword) != std::string::npos){
+									std::vector<std::string> sentVec;
+									split_marker_perl(targetP, " ", sentVec);
+									for(size_t i=0;i<sentVec.size(); i++){
+										if(sentVec[i].compare(mtword)==0){
+											sentVec[i]=peword;
+											break;
+										}
+									}
+									targetP = boost::algorithm::join(sentVec, " ");
+								}
+							}
+						}
+					}
+					if(targetP.compare(edge.GetTargetPhraseStringRep())!=0 &&
+							!has_only_spaces(targetP) && targetP.length()!=0){
+						if(oraclebleu >= bestbleu){
+							NewHope[sourceP][targetP]=oracleScore;
+						}
+					}
+				}
+			}
+			if (oraclebleu > maxBleu) {
+				if(m_sctype.compare("Ter")==0){
+					VERBOSE(1, "NBEST		: " << oracle.str() << "|||" << oracleScore<<"|||"<<oraclebleu << endl);
+				}
+				else if(m_sctype.compare("Bleu")==0){
+					VERBOSE(1, "NBEST		: " << oracle.str() << "|||" << oracleScore<<"|||"<<oraclebleu << endl);
+				}
+				maxBleu = oraclebleu;
+				maxScore = oracleScore;
+				bestOracle = oracle.str();
+				oracleBleuScores.clear();
+				oraclefeatureScore.clear();
+				oracleHope = NewHope;
+				BestOracle = PP_ORACLE;
+				oracleBleuScores.push_back(oraclebleu);
+				oraclefeatureScore.push_back(path.GetScoreBreakdown());
+			}
+			if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+				if (oraclebleu > bestbleu) {
+					pp_list::const_iterator it1;
+					for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+						boost::unordered_map<std::string, int>::const_iterator itr1;
+						for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+							if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+								Hope[it1->first][itr1->first]=oracleScore;
+							}
+						}
+					}
+				}
+				if (oraclebleu < bestbleu) {
+					pp_list::const_iterator it1;
+					for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
+						boost::unordered_map<std::string, int>::const_iterator itr1;
+						for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+							if (PP_BEST[it1->first][itr1->first] != 1){// && Visited[it1->first][itr1->first] != 1) {
+								Fear[it1->first][itr1->first]=oracleScore;
+							}
+						}
+					}
+				}
+			}
+		}
+		Visited.clear();
+		VERBOSE(1,"Read all the oracles in the list!\n");
+		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+			// for the 1best in nbest list
+			pp_list::const_iterator it1;
+			for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
+				boost::unordered_map<std::string, int>::const_iterator itr1;
+				for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+					if (BestOracle[it1->first][itr1->first] != 1)
+						ShootDown(it1->first, itr1->first, abs(maxScore - bestScore));
+				}
+			}
+			for (it1 = BestOracle.begin(); it1 != BestOracle.end(); it1++) {
+				boost::unordered_map<std::string, int>::const_iterator itr1;
+				for (itr1 = (it1->second).begin(); itr1 != (it1->second).end(); itr1++) {
+					if (PP_BEST[it1->first][itr1->first] != 1)
+						ShootUp(it1->first, itr1->first, abs(maxScore - bestScore));
+				}
+			}
+			// for the 2-N in nbest list
+			pp_feature::const_iterator it2;
+			for (it2 = Hope.begin(); it2 != Hope.end(); it2++) {
+				boost::unordered_map<std::string, float>::const_iterator itr2;
+				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+					ShootUp(it2->first, itr2->first, abs(bestScore - itr2->second));
+				}
+			}
+			for (it2 = Fear.begin(); it2 != Fear.end(); it2++) {
+				boost::unordered_map<std::string, float>::const_iterator itr2;
+				for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+					ShootDown(it2->first, itr2->first, abs(bestScore - itr2->second));
+				}
+			}
+			if(m_terAlign){
+				for (it2 = oracleHope.begin(); it2 != oracleHope.end(); it2++) {
+					boost::unordered_map<std::string, float>::const_iterator itr2;
+					for (itr2 = (it2->second).begin(); itr2 != (it2->second).end(); itr2++) {
+						ShootUp(it2->first, itr2->first, abs(maxScore-bestScore));
+						std::string sourcePhraseString = it2->first;
+						std::string targetPhraseString = itr2->first;
+						Update(sourcePhraseString, targetPhraseString, "1");
+					}
+				}
+			}
+		}
+		VERBOSE(1, "Updated the features!\n");
+
+		//	Update the weights as I found a better oracle translation
+		if ((implementation == FPercepWMira || implementation == Mira)
+				&& maxBleu!=bestbleu && maxScore!=bestScore) {
+			for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+			{
+				float bleuscore = BleuScore[i];
+				loss.push_back(maxBleu - bleuscore);
+			}
+			modelScores.push_back(modelScore);
+			featureValues.push_back(featureValue);
+			BleuScores.push_back(BleuScore);
+			losses.push_back(loss);
+			oracleModelScores.push_back(maxScore);
+			ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
+			VERBOSE(1, "Updating the Weights...\n");
+			size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
+					BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+			if(update_status == 0){
+				VERBOSE(1, "setting weights\n");
+				StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+				weightUpdate.PrintCoreFeatures();
+				stringstream ss;
+				weightUpdate.GetScoresVector().print(ss);
+				ss.flush();
+				VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
+			}
+			else{
+				VERBOSE(1, "No Update\n");
+			}
+		}
+		else if(implementation == FPercepWMira || implementation == Mira){
+			VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
+		}
+		if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+			updateFeatureValues();
+		VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
+		return;
 }
 
 void OnlineLearningFeature::updateIntMatrix(){
