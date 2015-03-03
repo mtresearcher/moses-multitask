@@ -104,51 +104,6 @@ const char *m_stopwords_EN[] = { "a","about","above",
 		"wouldn't","you","you'd","you'll","you're","you've","your","yours",
 		"yourself","yourselves"};
 
-namespace MatrixOps {
-//    ------------------- Kronecker Product code ---------------------------- //
-bool KroneckerProduct (const boost::numeric::ublas::matrix<double>& A,
-		const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
-	size_t rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
-	for(size_t i=0; i<C.size1(); i++){
-		for(size_t j=0; j<C.size2(); j++){
-			rowB=i%B.size1();
-			colB=j%B.size2();
-			if(pcolB!=0 && colB == 0) colA++;
-			if(prowB!=0 && rowB==0) rowA++;
-			prowB=rowB;
-			pcolB=colB;
-			if(colA >= A.size2()){colA=0; colB=0;pcolB=1;}
-			C(i, j) = A(rowA, colA) * B(rowB, colB) ;
-		}
-	}
-	return true;
-}
-//    ------------------- matrix inversion code ---------------------------- //
-template<class T>
-bool InvertMatrix (const boost::numeric::ublas::matrix<T>& input, boost::numeric::ublas::matrix<T>& inverse) {
-	typedef boost::numeric::ublas::permutation_matrix<std::size_t> pmatrix;
-
-	// create a working copy of the input
-	boost::numeric::ublas::matrix<T> A(input);
-
-	// create a permutation matrix for the LU-factorization
-	pmatrix pm(A.size1());
-
-	// perform LU-factorization
-	size_t res = boost::numeric::ublas::lu_factorize(A, pm);
-	if (res != 0)
-		return false;
-
-	// create identity matrix of "inverse"
-	inverse.assign(boost::numeric::ublas::identity_matrix<T> (A.size1()));
-
-	// backsubstitute to get the inverse
-	boost::numeric::ublas::lu_substitute(A, pm, inverse);
-
-	return true;
-}
-}
-
 namespace Moses {
 
 OnlineLearningFeature *OnlineLearningFeature::s_instance = NULL;
@@ -1280,7 +1235,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 				VERBOSE(1, "No Update\n");
 			}
 			// update the interaction matrix
-			updateIntMatrix();
+			MultiTaskLearning::InstanceNonConst().updateIntMatrix();
 		}
 		else if(implementation == FPercepWMira || implementation == Mira){
 			VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
@@ -1289,47 +1244,6 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 			updateFeatureValues();
 		VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
 		return;
-}
-
-void OnlineLearningFeature::updateIntMatrix(){
-	boost::numeric::ublas::matrix<double> W = MultiTaskLearning::InstanceNonConst().GetWeightsMatrix();
-	std::cerr << "\n\nWeight Matrix = ";
-	std::cerr << W << endl;
-	boost::numeric::ublas::matrix<double> updated = MultiTaskLearning::Instance().GetInteractionMatrix();
-
-	if(updateType == MultiTaskLearning::vonNeumann){
-		// log (A^{-1}_t) = log (A^{-1}_{t-1}) - \frac{\eta} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
-		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
-		boost::numeric::ublas::matrix<double> sub = prod(trans(W), W) + trans(prod(trans(W), W)) ;
-		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::log);
-		updated -= eta * sub;
-		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::exp);
-		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
-		std::cerr << "Updated = ";
-		std::cerr << updated << endl;
-	}
-
-	if(updateType == MultiTaskLearning::logDet){
-		// A^{-1}_t = A^{-1}_{t-1} + \frac{\eta}{2} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
-		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
-		boost::numeric::ublas::matrix<double> adding = prod(trans(W), W) + trans(prod(trans(W), W)) ;
-		updated += eta * adding;
-		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
-		std::cerr << "Updated = ";
-		std::cerr << updated << endl;
-
-	}
-
-	if(updateType == MultiTaskLearning::Burg){
-
-	}
-	// update kd x kd matrix because it is used in weight update not the interaction matrix
-	int size = StaticData::Instance().GetAllWeights().Size();
-	uint8_t tasks= MultiTaskLearning::Instance().GetNumberOfTasks();
-	boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
-	boost::numeric::ublas::identity_matrix<double> m (size);
-	MatrixOps::KroneckerProduct(updated, m, kdkdmatrix);
-	MultiTaskLearning::InstanceNonConst().SetKdKdMatrix(kdkdmatrix);
 }
 
 

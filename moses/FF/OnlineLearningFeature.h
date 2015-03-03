@@ -19,7 +19,7 @@
 #include "moses/Manager.h"
 #include "math.h"
 #include "moses/StaticData.h"
-#include "moses/FF/MultiTaskLearning.cpp"
+#include "moses/FF/MultiTaskLearning.h"
 
 #include "moses/FF/OnlineLearning/Optimiser.h"
 #include "boost/unordered_map.hpp"
@@ -176,8 +176,6 @@ private:
 	void ReadFeatures(std::string);
 	void InsertTargetWords();
 	void InsertNGrams();
-
-	void updateIntMatrix();
 
 	void GetPE2HypAlignments(const TERCPPNS_TERCpp::terAlignment&);
 	void Update(std::string& , std::string& , std::string);

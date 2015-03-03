@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "XmlOption.h"
 #include "FactorCollection.h"
 #include "moses/FF/OnlineLearningFeature.h"
+#include "moses/FF/MultiTaskLearning.h"
 
 using namespace std;
 
@@ -195,7 +196,8 @@ init(string line, std::vector<FactorType> const& factorOrder)
   m_sourceCompleted.resize(0);
 
   OnlineLearningFeature *ol = &OnlineLearningFeature::InstanceNonConst();
-  if(ol!=NULL)
+  MultiTaskLearning *mtl = &MultiTaskLearning::InstanceNonConst();
+  if(ol!=NULL && mtl==NULL)
   {
 	  cerr<<"In Sentence:: "<<line<<endl;
 	  std::vector<string> strs;
@@ -208,23 +210,20 @@ init(string line, std::vector<FactorType> const& factorOrder)
 		  found = line.find(marker, found + marker.length());
 	  }
 	  strs.push_back(line.substr(prev));
-
 	  if(strs.size()>=2){
-		  MultiTaskLearning *mtl = &MultiTaskLearning::InstanceNonConst();
 		  ol->ActivateOnlineLearning();
-		  VERBOSE(1, "Activating Online Learning\n");
 		  if(!ol->SetPostEditedSentence(strs[1])) exit(1);
-		  VERBOSE(1, "Setting Post Edited Sentence\n");
 		  if(strs.size()>=3 && mtl==NULL){
 			  // set the alignments
 			  if(!ol->SetAlignments(strs[2])) exit(1);
 			  VERBOSE(1, "Setting Alignments\n");
 		  }
-		  else if(strs.size()>=3 && mtl!=NULL && mtl->IfMultiTask()){
+		  /*else if(strs.size()>=3 && mtl!=NULL && mtl->IfMultiTask()){
 			  // set task id
 			  int task = atoi(strs[2].c_str());
 			  mtl->SetCurrentTask(task);
-		  }
+			  StaticData::InstanceNonConst().SetAllWeights(mtl->GetWeightsVector(task));
+		  }*/
 	  }
 	  else{
 		  ol->DeactivateOnlineLearning();
@@ -234,9 +233,43 @@ init(string line, std::vector<FactorType> const& factorOrder)
 	  ol->SetSourceSentence(line);
 	  VERBOSE(1, "Setting source sentence : "<<line<<endl);
   }
-  else {
-	  VERBOSE(1, "Online Learning is not activated\n");
+  if(ol!=NULL && mtl!=NULL)	// online and multi task learning are active
+  {
+	cerr<<"In Sentence:: "<<line<<endl;
+    std::vector<string> strs;
+    std::string marker="_#_";
+    size_t found = line.find(marker), prev=0;
+    while (found != string::npos)
+    {
+      strs.push_back(line.substr(prev, found - prev));
+      prev = found + marker.length();
+      found = line.find(marker, found + marker.length());
+    }
+    strs.push_back(line.substr(prev));
+    if(strs.size()==3){
+    	if(ol!=NULL){
+    		ol->ActivateOnlineLearning();
+    		ol->SetPostEditedSentence(strs[1]);
+    		int task = atoi(strs[2].c_str());
+    		mtl->SetCurrentTask(task);
+    		StaticData::InstanceNonConst().SetAllWeights(mtl->GetWeightsVector(task));
+    		cerr<<"Using weights for task id "<<task<<"\t";
+    		ScoreComponentCollection weightUpdate = StaticData::Instance().GetAllWeights();
+    	}
+    	else{
+    		VERBOSE(1, "online learning module not activated!!");
+    	}
+    }
+    else if(strs.size()==2){		// even while decoding normal sentence we need task id
+    	ol->DeactivateOnlineLearning();
+    	int task = atoi(strs[1].c_str());
+    	mtl->SetCurrentTask(task);
+    	StaticData::InstanceNonConst().SetAllWeights(mtl->GetWeightsVector(task));
+    	ScoreComponentCollection weightUpdate = StaticData::Instance().GetAllWeights();
+    }
+    line=strs[0];
   }
+
 
   if (SD.ContinuePartialTranslation()) 
     aux_init_partial_translation(line);

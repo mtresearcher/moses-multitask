@@ -9,7 +9,6 @@
 #include "moses/OutputCollector.h"
 #include "moses/Incremental.h"
 #include "mbr.h"
-#include "moses/FF/OnlineLearningFeature.h"
 
 #include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/F2S/RuleMatcherHyperTree.h"

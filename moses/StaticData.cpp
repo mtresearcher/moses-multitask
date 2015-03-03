@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/FF/UnknownWordPenaltyProducer.h"
 #include "moses/FF/InputFeature.h"
 #include "moses/FF/DynamicCacheBasedLanguageModel.h"
+#include "moses/FF/MultiTaskLearning.h"
 #include "moses/TranslationModel/PhraseDictionaryDynamicCacheBased.h"
 
 #include "DecodeStepTranslation.h"
@@ -530,6 +531,20 @@ bool StaticData::LoadData(Parameter *parameter)
       return false;
     }
   }
+
+  // MTL requires setting weights for all tasks initially.. it seems this is the only place to insert this code.
+  MultiTaskLearning *mtl = &MultiTaskLearning::InstanceNonConst() ;
+  if(mtl!=NULL){
+	  int size = this->GetAllWeights().Size();	// add 1 for the bias feature
+	  int tasks=mtl->GetNumberOfTasks();
+	  boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
+	  boost::numeric::ublas::identity_matrix<double> m (size);
+	  boost::numeric::ublas::matrix<double> interactionMatrix = mtl->GetInteractionMatrix();
+	  mtl->KroneckerProduct(interactionMatrix, m, kdkdmatrix);
+	  mtl->SetKdKdMatrix(kdkdmatrix);
+	  for(uint8_t i=0; i< tasks; i++){mtl->SetWeightsVector(i, this->GetAllWeights());}
+  }
+
   return true;
 }
 
