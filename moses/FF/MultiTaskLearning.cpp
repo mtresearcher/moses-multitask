@@ -95,12 +95,6 @@ void MultiTaskLearning::EvaluateInIsolation(const Moses::Phrase& sp, const Moses
 	float score=1;
 	out.Assign(this, score);
 }
-void MultiTaskLearning::SetInteractionMatrix(boost::numeric::ublas::matrix<double>& interactionMatrix){
-	m_intMatrix = interactionMatrix;
-}
-void MultiTaskLearning::SetKdKdMatrix(boost::numeric::ublas::matrix<double>& kdkdmatrix){
-	m_kdkdmatrix=kdkdmatrix;
-}
 ScoreComponentCollection MultiTaskLearning::GetWeightsVector(uint8_t user) {
 	if(m_user2weightvec.find(user) != m_user2weightvec.end()){
 		return m_user2weightvec[user];
@@ -110,13 +104,12 @@ ScoreComponentCollection MultiTaskLearning::GetWeightsVector(uint8_t user) {
 		exit(1);
 	}
 }
-boost::numeric::ublas::matrix<double> MultiTaskLearning::GetWeightsMatrix() {
-	boost::numeric::ublas::matrix<double> A(m_user2weightvec.begin()->second.Size(), m_users);
-	for(int i=0;i<m_users;i++){
+Eigen::MatrixXd MultiTaskLearning::GetWeightsMatrix() {
+	Eigen::MatrixXd A(m_user2weightvec.begin()->second.Size(), m_users);
+	for(int i=0;i<m_users;i++){ // K columns - tasks
 		FVector weightVector = m_user2weightvec[i].GetScoresVector();
-		weightVector.printCoreFeatures();
 		const std::valarray<float>& scoreVector = m_user2weightvec[i].GetScoresVector().getCoreFeatures();
-		for(size_t j=0; j<scoreVector.size(); j++){
+		for(size_t j=0; j<scoreVector.size(); j++){ // d rows - features
 			A(j,i) = scoreVector[j];
 		}
 	}
@@ -132,88 +125,61 @@ MultiTaskLearning::~MultiTaskLearning() {
 }
 
 void MultiTaskLearning::updateIntMatrix(){
-	boost::numeric::ublas::matrix<double> W = MultiTaskLearning::InstanceNonConst().GetWeightsMatrix();
-	std::cerr << "\n\nWeight Matrix = ";
+	Eigen::MatrixXd W = GetWeightsMatrix();
+	std::cerr << "\n\nWeight Matrix \n";
 	std::cerr << W << endl;
-	boost::numeric::ublas::matrix<double> updated = MultiTaskLearning::Instance().GetInteractionMatrix();
-
-	if(m_implementation == MultiTaskLearning::vonNeumann){
-		// log (A^{-1}_t) = log (A^{-1}_{t-1}) - \frac{\eta} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
-		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
-		boost::numeric::ublas::matrix<double> sub = prod(trans(W), W) + trans(prod(trans(W), W)) ;
-		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::log);
-		updated -= eta * sub;
-		std::transform(updated.data().begin(), updated.data().end(), updated.data().begin(), ::exp);
-		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
-		std::cerr << "Updated = ";
-		std::cerr << updated << endl;
+	Eigen::MatrixXd updated = m_intMatrix;
+	Eigen::MatrixXd ones = Eigen::MatrixXd::Ones(m_users, m_users);
+	
+	if(m_implementation == noupdate){ return; }
+	else if(m_implementation == vonNeumann){
+		// (A^{-1}_t) = exp(log (A^{-1}_{t-1}) - \frac{\eta} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1}))
+		Eigen::MatrixXd temp = W.transpose() * W;
+		temp-=ones;
+		std::cerr << "W + W^T Matrix \n"<< temp << endl;
+		Eigen::MatrixXd sub = (temp + temp.transpose())/2;
+		Eigen::MatrixXd A = updated.log();
+		std::cerr << "Sub Matrix \n"<< sub << endl;
+		A -= m_learningrate * sub;
+		updated = A.exp();
+		SetInteractionMatrix(updated);
+		std::cerr << "Interaction Matrix \n"<< updated << endl;
 	}
 
-	if(m_implementation == MultiTaskLearning::logDet){
+	else if(m_implementation == logDet){
 		// A^{-1}_t = A^{-1}_{t-1} + \frac{\eta}{2} * (W^T_{t-1} \times W_{t-1} + W_{t-1} \times W^T_{t-1})
-		float eta = MultiTaskLearning::Instance().GetLearningRateIntMatrix();
-		boost::numeric::ublas::matrix<double> adding = prod(trans(W), W) + trans(prod(trans(W), W)) ;
-		updated += eta * adding;
-		MultiTaskLearning::InstanceNonConst().SetInteractionMatrix(updated);
-		std::cerr << "Updated = ";
-		std::cerr << updated << endl;
-
+		Eigen::MatrixXd temp = W.transpose() * W;
+		temp-=ones;
+		std::cerr << "W + W^T Matrix \n"<< temp << endl;
+		Eigen::MatrixXd adding = (temp + temp.transpose())/2;
+		std::cerr << "Add Matrix \n"<< adding << endl;
+		updated += m_learningrate * adding;
+		m_intMatrix = updated;
+		std::cerr << "Interaction Matrix \n"<< updated << endl;
 	}
 
-	if(m_implementation == MultiTaskLearning::Burg){
+	else if(m_implementation == Burg){
 
 	}
 	// update kd x kd matrix because it is used in weight update not the interaction matrix
 	int size = StaticData::Instance().GetAllWeights().Size();
-	uint8_t tasks= MultiTaskLearning::Instance().GetNumberOfTasks();
-	boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
-	boost::numeric::ublas::identity_matrix<double> m (size);
-	KroneckerProduct(updated, m, kdkdmatrix);
-	MultiTaskLearning::InstanceNonConst().SetKdKdMatrix(kdkdmatrix);
+	uint8_t tasks= GetNumberOfTasks();
+	Eigen::MatrixXd kdkdmatrix(tasks*size, tasks*size);
+	Eigen::MatrixXd m = Eigen::MatrixXd::Identity(size, size);
+	kdkdmatrix = Eigen::kroneckerProduct(m_intMatrix, m).eval();
+	m_kdkdmatrix = kdkdmatrix;
 }
 
-//    ------------------- Kronecker Product code ---------------------------- //
-bool MultiTaskLearning::KroneckerProduct (const boost::numeric::ublas::matrix<double>& A,
-		const boost::numeric::ublas::matrix<double>& B, boost::numeric::ublas::matrix<double>& C) {
-	size_t rowA=-1,colA=-1,rowB=0,colB=0,prowB=1,pcolB=1;
-	for(size_t i=0; i<C.size1(); i++){
-		for(size_t j=0; j<C.size2(); j++){
-			rowB=i%B.size1();
-			colB=j%B.size2();
-			if(pcolB!=0 && colB == 0) colA++;
-			if(prowB!=0 && rowB==0) rowA++;
-			prowB=rowB;
-			pcolB=colB;
-			if(colA >= A.size2()){colA=0; colB=0;pcolB=1;}
-			C(i, j) = A(rowA, colA) * B(rowB, colB) ;
-		}
-	}
-	return true;
-}
-//    ------------------- matrix inversion code ---------------------------- //
-template<class T>
-bool MultiTaskLearning::InvertMatrix (const boost::numeric::ublas::matrix<T>& input, boost::numeric::ublas::matrix<T>& inverse) {
-	typedef boost::numeric::ublas::permutation_matrix<std::size_t> pmatrix;
+void MultiTaskLearning::l1(float lambda){
 
-	// create a working copy of the input
-	boost::numeric::ublas::matrix<T> A(input);
-
-	// create a permutation matrix for the LU-factorization
-	pmatrix pm(A.size1());
-
-	// perform LU-factorization
-	size_t res = boost::numeric::ublas::lu_factorize(A, pm);
-	if (res != 0)
-		return false;
-
-	// create identity matrix of "inverse"
-	inverse.assign(boost::numeric::ublas::identity_matrix<T> (A.size1()));
-
-	// backsubstitute to get the inverse
-	boost::numeric::ublas::lu_substitute(A, pm, inverse);
-
-	return true;
 }
 
+void MultiTaskLearning::l2(float lambda){
+
+}
+
+void MultiTaskLearning::l1X(float lambda){
+
+}
 
 } /* namespace Moses */

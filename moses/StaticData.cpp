@@ -537,10 +537,10 @@ bool StaticData::LoadData(Parameter *parameter)
   if(mtl!=NULL){
 	  int size = this->GetAllWeights().Size();	// add 1 for the bias feature
 	  int tasks=mtl->GetNumberOfTasks();
-	  boost::numeric::ublas::matrix<double> kdkdmatrix (tasks*size, tasks*size);
-	  boost::numeric::ublas::identity_matrix<double> m (size);
-	  boost::numeric::ublas::matrix<double> interactionMatrix = mtl->GetInteractionMatrix();
-	  mtl->KroneckerProduct(interactionMatrix, m, kdkdmatrix);
+	  Eigen::MatrixXd interactionMatrix = mtl->GetInteractionMatrix();
+	  Eigen::MatrixXd kdkdmatrix(tasks*size, tasks*size);
+	  Eigen::MatrixXd m = Eigen::MatrixXd::Identity(size, size);
+	  kdkdmatrix = Eigen::kroneckerProduct(interactionMatrix, m).eval();
 	  mtl->SetKdKdMatrix(kdkdmatrix);
 	  for(uint8_t i=0; i< tasks; i++){mtl->SetWeightsVector(i, this->GetAllWeights());}
   }

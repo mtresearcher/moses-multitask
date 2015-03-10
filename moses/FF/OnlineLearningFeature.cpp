@@ -9,13 +9,6 @@
 #include "moses/Util.h"
 #include "util/exception.hh"
 #include <boost/algorithm/string/join.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
-#include <boost/numeric/ublas/lu.hpp>
 #include "moses/TranslationModel/PhraseDictionaryDynamicCacheBased.h"
 
 
@@ -1224,8 +1217,11 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 			oracleModelScores.push_back(maxScore);
 			ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
 			VERBOSE(1, "Updating the Weights...\n");
-			size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
-					BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+			size_t update_status = optimiser->updateMultiTaskWeights(weightUpdate, featureValues, losses,
+					BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores,
+					MultiTaskLearning::Instance().GetKdKdMatrix(),
+					MultiTaskLearning::Instance().GetNumberOfTasks(),
+					task, wlr);
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");
 				MultiTaskLearning::InstanceNonConst().SetWeightsVector(task, weightUpdate);

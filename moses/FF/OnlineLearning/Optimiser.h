@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/ScoreComponentCollection.h"
 #include "moses/StaticData.h"
 #include "moses/FF/OnlineLearning/Hildreth.h"
-
+#include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
 using namespace Moses;
 using namespace std;
 
@@ -47,6 +48,167 @@ public:
 				m_l1(l1),
 				m_l2(l2),
 				m_sigmoidParam(sigmoidParam) { }
+
+    size_t updateMultiTaskWeights(
+    			Moses::ScoreComponentCollection& weightUpdate,
+    			const std::vector<std::vector<Moses::ScoreComponentCollection> >& featureValues,
+    			const std::vector<std::vector<float> >& losses,
+    			const std::vector<std::vector<float> >& bleuScores,
+    			const std::vector<std::vector<float> >& modelScores,
+    			const std::vector< Moses::ScoreComponentCollection>& oracleFeatureValues,
+    			const std::vector<float> oracleBleuScores,
+    			const std::vector<float> oracleModelScores,
+    			const Eigen::MatrixXd& regularizer,
+    			const uint8_t task,
+    			const uint8_t task_id,
+    			float learning_rate){
+    		// vector of feature values differences for all created constraints
+    		vector<ScoreComponentCollection> featureValueDiffs;
+    		vector<float> lossMinusModelScoreDiffs;
+    		vector<float> all_losses;
+    		std::cerr<<"Regularizer is of size "<<regularizer.rows()<<"x"<<regularizer.cols();
+    		// Make constraints for new hypothesis translations
+    		float epsilon = 0.0001;
+    		int violatedConstraintsBefore = 0;
+    		float oldDistanceFromOptimum = 0;
+    		// iterate over input sentences (1 (online) or more (batch))
+    		for (size_t i = 0; i < featureValues.size(); ++i) {
+    			//size_t sentenceId = sentenceIds[i];
+    			// iterate over hypothesis translations for one input sentence
+    			for (size_t j = 0; j < featureValues[i].size(); ++j) {
+    				ScoreComponentCollection featureValueDiff = oracleFeatureValues[i];
+    				featureValueDiff.MinusEquals(featureValues[i][j]);
+
+    				if (featureValueDiff.GetL1Norm() == 0) { // over sparse & core features values
+    					continue;
+    				}
+
+    				float loss = losses[i][j];
+
+    				// check if constraint is violated
+    				bool violated = false;
+    				//		    float modelScoreDiff = featureValueDiff.InnerProduct(currWeights);
+    				float modelScoreDiff = oracleModelScores[i] - modelScores[i][j];
+    				float diff = 0;
+
+    				if (loss > modelScoreDiff)
+    					diff = loss - modelScoreDiff;
+
+    				if (diff > epsilon)
+    					violated = true;
+
+    				if (m_normaliseMargin) {
+    					modelScoreDiff = (2*m_sigmoidParam/(1 + exp(-modelScoreDiff))) - m_sigmoidParam;
+    					loss = (2*m_sigmoidParam/(1 + exp(-loss))) - m_sigmoidParam;
+    					diff = 0;
+    					if (loss > modelScoreDiff) {
+    						diff = loss - modelScoreDiff;
+    					}
+    				}
+
+    				if (m_scale_margin) {
+    					diff *= oracleBleuScores[i];
+    				}
+
+    				featureValueDiffs.push_back(featureValueDiff);
+    				lossMinusModelScoreDiffs.push_back(diff);
+    				all_losses.push_back(loss);
+    				if (violated) {
+    					++violatedConstraintsBefore;
+    					oldDistanceFromOptimum += diff;
+    				}
+    			}
+    		}
+
+    		// run optimisation: compute alphas for all given constraints
+    		vector<float> alphas;
+    		ScoreComponentCollection summedUpdate;
+    		if (violatedConstraintsBefore > 0) {
+    //			cerr<<"Features values diff size : "<<featureValueDiffs.size() << " (of which violated: " << violatedConstraintsBefore << ")" << endl;
+    			if (m_slack != 0) {
+    				alphas = Hildreth::optimise(featureValueDiffs, lossMinusModelScoreDiffs, m_slack);
+    //				cerr<<"Alphas : ";for (int i=0;i<alphas.size();i++) cerr<<alphas[i]<<" ";cerr<<"\n";
+    			} else {
+    				alphas = Hildreth::optimise(featureValueDiffs, lossMinusModelScoreDiffs);
+    //				cerr<<"Alphas : ";for (int i=0;i<alphas.size();i++) cerr<<alphas[i]<<" ";cerr<<"\n";
+    			}
+
+    			// Update the weight vector according to the alphas and the feature value differences
+    			// * w' = w' + SUM alpha_i * (h_i(oracle) - h_i(hypothesis))
+    			for (size_t k = 0; k < featureValueDiffs.size(); ++k) {
+    				float alpha = alphas[k];
+    				ScoreComponentCollection update(featureValueDiffs[k]);
+    				update.MultiplyEquals(alpha);
+    				// sum updates
+    				summedUpdate.PlusEquals(update);
+
+    				// Update the weight vector according to the alphas and the feature value differences
+    				// * w' = w' + SUM alpha_i * (h_i(oracle) - h_i(hypothesis))
+    				for (size_t k = 0; k < featureValueDiffs.size(); ++k) {
+    					float alpha = alphas[k];
+    					if(alpha != 0){
+    						ScoreComponentCollection update(featureValueDiffs[k]);
+    						// build the feature matrix \phi_t
+    						Eigen::MatrixXd featureMatrix(update.Size()*task,1);
+    						const Moses::FVector x = update.GetScoresVector();
+    						for(size_t i=0; i<task; i++){
+    							if(i == task_id){
+    								for(int j=0;j<x.size(); j++){
+    									featureMatrix (i*update.Size()+j,0) = x[j];
+    								}
+    							}
+    							else{
+    								for(int j=0;j<update.Size(); j++){
+    									featureMatrix (i*update.Size()+j,0) = 0;
+    								}
+    							}
+    						}
+    						// take dot prod. of kdkd matrix and feature matrix
+    						Eigen::MatrixXd C = regularizer * featureMatrix;
+    						ScoreComponentCollection temp(update);
+    						// slice the compound weight vector
+    						for(size_t i=0;i<update.Size();i++){
+    							float x = C(task_id*update.Size()+i, 0);
+    							temp.Assign(i, x);
+    						}
+//    						cerr<<" <\Delta h> : ";
+//    						temp.PrintCoreFeatures();
+//    						cerr<<"\n";
+    						// here we also multiply with the co-regularization vector
+    						temp.MultiplyEquals(alpha);
+    						// sum updates
+    						summedUpdate.PlusEquals(temp);
+    					}
+    				}
+    			}
+    		}
+    		else {
+    			return 1;
+    		}
+
+    		// apply learning rate
+    		if (learning_rate != 1) {
+    			summedUpdate.MultiplyEquals(learning_rate);
+    		}
+
+    		// scale update by BLEU of oracle (for batch size 1 only)
+    		if (oracleBleuScores.size() == 1) {
+    			if (m_scale_update) {
+    				summedUpdate.MultiplyEquals(oracleBleuScores[0]);
+    			}
+    		}
+    		//    		cerr<<"Summed Update : "<<summedUpdate<<endl;
+    		weightUpdate.PlusEquals(summedUpdate);
+    		//    		cerr<<"Weight Update : "<<weightUpdate<<endl;
+
+    		if(m_l1)
+    			weightUpdate.SparseL1Regularize(0.01);
+    		if(m_l2)
+    			weightUpdate.SparseL2Regularize(0.01);
+
+    		return 0;
+
+    	}
 
 	size_t updateWeights(
 			Moses::ScoreComponentCollection& weightUpdate,
@@ -174,6 +336,21 @@ public:
 
 	void setPrecision(float precision) {
 		m_precision = precision;
+	}
+
+	size_t updateWeightsSGD(
+				Moses::ScoreComponentCollection& weightUpdate,
+				const std::vector<std::vector<Moses::ScoreComponentCollection> >& featureValues,
+				const std::vector<std::vector<float> >& losses,
+				const std::vector<std::vector<float> >& bleuScores,
+				const std::vector<std::vector<float> >& modelScores,
+				const std::vector< Moses::ScoreComponentCollection>& oracleFeatureValues,
+				const std::vector<float> oracleBleuScores,
+				const std::vector<float> oracleModelScores,
+				float learning_rate) {
+
+
+
 	}
 
 private:
