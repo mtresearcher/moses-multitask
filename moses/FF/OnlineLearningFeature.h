@@ -110,6 +110,8 @@ public:
 		, FOnlyPerceptron = 1
 		, FPercepWMira = 2
 		, Mira = 3
+		, WPerceptron = 4
+		, FPercepWPercep = 5
 	};
 
 	enum Language {
@@ -138,7 +140,7 @@ private:
 	bool m_normaliseScore, m_normaliseMargin, m_learn, m_cbtm, m_ngrams,
 	m_triggerTargetWords, m_l1, m_l2, m_updateFeatures, m_forceAlign, m_terAlign;
 	bool scale_margin, scale_margin_precision, scale_update, scale_update_precision;
-	MiraOptimiser* optimiser;
+	Optimisers* optimiser;
 	std::string m_filename;
 	float w_init, w_initTargetWords,slack, m_sigmoidParam;
 	std::string m_algorithm;

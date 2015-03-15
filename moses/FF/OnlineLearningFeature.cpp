@@ -127,7 +127,7 @@ OnlineLearningFeature::OnlineLearningFeature(const std::string &line) :
 	ReadParameters();
 
 	if(implementation!=FOnlyPerceptron && implementation!=SparseFeatures){
-		optimiser = new Optimizer::MiraOptimiser(slack, scale_margin, scale_margin_precision, scale_update,
+		optimiser = new Optimizer::Optimisers(slack, scale_margin, scale_margin_precision, scale_update,
 				scale_update_precision, m_normaliseMargin, m_sigmoidParam, m_l1, m_l2);
 	}
 }
@@ -228,17 +228,25 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 			implementation=SparseFeatures;
 			VERBOSE(1, "Online Algorithm : SparseFeatures\n");
 		}
-		else if(m_algorithm.compare("Perceptron")==0){
+		else if(m_algorithm.compare("FPercep")==0){
 			implementation=FOnlyPerceptron;
 			VERBOSE(1, "Online Algorithm : Perceptron\n");
 		}
-		else if(m_algorithm.compare("PercepMira")==0){
+		else if(m_algorithm.compare("FPercepWMira")==0){
 			implementation=FPercepWMira;
 			VERBOSE(1, "Online Algorithm : Perceptron + Mira\n");
 		}
-		else if(m_algorithm.compare("Mira")==0){
+		else if(m_algorithm.compare("WMira")==0){
 			implementation=Mira;
 			VERBOSE(1, "Online Algorithm : Mira\n");
+		}
+		else if(m_algorithm.compare("WPercep")==0){
+			implementation=WPerceptron;
+			VERBOSE(1, "Online Algorithm : WPerceptron\n");
+		}
+		else if(m_algorithm.compare("FPercepWPercep")==0){
+			implementation=FPercepWPercep;
+			VERBOSE(1, "Online Algorithm : FPercepWPercep\n");
 		}
 	} else {
 		StatelessFeatureFunction::SetParameter(key, value);
@@ -477,7 +485,7 @@ void OnlineLearningFeature::make_align_pairs() {
 			stringstream(temp2[1]) >> t;
 			postedit_wordpair[src[s]]=trg[t];
 			VERBOSE(1, "ALIGN : "<<src[s]<<" | "<<trg[t]<<endl);
-			if(implementation!=Mira && m_cbtm)
+			if(implementation!=Mira && implementation!=WPerceptron && m_cbtm)
 				Update(src[s], trg[t], "1");
 		}
 	}
@@ -527,7 +535,7 @@ void OnlineLearningFeature::DumpFeatures(std::string filename)
 }
 void OnlineLearningFeature::ReadFeatures(std::string filename)
 {
-	if(implementation==Mira || filename.empty()) return;
+	if(implementation==Mira || implementation==WPerceptron || filename.empty()) return;
 	ifstream file;
 	file.open(filename.c_str(), ios::in);
 	std::string line;
@@ -704,7 +712,7 @@ void OnlineLearningFeature::Decay() {
 
 void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const Moses::TargetPhrase& tp,
 		Moses::ScoreComponentCollection& out, Moses::ScoreComponentCollection& fs) const {
-	if(implementation==Mira) return;
+	if(implementation==Mira || implementation==WPerceptron) return;
 	float score = 0.0;
 	std::string s = "", t = "";
 	size_t endpos = tp.GetSize();
@@ -753,7 +761,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	if(implementation == SparseFeatures) return;
 	const StaticData& staticData = StaticData::Instance();
 	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-	if(implementation != Mira && m_terAlign && !m_forceAlign && m_cbtm){
+	if(implementation != Mira && implementation != WPerceptron && m_terAlign && !m_forceAlign && m_cbtm){
 		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
 		Update(m_source, m_postedited, "1");
 	}
@@ -815,7 +823,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			oraclebleu = GetBleu(oracle.str(), m_postedited);
 		else if(m_sctype.compare("Ter")==0)
 			oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
-		if (implementation == FPercepWMira || implementation == Mira) {
+		if (implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep) {
 			HypothesisList.push_back(oracle.str());
 			BleuScore.push_back(oraclebleu);
 			featureValue.push_back(path.GetScoreBreakdown());
@@ -884,7 +892,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			oracleBleuScores.push_back(oraclebleu);
 			oraclefeatureScore.push_back(path.GetScoreBreakdown());
 		}
-		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
 			if (oraclebleu > bestbleu) {
 				pp_list::const_iterator it1;
 				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
@@ -911,7 +919,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	}
 	Visited.clear();
 	VERBOSE(1,"Read all the oracles in the list!\n");
-	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
 		// for the 1best in nbest list
 		pp_list::const_iterator it1;
 		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
@@ -970,9 +978,13 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		losses.push_back(loss);
 		oracleModelScores.push_back(maxScore);
 		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
-		VERBOSE(1, "Updating the Weights...\n");
-		size_t update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
-				BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+		VERBOSE(1, "Updating the Weights : MIRA \n");
+		size_t update_status =1;
+
+		if(implementation == FPercepWMira || implementation == Mira)
+			update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
+							BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
+
 		if(update_status == 0){
 			VERBOSE(1, "setting weights\n");
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
@@ -986,10 +998,41 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			VERBOSE(1, "No Update\n");
 		}
 	}
-	else if(implementation == FPercepWMira || implementation == Mira){
+	else if (implementation==WPerceptron || implementation==FPercepWPercep){
+		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
+		{
+			float bleuscore = BleuScore[i];
+			loss.push_back(maxBleu - bleuscore);
+		}
+		modelScores.push_back(modelScore);
+		featureValues.push_back(featureValue);
+		BleuScores.push_back(BleuScore);
+		losses.push_back(loss);
+		oracleModelScores.push_back(maxScore);
+		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
+		VERBOSE(1, "Updating the Weights : Perceptron \n");
+		size_t update_status =1;
+		if(implementation==WPerceptron || implementation==FPercepWPercep){
+			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0], wlr);
+		}
+
+		if(update_status == 0){
+			VERBOSE(1, "setting weights\n");
+			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
+			weightUpdate.PrintCoreFeatures();
+			stringstream ss;
+			weightUpdate.GetScoresVector().print(ss);
+			ss.flush();
+			VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
+		}
+		else{
+			VERBOSE(1, "No Update\n");
+		}
+	}
+	else if(implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep){
 		VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
 	}
-	if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+	if((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep) && m_updateFeatures)
 		updateFeatureValues();
 	VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
 	return;
@@ -999,7 +1042,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 	if(implementation == SparseFeatures) return;
 		const StaticData& staticData = StaticData::Instance();
 		const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-		if(implementation != Mira && m_terAlign && !m_forceAlign && m_cbtm){
+		if(implementation != Mira && implementation!=WPerceptron && m_terAlign && !m_forceAlign && m_cbtm){
 			PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
 			Update(m_source, m_postedited, "1");
 		}
@@ -1061,7 +1104,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 				oraclebleu = GetBleu(oracle.str(), m_postedited);
 			else if(m_sctype.compare("Ter")==0)
 				oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
-			if (implementation == FPercepWMira || implementation == Mira) {
+			if (implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep) {
 				HypothesisList.push_back(oracle.str());
 				BleuScore.push_back(oraclebleu);
 				featureValue.push_back(path.GetScoreBreakdown());
@@ -1130,7 +1173,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 				oracleBleuScores.push_back(oraclebleu);
 				oraclefeatureScore.push_back(path.GetScoreBreakdown());
 			}
-			if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+			if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
 				if (oraclebleu > bestbleu) {
 					pp_list::const_iterator it1;
 					for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
@@ -1157,7 +1200,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 		}
 		Visited.clear();
 		VERBOSE(1,"Read all the oracles in the list!\n");
-		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron)) {
+		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
 			// for the 1best in nbest list
 			pp_list::const_iterator it1;
 			for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
@@ -1203,7 +1246,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 		VERBOSE(1, "Updated the features!\n");
 
 		//	Update the weights as I found a better oracle translation
-		if ((implementation == FPercepWMira || implementation == Mira)
+		if ((implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep)
 				&& maxBleu!=bestbleu && maxScore!=bestScore) {
 			for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 			{
@@ -1217,11 +1260,18 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 			oracleModelScores.push_back(maxScore);
 			ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
 			VERBOSE(1, "Updating the Weights...\n");
-			size_t update_status = optimiser->updateMultiTaskWeights(weightUpdate, featureValues, losses,
-					BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores,
-					MultiTaskLearning::Instance().GetKdKdMatrix(),
-					MultiTaskLearning::Instance().GetNumberOfTasks(),
-					task, wlr);
+			size_t update_status =1;
+
+			if(implementation == FPercepWMira || implementation == Mira)
+				update_status = optimiser->updateMultiTaskWeights(weightUpdate, featureValues, losses,
+						BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores,
+						MultiTaskLearning::Instance().GetKdKdMatrix(),
+						MultiTaskLearning::Instance().GetNumberOfTasks(),
+						task, wlr);
+
+			if(implementation==WPerceptron || implementation==FPercepWPercep)
+				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0], wlr);
+
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");
 				MultiTaskLearning::InstanceNonConst().SetWeightsVector(task, weightUpdate);
@@ -1233,10 +1283,10 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 			// update the interaction matrix
 			MultiTaskLearning::InstanceNonConst().updateIntMatrix();
 		}
-		else if(implementation == FPercepWMira || implementation == Mira){
+		else if(implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep){
 			VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
 		}
-		if((implementation == FPercepWMira || implementation == FOnlyPerceptron) && m_updateFeatures)
+		if((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep) && m_updateFeatures)
 			updateFeatureValues();
 		VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
 		return;
