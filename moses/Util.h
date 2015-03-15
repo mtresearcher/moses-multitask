@@ -532,7 +532,6 @@ class FeatureFunction;
 void PrintFeatureWeight(const FeatureFunction* ff);
 void ShowWeights();
 
-
 } // namespace
 
 #endif
