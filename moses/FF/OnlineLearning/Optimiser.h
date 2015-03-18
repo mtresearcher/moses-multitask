@@ -338,27 +338,11 @@ public:
 		m_precision = precision;
 	}
 
-	size_t updateWeightsSGD(
-				Moses::ScoreComponentCollection& weightUpdate,
-				const std::vector<std::vector<Moses::ScoreComponentCollection> >& featureValues,
-				const std::vector<std::vector<float> >& losses,
-				const std::vector<std::vector<float> >& bleuScores,
-				const std::vector< Moses::ScoreComponentCollection>& oracleFeatureValues,
-				const std::vector<float> oracleBleuScores,
-				float learning_rate) {
-/*
- * Huber loss implementation with SGD
- */
-
-
-	}
-
-	size_t updateWeightsPerceptron(
-				Moses::ScoreComponentCollection& weightUpdate,
-				std::vector<Moses::ScoreComponentCollection>& featureValues,
-				std::vector<float>& bleuScores,
-				float learning_rate) {
-		Moses::ScoreComponentCollection avgUpdate(weightUpdate);
+	size_t updateWeightsAdaGrad(
+			Moses::ScoreComponentCollection& weightUpdate,
+			std::vector<Moses::ScoreComponentCollection>& featureValues,
+			std::vector<float>& bleuScores,
+			float learning_rate) {
 		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		vector<int> indexes_ones, indexes_zeroes;
 
@@ -376,16 +360,54 @@ public:
 		avgBleu/=bleuScores.size();
 		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
 
-		avgUpdate.CoreAssign(featureValueDiff);
-
 		// clipping the updates
-		for(size_t i=0; i<avgUpdate.Size(); i++)
-		    if(avgUpdate.GetScoresVector()[i] < -0.01) avgUpdate.Assign(i, -0.01);
-		    else if(avgUpdate.GetScoresVector()[i] > 0.01) avgUpdate.Assign(i, 0.01);
+		for(size_t i=0; i<featureValueDiff.Size(); i++)
+			if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
+			else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
 
 		// don't touch the fixed weights
-		for (size_t j = 0; j < indexes_ones.size(); ++j) avgUpdate.Assign(indexes_ones[j], 0);
-		for (size_t j = 0; j < indexes_zeroes.size(); ++j) avgUpdate.Assign(indexes_zeroes[j], 0);
+		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
+		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
+
+
+		weightUpdate.PlusEquals(featureValueDiff);
+
+		weightUpdate.CapMax(1);
+		weightUpdate.CapMin(-1);
+
+		return 0;
+	}
+
+	size_t updateWeightsPerceptron(
+				Moses::ScoreComponentCollection& weightUpdate,
+				std::vector<Moses::ScoreComponentCollection>& featureValues,
+				std::vector<float>& bleuScores,
+				float learning_rate) {
+		ScoreComponentCollection featureValueDiff(featureValues[0]);
+		vector<int> indexes_ones, indexes_zeroes;
+
+		// capturing the fixed weights : 1,0
+		for (size_t j = 0; j < weightUpdate.Size(); ++j)
+			if(weightUpdate.GetScoresVector()[j]==1)
+				indexes_ones.push_back(j);
+			else if(weightUpdate.GetScoresVector()[j]==0)
+				indexes_zeroes.push_back(j);
+		float avgBleu=0;
+		for (size_t j = 0; j < featureValues.size(); ++j) { // over nbest list
+			featureValueDiff.MinusEquals(featureValues[j]);
+			avgBleu += bleuScores[j];
+		}
+		avgBleu/=bleuScores.size();
+		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
+
+		// clipping the updates
+		for(size_t i=0; i<featureValueDiff.Size(); i++)
+		    if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
+		    else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
+
+		// don't touch the fixed weights
+		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
+		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
 
 		// calculate hits
 		float p=0,n=0;
@@ -397,17 +419,17 @@ public:
 		cerr<<"Total number of hypothesis better than avg. : "<<p<<endl;
 		cerr<<"Total number of hypothesis worse than avg. : "<<n<<endl;
 		if(learning_rate!=0) // times learning rate , scaling with best Bleu , scaling with hits/NBestSize
-			avgUpdate.MultiplyEquals(learning_rate*(hits*1.0/(p+n)));
+			featureValueDiff.MultiplyEquals(learning_rate*(hits*1.0/(p+n)));
 		cerr<<"Update feature vector := ";
-		avgUpdate.PrintCoreFeatures();
+		featureValueDiff.PrintCoreFeatures();
 		cerr<<"\n";
 		if(hits > 0){
 			std::cerr<<"Update : Positive with Hits = "<<hits<<"\n";
-			weightUpdate.PlusEquals(avgUpdate);
+			weightUpdate.PlusEquals(featureValueDiff);
 		}
 		else if(hits < 0){
 			std::cerr<<"Update : Negative with Hits = "<<hits<<"\n";
-			weightUpdate.MinusEquals(avgUpdate);
+			weightUpdate.MinusEquals(featureValueDiff);
 		}
 		else if(hits==0) {
 			std::cerr<<"Update : No Update \n";
@@ -438,6 +460,9 @@ private:
 
 	// y=sigmoidParam is the axis that this sigmoid approaches
 	float m_sigmoidParam ;
+
+	// adagrad parameters
+	boost::unordered_map<Moses::FName, float> perFeatureLR;
 };
 }
 
