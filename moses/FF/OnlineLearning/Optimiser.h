@@ -37,7 +37,8 @@ public:
 
 	Optimisers(
 			float slack, bool scale_margin, bool scale_margin_precision,
-			bool scale_update, bool scale_update_precision, bool normaliseMargin, float sigmoidParam, bool l1, bool l2) :
+			bool scale_update, bool scale_update_precision, bool normaliseMargin,
+			float sigmoidParam, bool l1, bool l2, float LR) :
 				m_slack(slack),
 				m_scale_margin(scale_margin),
 				m_scale_margin_precision(scale_margin_precision),
@@ -47,7 +48,8 @@ public:
 				m_normaliseMargin(normaliseMargin),
 				m_l1(l1),
 				m_l2(l2),
-				m_sigmoidParam(sigmoidParam) { }
+				m_sigmoidParam(sigmoidParam),
+				learningRate(LR){ }
 
     size_t updateMultiTaskWeights(
     			Moses::ScoreComponentCollection& weightUpdate,
@@ -341,8 +343,7 @@ public:
 	size_t updateWeightsAdaGrad(
 			Moses::ScoreComponentCollection& weightUpdate,
 			std::vector<Moses::ScoreComponentCollection>& featureValues,
-			std::vector<float>& bleuScores,
-			float learning_rate) {
+			std::vector<float>& bleuScores){
 		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		vector<int> indexes_ones, indexes_zeroes;
 
@@ -369,20 +370,36 @@ public:
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
 		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
 
+		Moses::FVector scoreVec = featureValueDiff.GetScoresVector();
+		Moses::ScoreComponentCollection summedUpdate;
+		std::valarray<Moses::FValue> coreScores = weightUpdate.getCoreFeatures();
+		int idx=0;
+		for (Moses::FVector::iterator it = scoreVec.begin(); it != scoreVec.end(); ++it,idx++){
+			if(idx < coreScores.size()){ // core features
+				double curr_gradient = scoreVec[idx];
+				sumGradient_core[idx] += curr_gradient * curr_gradient;
+				double adj_gradient = learningRate / sqrt(1 + sumGradient_core[idx]) * scoreVec[idx];
+				summedUpdate.Assign(idx, adj_gradient);
+			} else{ // sparse features
+				std::string featureName = it->first.name();
+				double curr_gradient = featureValueDiff.GetSparseWeight(it->first);
+				sumGradient_sparse[featureName] += curr_gradient * curr_gradient;
+				double adj_gradient = learningRate / sqrt(1 + sumGradient_sparse[featureName]) * featureValueDiff.GetSparseWeight(it->first);
+				summedUpdate.Assign(featureName, adj_gradient);
+			}
+		}
+		weightUpdate.MinusEquals(summedUpdate);
 
-		weightUpdate.PlusEquals(featureValueDiff);
 
 		weightUpdate.CapMax(1);
 		weightUpdate.CapMin(-1);
-
 		return 0;
 	}
 
 	size_t updateWeightsPerceptron(
 				Moses::ScoreComponentCollection& weightUpdate,
 				std::vector<Moses::ScoreComponentCollection>& featureValues,
-				std::vector<float>& bleuScores,
-				float learning_rate) {
+				std::vector<float>& bleuScores) {
 		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		vector<int> indexes_ones, indexes_zeroes;
 
@@ -418,23 +435,23 @@ public:
 		cerr<<"Avg Bleu : "<<avgBleu<<"\n";
 		cerr<<"Total number of hypothesis better than avg. : "<<p<<endl;
 		cerr<<"Total number of hypothesis worse than avg. : "<<n<<endl;
-		if(learning_rate!=0) // times learning rate , scaling with best Bleu , scaling with hits/NBestSize
-			featureValueDiff.MultiplyEquals(learning_rate*(hits*1.0/(p+n)));
+		if(learningRate!=0) // times learning rate , scaling with best Bleu , scaling with hits/NBestSize
+			featureValueDiff.MultiplyEquals(learningRate*(hits*1.0/(p+n)));
 		cerr<<"Update feature vector := ";
 		featureValueDiff.PrintCoreFeatures();
 		cerr<<"\n";
 		if(hits > 0){
 			std::cerr<<"Update : Positive with Hits = "<<hits<<"\n";
-			weightUpdate.PlusEquals(featureValueDiff);
 		}
 		else if(hits < 0){
 			std::cerr<<"Update : Negative with Hits = "<<hits<<"\n";
-			weightUpdate.MinusEquals(featureValueDiff);
 		}
 		else if(hits==0) {
 			std::cerr<<"Update : No Update \n";
 			return 1;
 		}
+		weightUpdate.PlusEquals(featureValueDiff);
+
 		weightUpdate.CapMax(1);
 		weightUpdate.CapMin(-1);
 		return 0;
@@ -462,7 +479,9 @@ private:
 	float m_sigmoidParam ;
 
 	// adagrad parameters
-	boost::unordered_map<Moses::FName, float> perFeatureLR;
+	boost::unordered_map<std::string, double> sumGradient_sparse;
+	boost::unordered_map<size_t, double> sumGradient_core; // keep it as a map , one can delete the elements on the fly (regularization)
+	float learningRate;
 };
 }
 

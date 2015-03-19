@@ -128,7 +128,7 @@ OnlineLearningFeature::OnlineLearningFeature(const std::string &line) :
 
 	if(implementation!=FOnlyPerceptron && implementation!=SparseFeatures){
 		optimiser = new Optimizer::Optimisers(slack, scale_margin, scale_margin_precision, scale_update,
-				scale_update_precision, m_normaliseMargin, m_sigmoidParam, m_l1, m_l2);
+				scale_update_precision, m_normaliseMargin, m_sigmoidParam, m_l1, m_l2, wlr);
 	}
 }
 
@@ -248,8 +248,17 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 			implementation=FPercepWPercep;
 			VERBOSE(1, "Online Algorithm : FPercepWPercep\n");
 		}
-	} else {
+		else if(m_algorithm.compare("WAdaGrad")==0){
+			implementation=WAdaGrad;
+			VERBOSE(1, "Online Algorithm : WAdaGrad\n");
+		}
+		else if(m_algorithm.compare("FPercepWAdagrad")==0){
+			implementation=FPercepWAdaGrad;
+			VERBOSE(1, "Online Algorithm : FPercepWAdaGrad\n");
+		}
+		else {
 		StatelessFeatureFunction::SetParameter(key, value);
+		}
 	}
 }
 
@@ -382,7 +391,7 @@ void OnlineLearningFeature::GetPE2HypAlignments(const TERCPPNS_TERCpp::terAlignm
 		trim(ref[ref_p]);
 		if(!has_only_spaces(hyp_afterShift[hyp_p]) && !has_only_spaces(ref[ref_p])
 				&& (hyp_afterShift[hyp_p].length()/ref[ref_p].length())<3 && (ref[ref_p].length()/hyp_afterShift[hyp_p].length())<3){
-			VERBOSE(1,"Inserting in CURR_WORDPAIR : "<<hyp_afterShift[hyp_p]<<" ||| "<<ref[ref_p]<<endl);
+//			VERBOSE(1,"Inserting in CURR_WORDPAIR : "<<hyp_afterShift[hyp_p]<<" ||| "<<ref[ref_p]<<endl);
 			curr_wordpair[hyp_afterShift[hyp_p]]=ref[ref_p];
 		}
 		hyp_p++;
@@ -485,7 +494,7 @@ void OnlineLearningFeature::make_align_pairs() {
 			stringstream(temp2[1]) >> t;
 			postedit_wordpair[src[s]]=trg[t];
 			VERBOSE(1, "ALIGN : "<<src[s]<<" | "<<trg[t]<<endl);
-			if(implementation!=Mira && implementation!=WPerceptron && m_cbtm)
+			if(implementation!=Mira && implementation!=WPerceptron && implementation!=WAdaGrad && m_cbtm)
 				Update(src[s], trg[t], "1");
 		}
 	}
@@ -535,7 +544,7 @@ void OnlineLearningFeature::DumpFeatures(std::string filename)
 }
 void OnlineLearningFeature::ReadFeatures(std::string filename)
 {
-	if(implementation==Mira || implementation==WPerceptron || filename.empty()) return;
+	if(implementation==Mira || implementation==WPerceptron || implementation==WAdaGrad || filename.empty()) return;
 	ifstream file;
 	file.open(filename.c_str(), ios::in);
 	std::string line;
@@ -712,7 +721,7 @@ void OnlineLearningFeature::Decay() {
 
 void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const Moses::TargetPhrase& tp,
 		Moses::ScoreComponentCollection& out, Moses::ScoreComponentCollection& fs) const {
-	if(implementation==Mira || implementation==WPerceptron) return;
+	if(implementation==Mira || implementation==WPerceptron || implementation==WAdaGrad) return;
 	float score = 0.0;
 	std::string s = "", t = "";
 	size_t endpos = tp.GetSize();
@@ -761,7 +770,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	if(implementation == SparseFeatures) return;
 	const StaticData& staticData = StaticData::Instance();
 	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
-	if(implementation != Mira && implementation != WPerceptron && m_terAlign && !m_forceAlign && m_cbtm){
+	if(implementation != Mira && implementation != WPerceptron && implementation!=WAdaGrad && m_terAlign && !m_forceAlign && m_cbtm){
 		PhraseDictionaryDynamicCacheBased::InstanceNonConst().Decay();
 		Update(m_source, m_postedited, "1");
 	}
@@ -823,7 +832,9 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			oraclebleu = GetBleu(oracle.str(), m_postedited);
 		else if(m_sctype.compare("Ter")==0)
 			oraclebleu = 1 - GetTer(oracle.str(), m_postedited);
-		if (implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep) {
+		if (implementation == FPercepWMira || implementation == Mira
+				|| implementation==WPerceptron || implementation==FPercepWPercep
+				|| implementation == FPercepWAdaGrad || implementation == WAdaGrad) {
 			HypothesisList.push_back(oracle.str());
 			BleuScore.push_back(oraclebleu);
 			featureValue.push_back(path.GetScoreBreakdown());
@@ -892,7 +903,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			oracleBleuScores.push_back(oraclebleu);
 			oraclefeatureScore.push_back(path.GetScoreBreakdown());
 		}
-		if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
+		if (implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep || implementation == FPercepWAdaGrad) {
 			if (oraclebleu > bestbleu) {
 				pp_list::const_iterator it1;
 				for (it1 = PP_ORACLE.begin(); it1 != PP_ORACLE.end(); it1++) {
@@ -919,7 +930,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	}
 	Visited.clear();
 	VERBOSE(1,"Read all the oracles in the list!\n");
-	if ((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep)) {
+	if (implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep || implementation == FPercepWAdaGrad) {
 		// for the 1best in nbest list
 		pp_list::const_iterator it1;
 		for (it1 = PP_BEST.begin(); it1 != PP_BEST.end(); it1++) {
@@ -998,7 +1009,8 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			VERBOSE(1, "No Update\n");
 		}
 	}
-	else if (implementation==WPerceptron || implementation==FPercepWPercep){
+	else if (implementation==WPerceptron || implementation==FPercepWPercep
+			|| implementation == FPercepWAdaGrad || implementation == WAdaGrad){
 		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 		{
 			float bleuscore = BleuScore[i];
@@ -1010,10 +1022,13 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		losses.push_back(loss);
 		oracleModelScores.push_back(maxScore);
 		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
-		VERBOSE(1, "Updating the Weights : Perceptron \n");
 		size_t update_status =1;
 		if(implementation==WPerceptron || implementation==FPercepWPercep){
-			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0], wlr);
+			VERBOSE(1, "Updating the Weights : Perceptron \n");
+			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0]);
+		} else if (implementation == FPercepWAdaGrad || implementation == WAdaGrad){
+			VERBOSE(1, "Updating the Weights : AdaGrad \n");
+			update_status = optimiser->updateWeightsAdaGrad(weightUpdate, featureValues[0], BleuScores[0]);
 		}
 
 		if(update_status == 0){
@@ -1029,10 +1044,13 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			VERBOSE(1, "No Update\n");
 		}
 	}
-	else if(implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep){
+	else if(implementation == FPercepWMira || implementation == Mira
+			|| implementation==WPerceptron || implementation==FPercepWPercep
+			|| implementation == FPercepWAdaGrad || implementation == WAdaGrad){
 		VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
 	}
-	if((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep) && m_updateFeatures)
+	if((implementation == FPercepWMira || implementation == FOnlyPerceptron
+			|| implementation==FPercepWPercep || implementation==FPercepWAdaGrad) && m_updateFeatures)
 		updateFeatureValues();
 	VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
 	return;
@@ -1270,7 +1288,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 						task, wlr);
 
 			if(implementation==WPerceptron || implementation==FPercepWPercep)
-				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0], wlr);
+				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0]);
 
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");

@@ -112,6 +112,8 @@ public:
 		, Mira = 3
 		, WPerceptron = 4
 		, FPercepWPercep = 5
+		, WAdaGrad = 6
+		, FPercepWAdaGrad = 7
 	};
 
 	enum Language {
