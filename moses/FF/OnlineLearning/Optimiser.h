@@ -353,18 +353,15 @@ public:
 				indexes_ones.push_back(j);
 			else if(weightUpdate.GetScoresVector()[j]==0)
 				indexes_zeroes.push_back(j);
-		float avgBleu=0;
 		for (size_t j = 0; j < featureValues.size(); ++j) { // over nbest list
 			featureValueDiff.MinusEquals(featureValues[j]);
-			avgBleu += bleuScores[j];
 		}
-		avgBleu/=bleuScores.size();
 		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
 
 		// clipping the updates
-		for(size_t i=0; i<featureValueDiff.Size(); i++)
-			if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
-			else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
+//		for(size_t i=0; i<featureValueDiff.Size(); i++)
+//			if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
+//			else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
 
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
@@ -379,6 +376,7 @@ public:
 				double curr_gradient = scoreVec[idx];
 				sumGradient_core[idx] += curr_gradient * curr_gradient;
 				double adj_gradient = learningRate / sqrt(1 + sumGradient_core[idx]) * scoreVec[idx];
+				cerr<<"sumGradient core Idx : "<<idx<<" = "<<sumGradient_core[idx]<<endl;
 				summedUpdate.Assign(idx, adj_gradient);
 			} else{ // sparse features
 				std::string featureName = it->first.name();
