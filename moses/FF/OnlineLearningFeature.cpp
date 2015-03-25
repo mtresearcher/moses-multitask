@@ -594,7 +594,8 @@ void OnlineLearningFeature::ShootUp(std::string sp, std::string tp, float margin
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-		} else {
+		}
+		else {
 			m_feature[sp][tp] = flr*margin;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
@@ -619,7 +620,8 @@ void OnlineLearningFeature::ShootDown(std::string sp, std::string tp, float marg
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
 				m_feature[sp][tp] /= float(1.0 + float(abs(m_feature[sp][tp])));
-		} else {
+		}
+		else {
 			m_feature[sp][tp] = -1 * flr *margin;
 			std::string featureName(sp+"|||"+tp);
 			if (m_normaliseScore) // fast sigmoid (x / 1+|x|)
@@ -655,11 +657,8 @@ OnlineLearningFeature::~OnlineLearningFeature() {
 void OnlineLearningFeature::Update(std::string& source, std::string& target, std::string age){
 	trim(source);
 	trim(target);
-	//    	if(source.length()>=4 && target.length()>=4 &&
-			//    			(source.length()/target.length())<3 && (target.length()/source.length())<3){
 	VERBOSE(1, "Inserting to CBPT : "<<source<<"||"<<target<<endl);
 	PhraseDictionaryDynamicCacheBased::InstanceNonConst().Update(source, target, age);
-	//    	}
 }
 
 void OnlineLearningFeature::updateFeatureValues(){
@@ -1114,7 +1113,8 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 				}
 				std::string sourceP = edge.GetSourcePhraseStringRep(); // Source Phrase
 				std::string targetP = edge.GetTargetPhraseStringRep(); // Target Phrase
-				if (!has_only_spaces(sourceP) && !has_only_spaces(targetP))
+				if (!has_only_spaces(sourceP) && !has_only_spaces(targetP) && sourceP.length()!=0 && targetP.length()!=0
+						&& !(sourceP.length()/targetP.length() > 3 || targetP.length()/sourceP.length() > 3) )
 					PP_ORACLE[sourceP][targetP] = 1; // phrase pairs in the current nbest_i
 			}
 			float oraclebleu;

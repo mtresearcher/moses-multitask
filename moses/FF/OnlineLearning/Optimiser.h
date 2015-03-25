@@ -344,11 +344,10 @@ public:
 			Moses::ScoreComponentCollection& weightUpdate,
 			std::vector<Moses::ScoreComponentCollection>& featureValues,
 			std::vector<float>& bleuScores){
-		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		vector<int> indexes_ones, indexes_zeroes;
-
+		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		// capturing the fixed weights : 1,0
-		for (size_t j = 0; j < weightUpdate.Size(); ++j)
+		for (size_t j = 0; j < weightUpdate.GetScoresVector().coreSize(); ++j)
 			if(weightUpdate.GetScoresVector()[j]==1)
 				indexes_ones.push_back(j);
 			else if(weightUpdate.GetScoresVector()[j]==0)
@@ -357,40 +356,41 @@ public:
 			featureValueDiff.MinusEquals(featureValues[j]);
 		}
 		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
-
-		// clipping the updates
-//		for(size_t i=0; i<featureValueDiff.Size(); i++)
-//			if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
-//			else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
-
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
 		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
 
 		Moses::FVector scoreVec = featureValueDiff.GetScoresVector();
 		Moses::ScoreComponentCollection summedUpdate;
-		std::valarray<Moses::FValue> coreScores = weightUpdate.getCoreFeatures();
-		int idx=0;
-		for (Moses::FVector::iterator it = scoreVec.begin(); it != scoreVec.end(); ++it,idx++){
-			if(idx < coreScores.size()){ // core features
-				double curr_gradient = scoreVec[idx];
+		for (size_t idx=0; idx<scoreVec.coreSize(); ++idx){
+			double curr_gradient = scoreVec[idx];
+			if(sumGradient_core.find(idx)==sumGradient_core.end())
+				sumGradient_core[idx] = curr_gradient * curr_gradient;
+			else
 				sumGradient_core[idx] += curr_gradient * curr_gradient;
-				double adj_gradient = learningRate / sqrt(1 + sumGradient_core[idx]) * scoreVec[idx];
-				cerr<<"sumGradient core Idx : "<<idx<<" = "<<sumGradient_core[idx]<<endl;
-				summedUpdate.Assign(idx, adj_gradient);
-			} else{ // sparse features
-				std::string featureName = it->first.name();
-				double curr_gradient = featureValueDiff.GetSparseWeight(it->first);
-				sumGradient_sparse[featureName] += curr_gradient * curr_gradient;
-				double adj_gradient = learningRate / sqrt(1 + sumGradient_sparse[featureName]) * featureValueDiff.GetSparseWeight(it->first);
-				summedUpdate.Assign(featureName, adj_gradient);
-			}
+			double adj_gradient = curr_gradient / sqrt(1 + sumGradient_core[idx]);
+			summedUpdate.Assign(idx, adj_gradient);
 		}
+		for(Moses::FVector::iterator it = scoreVec.begin(); it!=scoreVec.end(); it++)
+		{ // sparse features
+			std::string featureName = it->first.name();
+			double curr_gradient = scoreVec[it->first];
+			if(sumGradient_sparse.find(featureName)==sumGradient_sparse.end())
+				sumGradient_sparse[featureName] = curr_gradient * curr_gradient;
+			else
+				sumGradient_sparse[featureName] += curr_gradient * curr_gradient;
+			double adj_gradient = curr_gradient / sqrt(1 + sumGradient_sparse[featureName]) ;
+			summedUpdate.Assign(featureName, adj_gradient);
+		}
+
+		if(learningRate!=1) summedUpdate.MultiplyEquals(learningRate);
 		weightUpdate.MinusEquals(summedUpdate);
 
+		if(m_l1)
+			weightUpdate.SparseL1Regularize(0.01);
+		if(m_l2)
+			weightUpdate.SparseL2Regularize(0.01);
 
-		weightUpdate.CapMax(1);
-		weightUpdate.CapMin(-1);
 		return 0;
 	}
 

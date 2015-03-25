@@ -102,36 +102,31 @@ SimpleTranslationInterface::~SimpleTranslationInterface()
 //the simplified version of string input/output translation
 string SimpleTranslationInterface::translate(const string &inputString)
 {
-  Moses::IOWrapper ioWrapper;
-  long lineCount = Moses::StaticData::Instance().GetStartTranslationId();
+  boost::shared_ptr<Moses::IOWrapper> ioWrapper(new IOWrapper);
   // main loop over set of input sentences
-  InputType* source = NULL;
   size_t sentEnd = inputString.rfind('\n'); //find the last \n, the input stream has to be appended with \n to be translated
   const string &newString = sentEnd != string::npos ? inputString : inputString + '\n';
 
   istringstream inputStream(newString);  //create the stream for the interface
-  ioWrapper.SetInputStreamFromString(inputStream);
+  ioWrapper->SetInputStreamFromString(inputStream);
   ostringstream outputStream;
-  ioWrapper.SetOutputStream2SingleBestOutputCollector(&outputStream);
-  ioWrapper.ReadInput(SimpleTranslationInterface::m_staticData.GetInputType(),source);
-  if (source)
-    source->SetTranslationId(lineCount);
-  else
-    return "Error: Source==null!!!";
-  IFVERBOSE(1) {
-    ResetUserTime();
-  }
+  ioWrapper->SetOutputStream2SingleBestOutputCollector(&outputStream);
 
-  FeatureFunction::CallChangeSource(source);
+  boost::shared_ptr<InputType> source = ioWrapper->ReadInput();
+  if (!source) return "Error: Source==null!!!";
+  IFVERBOSE(1) { ResetUserTime(); }
+
+  FeatureFunction::CallChangeSource(&*source);
 
   // set up task of translating one sentence
-  TranslationTask task = TranslationTask(source, ioWrapper);
-   task.Run();
-
-   string output = outputStream.str();
-   //now trim the end whitespace
-   const string whitespace = " \t\f\v\n\r";
-   size_t end = output.find_last_not_of(whitespace);
+  boost::shared_ptr<TranslationTask> task 
+    = TranslationTask::create(source, ioWrapper);
+  task->Run();
+  
+  string output = outputStream.str();
+  //now trim the end whitespace
+  const string whitespace = " \t\f\v\n\r";
+  size_t end = output.find_last_not_of(whitespace);
   return output.erase(end + 1);
 }
 
@@ -175,9 +170,9 @@ run_as_server()
   else myAbyssServer.run();
 
   std::cerr << "xmlrpc_c::serverAbyss.run() returned but should not." << std::endl;
-#pragma message("BUILDING MOSES WIT SERVER SUPPORT") 
+  // #pragma message("BUILDING MOSES WITH SERVER SUPPORT") 
 #else
-#pragma message("BUILDING MOSES WITHOUT SERVER SUPPORT") 
+  // #pragma message("BUILDING MOSES WITHOUT SERVER SUPPORT") 
   std::cerr << "Moses was compiled without server support." << endl;   
 #endif
   return 1;
@@ -195,7 +190,8 @@ batch_run()
 
   IFVERBOSE(1) PrintUserTime("Created input-output object");
     
-  IOWrapper* ioWrapper = new IOWrapper(); // set up read/writing class
+  // set up read/writing class:
+  boost::shared_ptr<IOWrapper> ioWrapper(new IOWrapper); 
   UTIL_THROW_IF2(ioWrapper == NULL, "Error; Failed to create IO object"
 		 << " [" << HERE << "]");
   
@@ -213,42 +209,47 @@ batch_run()
 //#endif
 
   // main loop over set of input sentences
-  InputType* source = NULL;
-  size_t lineCount = staticData.GetStartTranslationId();
-  while(ioWrapper->ReadInput(staticData.GetInputType(), source)) 
+
+  boost::shared_ptr<InputType> source;
+  while ((source = ioWrapper->ReadInput()) != NULL)
     {
-      source->SetTranslationId(lineCount);
       IFVERBOSE(1) ResetUserTime();
       
-      FeatureFunction::CallChangeSource(source);
+      FeatureFunction::CallChangeSource(source.get());
       
       // set up task of translating one sentence
-      TranslationTask* task = new TranslationTask(source, *ioWrapper);
+      boost::shared_ptr<TranslationTask>
+	task = TranslationTask::create(source, ioWrapper);
+
+      // Allow for (sentence-)context-specific processing prior to 
+      // decoding. This can be used, for example, for context-sensitive
+      // phrase lookup.
+      FeatureFunction::SetupAll(*task);
 
       // execute task
 //#ifdef WITH_THREADS
-//#ifdef PT_UG
-//      bool spe = params.isParamSpecified("spe-src");
-//      if (spe) {
-//        // simulated post-editing: always run single-threaded!
-//        task->Run();
-//        delete task;
-//        string src,trg,aln;
-//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
-//                       << "missing update data for simulated post-editing.");
-//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
-//                       << "missing update data for simulated post-editing.");
-//        UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
-//                       << "missing update data for simulated post-editing.");
-//        BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl()) {
-//          Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
-//          if (sapt) sapt->add(src,trg,aln);
-//          VERBOSE(1,"[" << HERE << " added src] " << src << endl);
-//          VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
-//          VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
-//        }
-//      } else
-//#endif
+#ifdef PT_UG
+      bool spe = params.isParamSpecified("spe-src");
+      if (spe) {
+        // simulated post-editing: always run single-threaded!
+        task->Run();
+        delete task;
+        string src,trg,aln;
+        UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
+                       << "missing update data for simulated post-editing.");
+        UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
+                       << "missing update data for simulated post-editing.");
+        UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
+                       << "missing update data for simulated post-editing.");
+        BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl()) {
+          Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
+          if (sapt) sapt->add(src,trg,aln);
+          VERBOSE(1,"[" << HERE << " added src] " << src << endl);
+          VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
+          VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
+        }
+      } 
+#endif
 //        pool.Submit(task);
 //#else
       task->Run();
@@ -277,7 +278,6 @@ batch_run()
 //    pool.Stop(true); //flush remaining jobs
 //#endif
   
-  delete ioWrapper;
   FeatureFunction::Destroy();
 
   IFVERBOSE(1) util::PrintUsage(std::cerr);
