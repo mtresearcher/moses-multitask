@@ -1036,7 +1036,6 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 
 		if(update_status == 0){
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-			weightUpdate.PrintCoreFeatures();
 			VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
 		}
 		else{

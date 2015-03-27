@@ -346,7 +346,8 @@ public:
 			Moses::ScoreComponentCollection& oracleFeatureValues,
 			std::vector<float>& bleuScores){
 		vector<int> indexes_ones, indexes_zeroes;
-		ScoreComponentCollection featureValueDiff(oracleFeatureValues);
+		ScoreComponentCollection featureValueDiff(featureValues[0]);
+		featureValueDiff.ZeroAll();
 		// capturing the fixed weights : 1,0
 		for (size_t j = 0; j < weightUpdate.GetScoresVector().coreSize(); ++j)
 			if(weightUpdate.GetScoresVector()[j]==1)
@@ -356,7 +357,11 @@ public:
 		for (size_t j = 0; j < featureValues.size(); ++j) { // over nbest list
 			featureValueDiff.MinusEquals(featureValues[j]);
 		}
-		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
+		featureValueDiff.DivideEquals(featureValues.size());
+		oracleFeatureValues.MultiplyEquals(2);
+		featureValueDiff.PlusEquals(oracleFeatureValues);
+		// in the end we have oracleFeaturesValues - avg(rest of featureValues);
+
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
 		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
@@ -405,9 +410,9 @@ public:
 				std::vector<Moses::ScoreComponentCollection>& featureValues,
 				Moses::ScoreComponentCollection& oracleFeatureValues,
 				std::vector<float>& bleuScores) {
-		ScoreComponentCollection featureValueDiff(oracleFeatureValues);
+		ScoreComponentCollection featureValueDiff(featureValues[0]);
+		featureValueDiff.ZeroAll();	// zero all the feature value diff
 		vector<int> indexes_ones, indexes_zeroes;
-
 		// capturing the fixed weights : 1,0
 		for (size_t j = 0; j < weightUpdate.Size(); ++j)
 			if(weightUpdate.GetScoresVector()[j]==1)
@@ -421,6 +426,9 @@ public:
 		}
 		avgBleu/=bleuScores.size();
 		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
+		oracleFeatureValues.MultiplyEquals(2);
+		featureValueDiff.PlusEquals(oracleFeatureValues);
+		// in the end we have oracleFeaturesValues - avg(rest of featureValues);
 
 		// clipping the updates
 		for(size_t i=0; i<featureValueDiff.Size(); i++)
@@ -488,6 +496,8 @@ private:
 	boost::unordered_map<size_t, double> sumGradient_core; // keep it as a map , one can delete the elements on the fly (regularization)
 	float learningRate;
 };
+
+// separate classes for different learning algorithms
 }
 
 #endif
