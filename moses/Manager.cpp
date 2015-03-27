@@ -1596,9 +1596,6 @@ void Manager::OutputBest(OutputCollector *collector)  const
     // report best translation to output collector
     if((ol != NULL && !OnlineLearningFeature::Instance().OnlineLearningActivated())){
     	bestHypo = GetBestHypothesis();
-    	IFVERBOSE(1) {
-    		debug << "BEST TRANSLATION: " << *bestHypo << endl;
-    	}
     	if (staticData.PrintAlignmentInfo()) {
     		out << "||| ";
     		bestHypo->OutputAlignment(out);

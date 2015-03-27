@@ -146,6 +146,7 @@ private:
 	std::string m_filename;
 	float w_init, w_initTargetWords,slack, m_sigmoidParam;
 	std::string m_algorithm;
+	int m_burnin, sentNum;
 
 	inline std::string &trim(std::string &s);
 	inline std::string &rtrim(std::string &s);

@@ -124,6 +124,8 @@ OnlineLearningFeature::OnlineLearningFeature(const std::string &line) :
 	m_sctype="Bleu";
 	slack=0.001;
 	m_triggerTargetWords = false;
+	sentNum=0;
+	m_burnin=-1;
 	ReadParameters();
 
 	if(implementation!=FOnlyPerceptron && implementation!=SparseFeatures){
@@ -155,6 +157,8 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 		w_init = Scan<float>(value);
 	} else if (key == "updateFeatures") {
 		m_updateFeatures = Scan<bool>(value);
+	} else if (key=="burnIn") {
+		m_burnin = Scan<int>(value);
 	} else if (key == "w_initTargetWords") {
 		w_initTargetWords = Scan<float>(value);
 		m_triggerTargetWords = true;
@@ -252,7 +256,7 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 			implementation=WAdaGrad;
 			VERBOSE(1, "Online Algorithm : WAdaGrad\n");
 		}
-		else if(m_algorithm.compare("FPercepWAdagrad")==0){
+		else if(m_algorithm.compare("FPercepWAdaGrad")==0){
 			implementation=FPercepWAdaGrad;
 			VERBOSE(1, "Online Algorithm : FPercepWAdaGrad\n");
 		}
@@ -456,6 +460,7 @@ bool OnlineLearningFeature::has_only_spaces(const std::string& str) {
 bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
 	trim(s);
 	if (m_postedited.empty()) {
+		sentNum++;
 		m_postedited = s;
 		if(m_triggerTargetWords && !m_ngrams)
 			InsertTargetWords();
@@ -544,7 +549,8 @@ void OnlineLearningFeature::DumpFeatures(std::string filename)
 }
 void OnlineLearningFeature::ReadFeatures(std::string filename)
 {
-	if(implementation==Mira || implementation==WPerceptron || implementation==WAdaGrad || filename.empty()) return;
+//	if(implementation==Mira || implementation==WPerceptron || implementation==WAdaGrad || filename.empty()) return;
+	if(filename.empty()) return;
 	ifstream file;
 	file.open(filename.c_str(), ios::in);
 	std::string line;
@@ -720,7 +726,7 @@ void OnlineLearningFeature::Decay() {
 
 void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const Moses::TargetPhrase& tp,
 		Moses::ScoreComponentCollection& out, Moses::ScoreComponentCollection& fs) const {
-	if(implementation==Mira || implementation==WPerceptron || implementation==WAdaGrad) return;
+	if(sentNum <= m_burnin) return;
 	float score = 0.0;
 	std::string s = "", t = "";
 	size_t endpos = tp.GetSize();
@@ -928,7 +934,6 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		}
 	}
 	Visited.clear();
-	VERBOSE(1,"Read all the oracles in the list!\n");
 	if (implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep || implementation == FPercepWAdaGrad) {
 		// for the 1best in nbest list
 		pp_list::const_iterator it1;
@@ -972,11 +977,9 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			}
 		}
 	}
-	VERBOSE(1, "Updated the features!\n");
-
 	//	Update the weights as I found a better oracle translation
 	if ((implementation == FPercepWMira || implementation == Mira)
-			&& maxBleu!=bestbleu && maxScore!=bestScore) {
+			&& maxBleu!=bestbleu && maxScore!=bestScore && sentNum >= m_burnin) {
 		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 		{
 			float bleuscore = BleuScore[i];
@@ -1008,8 +1011,8 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			VERBOSE(1, "No Update\n");
 		}
 	}
-	else if (implementation==WPerceptron || implementation==FPercepWPercep
-			|| implementation == FPercepWAdaGrad || implementation == WAdaGrad){
+	else if ((implementation==WPerceptron || implementation==FPercepWPercep || implementation == FPercepWAdaGrad || implementation == WAdaGrad)
+			&& sentNum >= m_burnin){
 		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 		{
 			float bleuscore = BleuScore[i];
@@ -1020,23 +1023,20 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		BleuScores.push_back(BleuScore);
 		losses.push_back(loss);
 		oracleModelScores.push_back(maxScore);
+		if (oraclefeatureScore.size()==0)  oraclefeatureScore.push_back(featureValue[0]) ;
 		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
 		size_t update_status =1;
 		if(implementation==WPerceptron || implementation==FPercepWPercep){
 			VERBOSE(1, "Updating the Weights : Perceptron \n");
-			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0]);
+			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0]);
 		} else if (implementation == FPercepWAdaGrad || implementation == WAdaGrad){
 			VERBOSE(1, "Updating the Weights : AdaGrad \n");
-			update_status = optimiser->updateWeightsAdaGrad(weightUpdate, featureValues[0], BleuScores[0]);
+			update_status = optimiser->updateWeightsAdaGrad(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0]);
 		}
 
 		if(update_status == 0){
-			VERBOSE(1, "setting weights\n");
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
 			weightUpdate.PrintCoreFeatures();
-			stringstream ss;
-			weightUpdate.GetScoresVector().print(ss);
-			ss.flush();
 			VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
 		}
 		else{
@@ -1288,7 +1288,7 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 						task, wlr);
 
 			if(implementation==WPerceptron || implementation==FPercepWPercep)
-				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], BleuScores[0]);
+				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0],oraclefeatureScore[0], BleuScores[0]);
 
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");
