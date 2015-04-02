@@ -257,21 +257,6 @@ batch_run()
 //#endif
 
       source = NULL; //make sure it doesn't get deleted
-      const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
-      if(ol != NULL){
-    	  vector<string> vecstr=TokenizeMultiCharSeparator(OnlineLearningFeature::Instance().GetSourceSentence(), "_#_");
-    	  // if the sentence is supposed to be translated then lineCount ++ else nothing
-    	  if(vecstr.size()==1 && !OnlineLearningFeature::Instance().OnlineLearningActivated()){
-    		  ++lineCount;
-    	  }
-    	  // if the sentence is supposed to be translated then lineCount ++ else nothing
-    	  else if(vecstr.size()==2 && OnlineLearningFeature::Instance().OnlineLearningActivated()){
-    		  ++lineCount;
-    	  }
-      }
-      else{
-    	  ++lineCount;
-      }
     }
     // we are done, finishing up
 //#ifdef WITH_THREADS

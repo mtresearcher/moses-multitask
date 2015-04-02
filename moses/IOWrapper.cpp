@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "moses/InputFileStream.h"
 #include "moses/FF/StatefulFeatureFunction.h"
 #include "moses/FF/StatelessFeatureFunction.h"
+#include "moses/FF/OnlineLearningFeature.h"
 #include "moses/TreeInput.h"
 #include "moses/ForestInput.h"
 #include "moses/ConfusionNet.h"
@@ -268,9 +269,26 @@ IOWrapper::ReadInput()
   boost::lock_guard<boost::mutex> lock(m_lock);
 #endif
   if (source->Read(*m_inputStream, *m_inputFactorOrder))
-    source->SetTranslationId(m_currentLine++);
+    source->SetTranslationId(m_currentLine);
   else 
     source.reset();
+
+  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  if(ol != NULL){
+	  vector<string> vecstr=TokenizeMultiCharSeparator(OnlineLearningFeature::Instance().GetSourceSentence(), "_#_");
+	  // if the sentence is supposed to be translated then lineCount ++ else nothing
+	  if(vecstr.size()==1 && !OnlineLearningFeature::Instance().OnlineLearningActivated()){
+		  ++m_currentLine;
+	  }
+	  // if the sentence is supposed to be translated then lineCount ++ else nothing
+	  else if(vecstr.size()==2 && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+		  ++m_currentLine;
+	  }
+  }
+  else{
+	  ++m_currentLine;
+  }
+
   return source;
 }
 
