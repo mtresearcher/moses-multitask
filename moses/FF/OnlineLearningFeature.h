@@ -54,7 +54,7 @@ protected:
 public:
 	OnlineLearningFeature(const std::string&);
 	virtual ~OnlineLearningFeature();
-	float GetDiffLoss(){return diffloss;}
+	const float GetDiffLoss(){return diffloss;}
 
 	const bool OnlineLearningActivated() const {return m_learn;}
 	void DeactivateOnlineLearning() {m_learn=false;}

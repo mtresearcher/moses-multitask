@@ -459,18 +459,13 @@ bool OnlineLearningFeature::has_only_spaces(const std::string& str) {
 
 bool OnlineLearningFeature::SetPostEditedSentence(std::string s) {
 	trim(s);
-	if (m_postedited.empty()) {
-		sentNum++;
-		m_postedited = s;
-		if(m_triggerTargetWords && !m_ngrams)
-			InsertTargetWords();
-		if(m_triggerTargetWords && m_ngrams)
-			InsertNGrams(); // instead of InsertTargetWords
-		return true;
-	} else {
-		VERBOSE(1, "post edited already exists.. " << m_postedited << endl);
-		return false;
-	}
+	sentNum++;
+	m_postedited = s;
+	if(m_triggerTargetWords && !m_ngrams)
+		InsertTargetWords();
+	if(m_triggerTargetWords && m_ngrams)
+		InsertNGrams(); // instead of InsertTargetWords
+	return true;
 }
 
 bool OnlineLearningFeature::SetSourceSentence(std::string s) {
@@ -648,7 +643,6 @@ float OnlineLearningFeature::calcMargin(Hypothesis* oracle, Hypothesis* bestHyp)
 }
 
 void OnlineLearningFeature::RemoveJunk() {
-	m_postedited.clear();
 	PP_ORACLE.clear();
 	PP_BEST.clear();
 }
