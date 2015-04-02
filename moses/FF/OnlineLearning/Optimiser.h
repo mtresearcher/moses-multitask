@@ -345,30 +345,27 @@ public:
 			std::vector<Moses::ScoreComponentCollection>& featureValues,
 			Moses::ScoreComponentCollection& oracleFeatureValues,
 			std::vector<float>& bleuScores){
-		vector<int> indexes_ones, indexes_zeroes;
-		ScoreComponentCollection featureValueDiff(featureValues[0]);
-		featureValueDiff.ZeroAll();
 		// capturing the fixed weights : 1,0
+		vector<int> indexes_ones, indexes_zeroes;
 		for (size_t j = 0; j < weightUpdate.GetScoresVector().coreSize(); ++j)
 			if(weightUpdate.GetScoresVector()[j]==1)
 				indexes_ones.push_back(j);
 			else if(weightUpdate.GetScoresVector()[j]==0)
 				indexes_zeroes.push_back(j);
-		for (size_t j = 0; j < featureValues.size(); ++j) { // over nbest list
-			featureValueDiff.MinusEquals(featureValues[j]);
-		}
-		featureValueDiff.DivideEquals(featureValues.size());
-		oracleFeatureValues.MultiplyEquals(2);
-		featureValueDiff.PlusEquals(oracleFeatureValues);
-		// in the end we have oracleFeaturesValues - avg(rest of featureValues);
+
+		ScoreComponentCollection featureValueDiff(oracleFeatureValues);
+		featureValueDiff.MinusEquals(featureValues[0]);
 
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
 		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
+		cerr<<"Feature Value Diff : ";
+		featureValueDiff.PrintCoreFeatures();
+		cerr<<endl;
 
 		Moses::FVector scoreVec = featureValueDiff.GetScoresVector();
 		Moses::ScoreComponentCollection summedUpdate;
-		for (size_t idx=0; idx<scoreVec.coreSize(); ++idx){
+		for (size_t idx=0; idx<scoreVec.coreSize(); ++idx){ // core features
 			double curr_gradient = scoreVec[idx];
 			if(sumGradient_core.find(idx)==sumGradient_core.end())
 				sumGradient_core[idx] = curr_gradient * curr_gradient;
@@ -395,9 +392,9 @@ public:
 		weightUpdate.MinusEquals(summedUpdate);
 
 		if(m_l1)
-			weightUpdate.SparseL1Regularize(0.01);
+			weightUpdate.SparseL1Regularize(0.001);
 		if(m_l2)
-			weightUpdate.SparseL2Regularize(0.01);
+			weightUpdate.SparseL2Regularize(0.001);
 
 		weightUpdate.CapMax(1);
 		weightUpdate.CapMin(-1);
@@ -425,10 +422,9 @@ public:
 			avgBleu += bleuScores[j];
 		}
 		avgBleu/=bleuScores.size();
-		featureValueDiff.DivideEquals(featureValues.size()); // average out the delta : average structured perceptron
-		oracleFeatureValues.MultiplyEquals(2);
-		featureValueDiff.PlusEquals(oracleFeatureValues);
-		// in the end we have oracleFeaturesValues - avg(rest of featureValues);
+		featureValueDiff.PlusEquals(oracleFeatureValues); // this removes the oracle features
+		featureValueDiff.DivideEquals(featureValues.size()); // averages the feature values for rest of nbest
+		featureValueDiff.PlusEquals(oracleFeatureValues); // in the end we have oracleFeaturesValues - avg(rest of featureValues);
 
 		// clipping the updates
 		for(size_t i=0; i<featureValueDiff.Size(); i++)
@@ -469,6 +465,7 @@ public:
 		weightUpdate.CapMin(-1);
 		return 0;
 	}
+
 
 private:
 	// regularise Hildreth updates

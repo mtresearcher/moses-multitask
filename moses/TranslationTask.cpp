@@ -8,6 +8,7 @@
 #include "moses/InputType.h"
 #include "moses/OutputCollector.h"
 #include "moses/Incremental.h"
+#include "moses/FF/OnlineLearningFeature.h"
 #include "mbr.h"
 
 #include "moses/Syntax/F2S/RuleMatcherCallback.h"
@@ -112,6 +113,16 @@ void TranslationTask::Run()
 	  << initTime << " seconds total" << endl);
 
   manager->Decode();
+
+  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+  if(ol!=NULL){
+	  float diffloss = OnlineLearningFeature::InstanceNonConst().GetDiffLoss();
+	  while(diffloss > 1){
+		  manager.reset(new Manager(*m_source));
+		  manager->Decode();
+	  }
+  }
+
 
   OutputCollector* ocoll;
   // we are done with search, let's look what we got

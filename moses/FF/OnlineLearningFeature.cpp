@@ -771,8 +771,9 @@ void OnlineLearningFeature::EvaluateInIsolation(const Moses::Phrase& sp, const M
 		out.SparsePlusEquals(featureN, score);
 }
 
-void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
-	if(implementation == SparseFeatures) return;
+float OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
+	diffloss=0;
+	if(implementation == SparseFeatures) return diffloss;
 	const StaticData& staticData = StaticData::Instance();
 	const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
 	if(implementation != Mira && implementation != WPerceptron && implementation!=WAdaGrad && m_terAlign && !m_forceAlign && m_cbtm){
@@ -979,7 +980,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 	}
 	//	Update the weights as I found a better oracle translation
 	if ((implementation == FPercepWMira || implementation == Mira)
-			&& maxBleu!=bestbleu && maxScore!=bestScore && sentNum >= m_burnin) {
+			&& maxBleu!=bestbleu && maxScore!=bestScore) {
 		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 		{
 			float bleuscore = BleuScore[i];
@@ -998,7 +999,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 			update_status = optimiser->updateWeights(weightUpdate, featureValues, losses,
 							BleuScores, modelScores, oraclefeatureScore, oracleBleuScores, oracleModelScores, wlr);
 
-		if(update_status == 0){
+		if(update_status == 0 && sentNum >= m_burnin){
 			VERBOSE(1, "setting weights\n");
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
 			weightUpdate.PrintCoreFeatures();
@@ -1012,7 +1013,7 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		}
 	}
 	else if ((implementation==WPerceptron || implementation==FPercepWPercep || implementation == FPercepWAdaGrad || implementation == WAdaGrad)
-			&& sentNum >= m_burnin){
+		&& maxBleu!=bestbleu && maxScore!=bestScore) {
 		for (size_t i = 0; i < HypothesisList.size(); i++) // same loop used for feature values, modelscores
 		{
 			float bleuscore = BleuScore[i];
@@ -1023,7 +1024,6 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		BleuScores.push_back(BleuScore);
 		losses.push_back(loss);
 		oracleModelScores.push_back(maxScore);
-		if (oraclefeatureScore.size()==0)  oraclefeatureScore.push_back(featureValue[0]) ;
 		ScoreComponentCollection weightUpdate = staticData.GetAllWeights();
 		size_t update_status =1;
 		if(implementation==WPerceptron || implementation==FPercepWPercep){
@@ -1036,26 +1036,32 @@ void OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 
 		if(update_status == 0){
 			StaticData::InstanceNonConst().SetAllWeights(weightUpdate);
-			VERBOSE(1, "\nNumber of Features : "<<weightUpdate.Size()<<endl);
+			VERBOSE(1, "Number of Features : "<<weightUpdate.Size()<<endl);
 		}
 		else{
 			VERBOSE(1, "No Update\n");
 		}
+		diffloss=abs(maxScore - modelScores[0][0]); // oracle - 1best
+		VERBOSE(1, "DiffLoss set to "<<diffloss<<endl);
 	}
 	else if(implementation == FPercepWMira || implementation == Mira
 			|| implementation==WPerceptron || implementation==FPercepWPercep
 			|| implementation == FPercepWAdaGrad || implementation == WAdaGrad){
 		VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
+		diffloss=0; // oracle - 1best
+		VERBOSE(1, "DiffLoss set to "<<diffloss<<endl);
 	}
 	if((implementation == FPercepWMira || implementation == FOnlyPerceptron
 			|| implementation==FPercepWPercep || implementation==FPercepWAdaGrad) && m_updateFeatures)
 		updateFeatureValues();
 	VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
-	return;
+
+	return diffloss;
 }
 
-void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
-	if(implementation == SparseFeatures) return;
+float OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t task) {
+	float diffloss=0;
+	if(implementation == SparseFeatures) return diffloss;
 		const StaticData& staticData = StaticData::Instance();
 		const std::vector<Moses::FactorType>& outputFactorOrder = staticData.GetOutputFactorOrder();
 		if(implementation != Mira && implementation!=WPerceptron && m_terAlign && !m_forceAlign && m_cbtm){
@@ -1299,14 +1305,19 @@ void OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_t
 			}
 			// update the interaction matrix
 			MultiTaskLearning::InstanceNonConst().updateIntMatrix();
+			diffloss=abs(maxScore - modelScores[0][0]); // oracle - 1best
+			VERBOSE(1, "DiffLoss set to "<<diffloss<<endl);
 		}
 		else if(implementation == FPercepWMira || implementation == Mira || implementation==WPerceptron || implementation==FPercepWPercep){
 			VERBOSE(1, "Didn't find any good oracle translations, continuing the process.\n");
+			diffloss=0;
+			VERBOSE(1, "DiffLoss set to "<<diffloss<<endl);
 		}
 		if((implementation == FPercepWMira || implementation == FOnlyPerceptron || implementation==FPercepWPercep) && m_updateFeatures)
 			updateFeatureValues();
 		VERBOSE(2, "Vocabulary Size : "<<m_vocab.size()<<endl);
-		return;
+		cerr<<"Returning DiffLoss : "<<diffloss<<endl;
+		return diffloss;
 }
 
 

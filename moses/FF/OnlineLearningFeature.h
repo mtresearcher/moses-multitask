@@ -54,6 +54,7 @@ protected:
 public:
 	OnlineLearningFeature(const std::string&);
 	virtual ~OnlineLearningFeature();
+	float GetDiffLoss(){return diffloss;}
 
 	const bool OnlineLearningActivated() const {return m_learn;}
 	void DeactivateOnlineLearning() {m_learn=false;}
@@ -63,8 +64,8 @@ public:
 	const std::string GetSourceSentence() const {return m_source;}
 	bool SetPostEditedSentence(std::string);
 	bool SetAlignments(std::string);
-	void RunOnlineLearning(Manager& manager);
-	void RunOnlineMultiTaskLearning(Manager& manager, uint8_t task);
+	float RunOnlineLearning(Manager& manager);
+	float RunOnlineMultiTaskLearning(Manager& manager, uint8_t task);
 	void RemoveJunk();
 
 	//	inline size_t GetNumScoreComponents() const { return 1; };
@@ -133,7 +134,7 @@ private:
 	pp_list m_featureIdx;
 	pp_list PP_ORACLE, PP_BEST, PP_NEW;
 	learningrate flr, wlr;
-	float m_decayValue, m_initScore;
+	float m_decayValue, m_initScore, diffloss;
 	size_t m_nbestSize;
 	std::string m_source, m_postedited, m_alignments;
 	std::string m_sctype;
