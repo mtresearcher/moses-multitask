@@ -228,35 +228,38 @@ batch_run()
 
       // execute task
 //#ifdef WITH_THREADS
-#ifdef PT_UG
-      bool spe = params.isParamSpecified("spe-src");
-      if (spe) {
-        // simulated post-editing: always run single-threaded!
-        task->Run();
-        delete task;
-        string src,trg,aln;
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
-                       << "missing update data for simulated post-editing.");
-        BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl()) {
-          Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
-          if (sapt) sapt->add(src,trg,aln);
-          VERBOSE(1,"[" << HERE << " added src] " << src << endl);
-          VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
-          VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
-        }
-      } 
-#endif
-//        pool.Submit(task);
+//#ifdef PT_UG
+//      // simulated post-editing requires threads (within the dynamic phrase tables)
+//      // but runs all sentences serially, to allow updating of the bitext.
+//      bool spe = params.isParamSpecified("spe-src");
+//      if (spe)
+//	{
+//	  // simulated post-editing: always run single-threaded!
+//	  task->Run();
+//	  string src,trg,aln;
+//	  UTIL_THROW_IF2(!getline(*ioWrapper->spe_src,src), "[" << HERE << "] "
+//			 << "missing update data for simulated post-editing.");
+//	  UTIL_THROW_IF2(!getline(*ioWrapper->spe_trg,trg), "[" << HERE << "] "
+//			 << "missing update data for simulated post-editing.");
+//	  UTIL_THROW_IF2(!getline(*ioWrapper->spe_aln,aln), "[" << HERE << "] "
+//			 << "missing update data for simulated post-editing.");
+//	  BOOST_FOREACH (PhraseDictionary* pd, PhraseDictionary::GetColl())
+//	    {
+//	      Mmsapt* sapt = dynamic_cast<Mmsapt*>(pd);
+//	      if (sapt) sapt->add(src,trg,aln);
+//	      VERBOSE(1,"[" << HERE << " added src] " << src << endl);
+//	      VERBOSE(1,"[" << HERE << " added trg] " << trg << endl);
+//	      VERBOSE(1,"[" << HERE << " added aln] " << aln << endl);
+//	    }
+//	}
+//      else pool.Submit(task);
+//#else
+//      pool.Submit(task);
+//
+//#endif
 //#else
       task->Run();
-      delete task;
 //#endif
-
-      source = NULL; //make sure it doesn't get deleted
     }
     // we are done, finishing up
 //#ifdef WITH_THREADS
