@@ -115,13 +115,17 @@ void TranslationTask::Run()
   manager->Decode();
 
   const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
-  if(ol!=NULL){
+  if(ol!=NULL  && ol->OnlineLearningActivated()){
+	  float prevLoss=99;
 	  float diffloss = OnlineLearningFeature::InstanceNonConst().GetDiffLoss();
+	  int iterations=1;
 	  VERBOSE(1, "Diff Loss : "<<diffloss<<endl);
-	  while(diffloss > 1){
+	  while(diffloss > 1 && iterations < OnlineLearningFeature::InstanceNonConst().GetMaxIterations() && diffloss < prevLoss){
+		  prevLoss=diffloss;
 		  manager.reset(new Manager(*m_source));
 		  manager->Decode();
 		  diffloss = OnlineLearningFeature::InstanceNonConst().GetDiffLoss();
+		  iterations++;
 	  }
   }
 

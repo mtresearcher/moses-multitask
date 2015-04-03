@@ -88,57 +88,57 @@ Manager::~Manager()
  */
 void Manager::Decode()
 {
-  // initialize statistics
-  ResetSentenceStats(m_source);
-  IFVERBOSE(2) {
-    GetSentenceStats().StartTimeTotal();
-  }
+	// initialize statistics
+	float loss;
+	ResetSentenceStats(m_source);
+	IFVERBOSE(2) {
+		GetSentenceStats().StartTimeTotal();
+	}
 
-  // check if alternate weight setting is used
-  // this is not thread safe! it changes StaticData
-  if (StaticData::Instance().GetHasAlternateWeightSettings()) {
-    if (m_source.GetSpecifiesWeightSetting()) {
-      StaticData::Instance().SetWeightSetting(m_source.GetWeightSetting());
-    } else {
-      StaticData::Instance().SetWeightSetting("default");
-    }
-  }
+	// check if alternate weight setting is used
+	// this is not thread safe! it changes StaticData
+	if (StaticData::Instance().GetHasAlternateWeightSettings()) {
+		if (m_source.GetSpecifiesWeightSetting()) {
+			StaticData::Instance().SetWeightSetting(m_source.GetWeightSetting());
+		} else {
+			StaticData::Instance().SetWeightSetting("default");
+		}
+	}
 
-  // get translation options
-  IFVERBOSE(1) {
-    GetSentenceStats().StartTimeCollectOpts();
-  }
-  m_transOptColl->CreateTranslationOptions();
+	// get translation options
+	IFVERBOSE(1) {
+		GetSentenceStats().StartTimeCollectOpts();
+	}
+	m_transOptColl->CreateTranslationOptions();
 
-  // some reporting on how long this took
-  IFVERBOSE(1) {
-    GetSentenceStats().StopTimeCollectOpts();
-    TRACE_ERR("Line "<< m_source.GetTranslationId() << ": Collecting options took "
-              << GetSentenceStats().GetTimeCollectOpts() << " seconds at "
-              << __FILE__ << ":" << __LINE__ << endl);
-  }
+	// some reporting on how long this took
+	IFVERBOSE(1) {
+		GetSentenceStats().StopTimeCollectOpts();
+		TRACE_ERR("Line "<< m_source.GetTranslationId() << ": Collecting options took "
+				<< GetSentenceStats().GetTimeCollectOpts() << " seconds at "
+				<< __FILE__ << ":" << __LINE__ << endl);
+	}
 
-  // search for best translation with the specified algorithm
-  Timer searchTime;
-  searchTime.start();
-  m_search->Decode();
-  VERBOSE(1, "Line " << m_source.GetTranslationId() << ": Search took " << searchTime << " seconds" << endl);
-  IFVERBOSE(2) {
-    GetSentenceStats().StopTimeTotal();
-    TRACE_ERR(GetSentenceStats());
-  }
+	// search for best translation with the specified algorithm
+	Timer searchTime;
+	searchTime.start();
+	m_search->Decode();
+	VERBOSE(1, "Line " << m_source.GetTranslationId() << ": Search took " << searchTime << " seconds" << endl);
+	IFVERBOSE(2) {
+		GetSentenceStats().StopTimeTotal();
+		TRACE_ERR(GetSentenceStats());
+	}
 
-  const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
-  MultiTaskLearning *mtl = &MultiTaskLearning::InstanceNonConst();
-  if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
-	  if(mtl!=NULL)
-		  OnlineLearningFeature::InstanceNonConst().RunOnlineMultiTaskLearning(*this, mtl->GetCurrentTask());
-	  else
-		  OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(*this);
+	const OnlineLearningFeature *ol = &OnlineLearningFeature::Instance();
+	MultiTaskLearning *mtl = &MultiTaskLearning::InstanceNonConst();
+	if(ol != NULL && OnlineLearningFeature::Instance().OnlineLearningActivated()){
+		if(mtl!=NULL)
+			OnlineLearningFeature::InstanceNonConst().RunOnlineMultiTaskLearning(*this, mtl->GetCurrentTask());
+		else
+			OnlineLearningFeature::InstanceNonConst().RunOnlineLearning(*this);
 
-	  OnlineLearningFeature::InstanceNonConst().RemoveJunk();
-  }
-
+		OnlineLearningFeature::InstanceNonConst().RemoveJunk();
+	}
 }
 
 /**

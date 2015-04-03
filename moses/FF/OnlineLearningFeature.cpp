@@ -197,6 +197,8 @@ void OnlineLearningFeature::SetParameter(const std::string& key, const std::stri
 		m_decayValue = Scan<float>(value);
 	} else if (key == "sctype") {
 		m_sctype = Scan<std::string>(value);
+	} else if (key == "maxIterations"){
+		maxIterations = Scan<int>(value);
 	} else if (key == "language") {
 		std::string lang = Scan<std::string>(value);
 		if(lang.compare("french")==0){

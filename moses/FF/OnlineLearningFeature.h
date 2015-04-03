@@ -55,6 +55,7 @@ public:
 	OnlineLearningFeature(const std::string&);
 	virtual ~OnlineLearningFeature();
 	const float GetDiffLoss(){return diffloss;}
+	int GetMaxIterations() {return maxIterations;}
 
 	const bool OnlineLearningActivated() const {return m_learn;}
 	void DeactivateOnlineLearning() {m_learn=false;}
@@ -147,7 +148,7 @@ private:
 	std::string m_filename;
 	float w_init, w_initTargetWords,slack, m_sigmoidParam;
 	std::string m_algorithm;
-	int m_burnin, sentNum;
+	int m_burnin, sentNum, maxIterations;
 
 	inline std::string &trim(std::string &s);
 	inline std::string &rtrim(std::string &s);
