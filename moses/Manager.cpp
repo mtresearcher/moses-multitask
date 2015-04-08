@@ -1888,8 +1888,7 @@ void Manager::OutputAlignment(ostream &out, const vector<const Hypothesis *> &ed
 
     targetOffset += tp.GetSize();
   }
-  // Removing std::endl here breaks -alignment-output-file, so stop doing that, please :)
-  // Or fix it somewhere else.
+  // Used by --alignment-output-file so requires endl
   out << std::endl;
 }
 
@@ -2044,6 +2043,8 @@ void Manager::OutputBestHypo(const Moses::TrellisPath &path, long /*translationI
 void Manager::OutputAlignment(std::ostringstream &out, const TrellisPath &path) const
 {
   Hypothesis::OutputAlignment(out, path.GetEdges());
+  // Used by --alignment-output-file so requires endl
+  out << std::endl;
 }
 
 } // namespace
