@@ -1024,10 +1024,10 @@ float OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		size_t update_status =1;
 		if(implementation==WPerceptron || implementation==FPercepWPercep){
 			VERBOSE(1, "Updating the Weights : Perceptron \n");
-			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0]);
+			update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0], oracleBleuScores[0]);
 		} else if (implementation == FPercepWAdaGrad || implementation == WAdaGrad){
 			VERBOSE(1, "Updating the Weights : AdaGrad \n");
-			update_status = optimiser->updateWeightsAdaGrad(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0]);
+			update_status = optimiser->updateWeightsAdaGrad(weightUpdate, featureValues[0], oraclefeatureScore[0], BleuScores[0], oracleBleuScores[0]);
 		}
 
 		if(update_status == 0){
@@ -1037,7 +1037,7 @@ float OnlineLearningFeature::RunOnlineLearning(Manager& manager) {
 		else{
 			VERBOSE(1, "No Update\n");
 		}
-		diffloss=abs(maxScore - modelScores[0][0]); // oracle - 1best
+		diffloss=bestScore - maxScore; // -1*(oracle - 1best)
 		VERBOSE(1, "DiffLoss set to "<<diffloss<<endl);
 	}
 	else if(implementation == FPercepWMira || implementation == Mira
@@ -1287,9 +1287,6 @@ float OnlineLearningFeature::RunOnlineMultiTaskLearning(Manager& manager, uint8_
 						MultiTaskLearning::Instance().GetKdKdMatrix(),
 						MultiTaskLearning::Instance().GetNumberOfTasks(),
 						task, wlr);
-
-			if(implementation==WPerceptron || implementation==FPercepWPercep)
-				update_status = optimiser->updateWeightsPerceptron(weightUpdate, featureValues[0],oraclefeatureScore[0], BleuScores[0]);
 
 			if(update_status == 0){
 				VERBOSE(1, "setting weights\n");

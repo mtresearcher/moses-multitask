@@ -344,7 +344,8 @@ public:
 			Moses::ScoreComponentCollection& weightUpdate,
 			std::vector<Moses::ScoreComponentCollection>& featureValues,
 			Moses::ScoreComponentCollection& oracleFeatureValues,
-			std::vector<float>& bleuScores){
+			std::vector<float>& bleuScores,
+			float oracleBleu){
 		// capturing the fixed weights : 1,0
 		vector<int> indexes_ones, indexes_zeroes;
 		for (size_t j = 0; j < weightUpdate.GetScoresVector().coreSize(); ++j)
@@ -352,9 +353,10 @@ public:
 				indexes_ones.push_back(j);
 			else if(weightUpdate.GetScoresVector()[j]==0)
 				indexes_zeroes.push_back(j);
-
+		
 		ScoreComponentCollection featureValueDiff(oracleFeatureValues);
-		featureValueDiff.MinusEquals(featureValues[0]);
+		// scale with oracleBleu-bestBleu
+		featureValueDiff.MultiplyEquals(oracleBleu-bleuScores[0]);
 
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
@@ -392,9 +394,9 @@ public:
 		weightUpdate.MinusEquals(summedUpdate);
 
 		if(m_l1)
-			weightUpdate.SparseL1Regularize(0.001);
+			weightUpdate.SparseL1Regularize(0.01);
 		if(m_l2)
-			weightUpdate.SparseL2Regularize(0.001);
+			weightUpdate.SparseL2Regularize(0.01);
 
 		weightUpdate.CapMax(1);
 		weightUpdate.CapMin(-1);
@@ -406,7 +408,8 @@ public:
 				Moses::ScoreComponentCollection& weightUpdate,
 				std::vector<Moses::ScoreComponentCollection>& featureValues,
 				Moses::ScoreComponentCollection& oracleFeatureValues,
-				std::vector<float>& bleuScores) {
+				std::vector<float>& bleuScores,
+				float oracleBleu) {
 		ScoreComponentCollection featureValueDiff(featureValues[0]);
 		featureValueDiff.ZeroAll();	// zero all the feature value diff
 		vector<int> indexes_ones, indexes_zeroes;
