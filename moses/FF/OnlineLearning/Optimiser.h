@@ -410,8 +410,10 @@ public:
 				Moses::ScoreComponentCollection& oracleFeatureValues,
 				std::vector<float>& bleuScores,
 				float oracleBleu) {
-		ScoreComponentCollection featureValueDiff(featureValues[0]);
-		featureValueDiff.ZeroAll();	// zero all the feature value diff
+		ScoreComponentCollection featureValueDiff(featureValues[0]); // X
+		// scale with oracleBleu-bestBleu
+		featureValueDiff.MultiplyEquals(oracleBleu-bleuScores[0]); // \Delta Y \times X
+
 		vector<int> indexes_ones, indexes_zeroes;
 		// capturing the fixed weights : 1,0
 		for (size_t j = 0; j < weightUpdate.Size(); ++j)
@@ -419,49 +421,14 @@ public:
 				indexes_ones.push_back(j);
 			else if(weightUpdate.GetScoresVector()[j]==0)
 				indexes_zeroes.push_back(j);
-		float avgBleu=0;
-		for (size_t j = 0; j < featureValues.size(); ++j) { // over nbest list
-			featureValueDiff.MinusEquals(featureValues[j]);
-			avgBleu += bleuScores[j];
-		}
-		avgBleu/=bleuScores.size();
-		featureValueDiff.PlusEquals(oracleFeatureValues); // this removes the oracle features
-		featureValueDiff.DivideEquals(featureValues.size()); // averages the feature values for rest of nbest
-		featureValueDiff.PlusEquals(oracleFeatureValues); // in the end we have oracleFeaturesValues - avg(rest of featureValues);
-
-		// clipping the updates
-		for(size_t i=0; i<featureValueDiff.Size(); i++)
-		    if(featureValueDiff.GetScoresVector()[i] < -0.01) featureValueDiff.Assign(i, -0.01);
-		    else if(featureValueDiff.GetScoresVector()[i] > 0.01) featureValueDiff.Assign(i, 0.01);
 
 		// don't touch the fixed weights
 		for (size_t j = 0; j < indexes_ones.size(); ++j) featureValueDiff.Assign(indexes_ones[j], 0);
 		for (size_t j = 0; j < indexes_zeroes.size(); ++j) featureValueDiff.Assign(indexes_zeroes[j], 0);
 
-		// calculate hits
-		float p=0,n=0;
-		for(size_t i=0; i<bleuScores.size(); i++)
-			if(bleuScores[i] > avgBleu) p++;
-			else n++;
-		float hits=p-n;
-		cerr<<"Avg Bleu : "<<avgBleu<<"\n";
-		cerr<<"Total number of hypothesis better than avg. : "<<p<<endl;
-		cerr<<"Total number of hypothesis worse than avg. : "<<n<<endl;
 		if(learningRate!=0) // times learning rate , scaling with best Bleu , scaling with hits/NBestSize
-			featureValueDiff.MultiplyEquals(learningRate*(hits*1.0/(p+n)));
-		cerr<<"Update feature vector := ";
-		featureValueDiff.PrintCoreFeatures();
-		cerr<<"\n";
-		if(hits > 0){
-			std::cerr<<"Update : Positive with Hits = "<<hits<<"\n";
-		}
-		else if(hits < 0){
-			std::cerr<<"Update : Negative with Hits = "<<hits<<"\n";
-		}
-		else if(hits==0) {
-			std::cerr<<"Update : No Update \n";
-			return 1;
-		}
+			featureValueDiff.MultiplyEquals(learningRate);  // \alpha \times \Delta Y \times X
+
 		weightUpdate.PlusEquals(featureValueDiff);
 
 		weightUpdate.CapMax(1);
