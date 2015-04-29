@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sstream>
 #include <vector>
 
+#include "util/random.hh"
 #include "util/usage.hh"
 
 #ifdef WIN32
@@ -92,7 +93,7 @@ SimpleTranslationInterface::SimpleTranslationInterface(const string &mosesIni): 
       exit(1);
     }
 
-    srand(time(NULL));
+    util::rand_init();
 
 }
 
@@ -186,7 +187,7 @@ batch_run()
   const StaticData& staticData = StaticData::Instance();
 
   //initialise random numbers
-  srand(time(NULL));
+  util::rand_init();
 
   IFVERBOSE(1) PrintUserTime("Created input-output object");
     
@@ -208,6 +209,9 @@ batch_run()
     ThreadPool pool(staticData.ThreadCount());
 #endif
 
+  std::string context_string;
+  params.SetParameter(context_string,"context-string",string(""));
+
   // main loop over set of input sentences
 
   boost::shared_ptr<InputType> source;
@@ -220,6 +224,7 @@ batch_run()
       // set up task of translating one sentence
       boost::shared_ptr<TranslationTask>
 	task = TranslationTask::create(source, ioWrapper);
+      task->SetContextString(context_string);
 
       // Allow for (sentence-)context-specific processing prior to 
       // decoding. This can be used, for example, for context-sensitive

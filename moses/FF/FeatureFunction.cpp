@@ -6,6 +6,7 @@
 #include "moses/Hypothesis.h"
 #include "moses/Manager.h"
 #include "moses/TranslationOption.h"
+#include "moses/TranslationTask.h"
 #include "moses/Util.h"
 #include "moses/FF/DistortionScoreProducer.h"
 
@@ -63,6 +64,7 @@ FeatureFunction(const std::string& line)
   , m_requireSortingAfterSourceContext(false)
   , m_verbosity(std::numeric_limits<std::size_t>::max())
   , m_numScoreComponents(1)
+  , m_index(0)
 {
   m_numTuneableComponents = m_numScoreComponents;
   Initialize(line);
@@ -75,6 +77,7 @@ FeatureFunction(size_t numScoreComponents,
   , m_requireSortingAfterSourceContext(false)
   , m_verbosity(std::numeric_limits<std::size_t>::max())
   , m_numScoreComponents(numScoreComponents)
+  , m_index(0)
 {
   m_numTuneableComponents = m_numScoreComponents;
   Initialize(line);
@@ -184,6 +187,32 @@ void FeatureFunction::SetTuneableComponents(const std::string& value)
       --m_numTuneableComponents;
     }
   }
+}
+
+void 
+FeatureFunction
+::InitializeForInput(ttasksptr const& ttask)
+{ InitializeForInput(*(ttask->GetSource().get())); }
+
+void 
+FeatureFunction
+::CleanUpAfterSentenceProcessing(ttasksptr const& ttask) 
+{ CleanUpAfterSentenceProcessing(*(ttask->GetSource().get())); }
+
+size_t 
+FeatureFunction
+::GetIndex() const
+{ return m_index; }
+
+
+/// set index
+//  @return index of the next FF
+size_t 
+FeatureFunction
+::SetIndex(size_t const idx) 
+{
+  m_index = idx;
+  return this->GetNumScoreComponents() + idx;
 }
 
 }
